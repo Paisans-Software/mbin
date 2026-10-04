@@ -1,6 +1,6 @@
 services:
     php:
-        image: ghcr.io/josephquigley/mbin-paisans:latest
+        image: ghcr.io/paisans-software/mbin:latest
         build:
             dockerfile: docker/Dockerfile
             context: .
@@ -26,7 +26,7 @@ services:
             - valkey
 
     messenger:
-        image: ghcr.io/josephquigley/mbin-paisans:latest
+        image: ghcr.io/paisans-software/mbin:latest
         build:
             dockerfile: docker/Dockerfile
             context: .

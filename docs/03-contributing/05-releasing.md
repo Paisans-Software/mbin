@@ -158,7 +158,7 @@ Verify:
 ```sh
 gh run list --workflow=build-and-publish-fork-image.yaml --branch main --limit 1
 gh release list --limit 1
-docker pull ghcr.io/josephquigley/mbin-paisans:<version with + as ->
+docker pull ghcr.io/paisans-software/mbin:<version with + as ->
 ```
 
 ## If something goes wrong
