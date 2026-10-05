@@ -34,7 +34,7 @@ class ForkIdentityInNodeInfoTest extends KernelTestCase
         $software = self::getContainer()->get(NodeInfoFactory::class)->create('2.1')['software'];
 
         self::assertSame('mbin', $software['name']);
-        self::assertSame('https://github.com/josephquigley/mbin-paisans', $software['repository']);
+        self::assertSame('https://github.com/Paisans-Software/mbin', $software['repository']);
         self::assertStringEndsWith('+paisans', $software['version']);
     }
 

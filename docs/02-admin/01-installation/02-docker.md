@@ -122,10 +122,10 @@ OAUTH_ENCRYPTION_KEY=<Hex string generated in previous step>
 
 Use the Mbin provided Docker image (default) _OR_ build the docker image locally. Select one of the two options.
 
-The default is to use our prebuilt images from [ghcr.io](https://github.com/josephquigley/mbin-paisans/pkgs/container/mbin-paisans). Reference the next section if you'd like to build the Docker image locally instead.
+The default is to use our prebuilt images from [ghcr.io](https://github.com/orgs/Paisans-Software/packages/container/package/mbin). Reference the next section if you'd like to build the Docker image locally instead.
 
 > [!IMPORTANT]
-> In **production** a recommended practice is to pin the image tag to a specific release (example: 1.11.0-paisans) _instead_ of using `latest`.
+> In **production** a recommended practice is to pin the image tag to a specific release (example: 1.13.2-paisans) _instead_ of using `latest`.
 >
 
 > [!NOTE]
@@ -134,14 +134,14 @@ The default is to use our prebuilt images from [ghcr.io](https://github.com/jose
 > published as the image tag `1.11.0-paisans`.
 
 Pinning the docker image version can be done by editing the `compose.override.yaml` file and uncommenting the following lines
-(update the version number to one you want to pin to and is available on [ghcr.io](https://github.com/josephquigley/mbin-paisans/pkgs/container/mbin-paisans)):
+(update the version number to one you want to pin to and is available on [ghcr.io](https://github.com/orgs/Paisans-Software/packages/container/package/mbin)):
 
 ```yaml
 services:
   php:
-    image: ghcr.io/josephquigley/mbin-paisans:1.11.0-paisans
+    image: ghcr.io/paisans-software/mbin:1.13.2-paisans
   messenger:
-    image: ghcr.io/josephquigley/mbin-paisans:1.11.0-paisans
+    image: ghcr.io/paisans-software/mbin:1.13.2-paisans
 ```
 
 #### Build your own image
