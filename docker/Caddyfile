@@ -38,6 +38,10 @@
 		publisher_jwt {env.MERCURE_PUBLISHER_JWT_KEY} {env.MERCURE_PUBLISHER_JWT_ALG}
 		# Subscriber JWT key
 		subscriber_jwt {env.MERCURE_SUBSCRIBER_JWT_KEY} {env.MERCURE_SUBSCRIBER_JWT_ALG}
+		# Mercure 1.0 accepts the two JWT directives above only in compatibility mode.
+		# The tokens Mbin signs carry the legacy "mercure" claim and no iss, aud or
+		# at+jwt type, so the modern "issuer" form would reject every publish.
+		protocol_version_compatibility 8
 		# Allow anonymous subscribers (double-check that it's what you want)
 		anonymous
 		# Enable the subscription API (double-check that it's what you want)
