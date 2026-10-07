@@ -22,7 +22,7 @@ parameters:
     # our nodeinfo or our request log needs to know. software.name stays
     # 'mbin' on purpose: peers record and branch on it, so a novel name would
     # make us unrecognised software rather than honest software.
-    mbin_version: '1.13.2+paisans'
+    mbin_version: '1.14.0+paisans'
     kbin_domain: '%env(KBIN_DOMAIN)%'
     kbin_title: '%env(KBIN_TITLE)%'
     kbin_meta_title: '%env(KBIN_META_TITLE)%'
