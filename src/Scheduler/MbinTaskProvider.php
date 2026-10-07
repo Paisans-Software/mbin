@@ -6,6 +6,7 @@ namespace App\Scheduler;
 
 use App\Message\ClearDeadMessagesMessage;
 use App\Message\ClearDeletedUserMessage;
+use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
 use Symfony\Component\Scheduler\Schedule;
@@ -19,6 +20,7 @@ class MbinTaskProvider implements ScheduleProviderInterface
 
     public function __construct(
         private readonly CacheInterface $cache,
+        private readonly LockFactory $lockFactory,
     ) {
     }
 
@@ -30,7 +32,9 @@ class MbinTaskProvider implements ScheduleProviderInterface
                     RecurringMessage::every('1 day', new ClearDeletedUserMessage()),
                     RecurringMessage::every('1 day', new ClearDeadMessagesMessage()),
                 )
-                ->stateful($this->cache);
+                ->stateful($this->cache)
+                // Every consumer of the scheduler transport runs this schedule, so only the lock holder generates it
+                ->lock($this->lockFactory->createLock('mbin-scheduler'));
         }
 
         return $this->schedule;
