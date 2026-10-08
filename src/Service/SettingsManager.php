@@ -52,6 +52,7 @@ class SettingsManager
         private readonly LoggerInterface $logger,
         private readonly bool $mbinUseFederationAllowList,
         private readonly string $mbinSearchLang,
+        private readonly bool $mbinPrivateInstance,
     ) {
         if (!self::$dto || 'test' === $this->kernel->getEnvironment()) {
             $results = $this->repository->findAll();
@@ -92,7 +93,7 @@ class SettingsManager
                 $this->find($results, 'KBIN_FEDERATION_PAGE_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinFederationPageEnabled,
                 $this->find($results, 'KBIN_ADMIN_ONLY_OAUTH_CLIENTS', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinAdminOnlyOauthClients,
                 $this->find($results, 'MBIN_SSO_ONLY_MODE', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinSsoOnlyMode,
-                $this->find($results, 'MBIN_PRIVATE_INSTANCE', FILTER_VALIDATE_BOOLEAN) ?? false,
+                $this->find($results, 'MBIN_PRIVATE_INSTANCE', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinPrivateInstance,
                 $this->find($results, 'KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN', FILTER_VALIDATE_BOOLEAN) ?? true,
                 $this->find($results, 'MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY', FILTER_VALIDATE_BOOLEAN) ?? false,
                 $this->find($results, 'MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY', FILTER_VALIDATE_BOOLEAN) ?? false,
