@@ -54,7 +54,7 @@ class HealthControllerTest extends WebTestCase
 
         self::getContainer()->set(HealthController::class, new HealthController(
             $connection,
-            $this->getService(CacheItemPoolInterface::class),
+            self::getContainer()->get(CacheItemPoolInterface::class),
         ));
 
         $this->client->request('GET', '/healthz');
@@ -68,12 +68,12 @@ class HealthControllerTest extends WebTestCase
     {
         $cache = $this->createStub(CacheItemPoolInterface::class);
         $cache->method('getItem')->willReturnCallback(
-            fn (string $key) => $this->getService(CacheItemPoolInterface::class)->getItem($key)
+            fn (string $key) => self::getContainer()->get(CacheItemPoolInterface::class)->getItem($key)
         );
         $cache->method('save')->willReturn(false);
 
         self::getContainer()->set(HealthController::class, new HealthController(
-            $this->getService(Connection::class),
+            self::getContainer()->get(Connection::class),
             $cache,
         ));
 
