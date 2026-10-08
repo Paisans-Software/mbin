@@ -31,6 +31,10 @@ security:
         ap_contexts:
             pattern: ^/contexts(\.jsonld)?$
             security: false
+        # The health route answers without a session, so it works on a private instance
+        health:
+            pattern: ^/healthz$
+            security: false
         main:
             lazy: true
             provider: app_user_provider

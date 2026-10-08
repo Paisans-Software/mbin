@@ -1,0 +1,4 @@
+health:
+  controller: App\Controller\HealthController
+  path: /healthz
+  methods: [ GET, HEAD ]
