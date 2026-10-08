@@ -60,6 +60,6 @@ class PrivateInstanceTest extends WebTestCase
 
         $this->client->getKernel()->shutdown();
         $this->client->getKernel()->boot();
-        $this->settingsManager = $this->getService(SettingsManager::class);
+        $this->settingsManager = self::getContainer()->get(SettingsManager::class);
     }
 }

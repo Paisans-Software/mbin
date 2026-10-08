@@ -203,6 +203,7 @@ class SettingsManagerTest extends WebTestCase
             mbinNewUsersNeedApproval: false,
             logger: $this->createStub(LoggerInterface::class),
             mbinUseFederationAllowList: false,
+            mbinAuthorizedFetch: false,
             mbinSearchLang: 'english',
             mbinPrivateInstance: $mbinPrivateInstance,
         );
