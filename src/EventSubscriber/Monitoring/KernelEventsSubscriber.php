@@ -13,6 +13,7 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
@@ -67,7 +68,9 @@ readonly class KernelEventsSubscriber implements EventSubscriberInterface
         }
 
         try {
-            $routeInfo = $this->router->matchRequest($request);
+            $routeInfo = $this->router instanceof RequestMatcherInterface
+                ? $this->router->matchRequest($request)
+                : $this->router->match($request->getPathInfo());
             $routeName = $routeInfo['_route'];
             if (\in_array($routeName, self::ROUTES_TO_IGNORE)) {
                 return;
