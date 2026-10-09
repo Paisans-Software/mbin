@@ -43,6 +43,7 @@ readonly class KernelEventsSubscriber implements EventSubscriberInterface
         'ajax_fetch_user_notifications_count',
         'liip_imagine_filter',
         'custom_style',
+        'health',
         'admin_monitoring',
         'admin_monitoring_single_context',
         '_wdt',
