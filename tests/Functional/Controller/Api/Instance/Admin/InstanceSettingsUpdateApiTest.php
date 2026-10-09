@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Controller\Api\Instance\Admin;
 
-use App\Service\SettingsManager;
 use App\Tests\WebTestCase;
 use App\Utils\DownvotesMode;
 
@@ -139,11 +138,5 @@ class InstanceSettingsUpdateApiTest extends WebTestCase
         foreach ($jsonData as $key => $value) {
             self::assertEquals($settings[$key], $value, "$key did not match!");
         }
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        SettingsManager::resetDto();
     }
 }
