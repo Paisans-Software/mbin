@@ -14,20 +14,22 @@ use Doctrine\ORM\EntityManagerInterface;
 use JetBrains\PhpStorm\Pure;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
+use Symfony\Contracts\Service\ResetInterface;
 
-class SettingsManager
+class SettingsManager implements ResetInterface
 {
-    private static ?SettingsDto $dto = null;
-
-    private SettingsDto $instanceDto;
+    /**
+     * Loaded on first use and cleared by reset(), which the kernel calls after every
+     * request and the messenger worker after every message, so that a long-running
+     * worker picks up settings that were saved by another process.
+     */
+    private ?SettingsDto $instanceDto = null;
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly SettingsRepository $repository,
         private readonly RequestStack $requestStack,
-        private readonly KernelInterface $kernel,
         private readonly InstanceRepository $instanceRepository,
         private readonly string $kbinDomain,
         private readonly string $kbinTitle,
@@ -55,61 +57,65 @@ class SettingsManager
         private readonly string $mbinSearchLang,
         private readonly bool $mbinPrivateInstance,
     ) {
-        if (!self::$dto || 'test' === $this->kernel->getEnvironment()) {
-            $results = $this->repository->findAll();
+    }
 
-            $newUsersNeedApprovalDb = $this->find($results, 'MBIN_NEW_USERS_NEED_APPROVAL');
-            if ('true' === $newUsersNeedApprovalDb) {
-                $newUsersNeedApprovalEdited = true;
-            } elseif ('false' === $newUsersNeedApprovalDb) {
-                $newUsersNeedApprovalEdited = false;
-            } else {
-                $newUsersNeedApprovalEdited = $this->mbinNewUsersNeedApproval;
-            }
+    public function reset(): void
+    {
+        $this->instanceDto = null;
+    }
 
-            $dto = new SettingsDto(
-                $this->kbinDomain,
-                $this->find($results, 'KBIN_TITLE') ?? $this->kbinTitle,
-                $this->find($results, 'KBIN_META_TITLE') ?? $this->kbinMetaTitle,
-                $this->find($results, 'KBIN_META_KEYWORDS') ?? $this->kbinMetaKeywords,
-                $this->find($results, 'KBIN_META_DESCRIPTION') ?? $this->kbinMetaDescription,
-                $this->find($results, 'KBIN_DEFAULT_LANG') ?? $this->kbinDefaultLang,
-                $this->find($results, 'KBIN_CONTACT_EMAIL') ?? $this->kbinContactEmail,
-                $this->find($results, 'KBIN_SENDER_EMAIL') ?? $this->kbinSenderEmail,
-                $this->find($results, 'MBIN_DEFAULT_THEME') ?? $this->mbinDefaultTheme,
-                $this->find($results, 'KBIN_JS_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinJsEnabled,
-                $this->find(
-                    $results,
-                    'KBIN_FEDERATION_ENABLED',
-                    FILTER_VALIDATE_BOOLEAN
-                ) ?? $this->kbinFederationEnabled,
-                $this->find(
-                    $results,
-                    'KBIN_REGISTRATIONS_ENABLED',
-                    FILTER_VALIDATE_BOOLEAN
-                ) ?? $this->kbinRegistrationsEnabled,
-                $this->find($results, 'KBIN_HEADER_LOGO', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinHeaderLogo,
-                $this->find($results, 'KBIN_CAPTCHA_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinCaptchaEnabled,
-                $this->find($results, 'KBIN_MERCURE_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? false,
-                $this->find($results, 'KBIN_FEDERATION_PAGE_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinFederationPageEnabled,
-                $this->find($results, 'KBIN_ADMIN_ONLY_OAUTH_CLIENTS', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinAdminOnlyOauthClients,
-                $this->find($results, 'MBIN_SSO_ONLY_MODE', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinSsoOnlyMode,
-                $this->find($results, 'MBIN_PRIVATE_INSTANCE', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinPrivateInstance,
-                $this->find($results, 'KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN', FILTER_VALIDATE_BOOLEAN) ?? true,
-                $this->find($results, 'MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY', FILTER_VALIDATE_BOOLEAN) ?? false,
-                $this->find($results, 'MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY', FILTER_VALIDATE_BOOLEAN) ?? false,
-                $this->find($results, 'MBIN_SSO_REGISTRATIONS_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? true,
-                $this->find($results, 'MBIN_RESTRICT_MAGAZINE_CREATION', FILTER_VALIDATE_BOOLEAN) ?? false,
-                $this->find($results, 'MBIN_SSO_SHOW_FIRST', FILTER_VALIDATE_BOOLEAN) ?? false,
-                $this->find($results, 'MBIN_DOWNVOTES_MODE') ?? $this->mbinDownvotesMode->value,
-                $newUsersNeedApprovalEdited,
-                $this->find($results, 'MBIN_USE_FEDERATION_ALLOW_LIST', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinUseFederationAllowList,
-                $this->find($results, 'MBIN_AUTHORIZED_FETCH', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinAuthorizedFetch,
-            );
-            $this->instanceDto = $dto;
+    private function load(): SettingsDto
+    {
+        $results = $this->repository->findAll();
+
+        $newUsersNeedApprovalDb = $this->find($results, 'MBIN_NEW_USERS_NEED_APPROVAL');
+        if ('true' === $newUsersNeedApprovalDb) {
+            $newUsersNeedApprovalEdited = true;
+        } elseif ('false' === $newUsersNeedApprovalDb) {
+            $newUsersNeedApprovalEdited = false;
         } else {
-            $this->instanceDto = self::$dto;
+            $newUsersNeedApprovalEdited = $this->mbinNewUsersNeedApproval;
         }
+
+        return new SettingsDto(
+            $this->kbinDomain,
+            $this->find($results, 'KBIN_TITLE') ?? $this->kbinTitle,
+            $this->find($results, 'KBIN_META_TITLE') ?? $this->kbinMetaTitle,
+            $this->find($results, 'KBIN_META_KEYWORDS') ?? $this->kbinMetaKeywords,
+            $this->find($results, 'KBIN_META_DESCRIPTION') ?? $this->kbinMetaDescription,
+            $this->find($results, 'KBIN_DEFAULT_LANG') ?? $this->kbinDefaultLang,
+            $this->find($results, 'KBIN_CONTACT_EMAIL') ?? $this->kbinContactEmail,
+            $this->find($results, 'KBIN_SENDER_EMAIL') ?? $this->kbinSenderEmail,
+            $this->find($results, 'MBIN_DEFAULT_THEME') ?? $this->mbinDefaultTheme,
+            $this->find($results, 'KBIN_JS_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinJsEnabled,
+            $this->find(
+                $results,
+                'KBIN_FEDERATION_ENABLED',
+                FILTER_VALIDATE_BOOLEAN
+            ) ?? $this->kbinFederationEnabled,
+            $this->find(
+                $results,
+                'KBIN_REGISTRATIONS_ENABLED',
+                FILTER_VALIDATE_BOOLEAN
+            ) ?? $this->kbinRegistrationsEnabled,
+            $this->find($results, 'KBIN_HEADER_LOGO', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinHeaderLogo,
+            $this->find($results, 'KBIN_CAPTCHA_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinCaptchaEnabled,
+            $this->find($results, 'KBIN_MERCURE_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? false,
+            $this->find($results, 'KBIN_FEDERATION_PAGE_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinFederationPageEnabled,
+            $this->find($results, 'KBIN_ADMIN_ONLY_OAUTH_CLIENTS', FILTER_VALIDATE_BOOLEAN) ?? $this->kbinAdminOnlyOauthClients,
+            $this->find($results, 'MBIN_SSO_ONLY_MODE', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinSsoOnlyMode,
+            $this->find($results, 'MBIN_PRIVATE_INSTANCE', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinPrivateInstance,
+            $this->find($results, 'KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN', FILTER_VALIDATE_BOOLEAN) ?? true,
+            $this->find($results, 'MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY', FILTER_VALIDATE_BOOLEAN) ?? false,
+            $this->find($results, 'MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY', FILTER_VALIDATE_BOOLEAN) ?? false,
+            $this->find($results, 'MBIN_SSO_REGISTRATIONS_ENABLED', FILTER_VALIDATE_BOOLEAN) ?? true,
+            $this->find($results, 'MBIN_RESTRICT_MAGAZINE_CREATION', FILTER_VALIDATE_BOOLEAN) ?? false,
+            $this->find($results, 'MBIN_SSO_SHOW_FIRST', FILTER_VALIDATE_BOOLEAN) ?? false,
+            $this->find($results, 'MBIN_DOWNVOTES_MODE') ?? $this->mbinDownvotesMode->value,
+            $newUsersNeedApprovalEdited,
+            $this->find($results, 'MBIN_USE_FEDERATION_ALLOW_LIST', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinUseFederationAllowList,
+            $this->find($results, 'MBIN_AUTHORIZED_FETCH', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinAuthorizedFetch,
+        );
     }
 
     private function find(array $results, string $name, ?int $filter = null)
@@ -131,7 +137,7 @@ class SettingsManager
 
     public function getDto(): SettingsDto
     {
-        return $this->instanceDto;
+        return $this->instanceDto ??= $this->load();
     }
 
     public function save(SettingsDto $dto): void
@@ -228,7 +234,7 @@ class SettingsManager
 
     public function get(string $name)
     {
-        return $this->instanceDto->{$name};
+        return $this->getDto()->{$name};
     }
 
     public function getDownvotesMode(): DownvotesMode
@@ -243,14 +249,15 @@ class SettingsManager
 
     public function set(string $name, $value): void
     {
-        $this->instanceDto->{$name} = $value;
+        $dto = $this->getDto();
+        $dto->{$name} = $value;
 
-        $this->save($this->instanceDto);
+        $this->save($dto);
     }
 
     public function getValue(string $name): string
     {
-        return $this->instanceDto->{$name};
+        return $this->getDto()->{$name};
     }
 
     public function getLocale(): string
@@ -278,13 +285,5 @@ class SettingsManager
     public function getSearchLang(): string
     {
         return $this->mbinSearchLang;
-    }
-
-    /**
-     * this should only be called in the test environment.
-     */
-    public static function resetDto(): void
-    {
-        self::$dto = null;
     }
 }
