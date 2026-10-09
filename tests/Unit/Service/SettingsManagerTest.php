@@ -13,30 +13,19 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\KernelInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 class SettingsManagerTest extends WebTestCase
 {
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        // Reset static DTO to avoid leaking settings between tests
-        SettingsManager::resetDto();
-    }
-
     public function testGetMaxImageByteStringDefault(): void
     {
-        SettingsManager::resetDto();
-
         // Set max images bytes (as if its coming from the .env)
         $setMaxImagesBytes = 1500000;
 
         $settingsRepository = $this->createStub(SettingsRepository::class);
-        $settingsRepository->method('findAll')->willReturn([]);
+        $settingsRepository->method('findAllIndexedByName')->willReturn([]);
         $entityManager = $this->createStub(EntityManagerInterface::class);
         $requestStack = $this->createStub(RequestStack::class);
-        $kernel = $this->createStub(KernelInterface::class);
-        $kernel->method('getEnvironment')->willReturn('prod');
         $instanceRepository = $this->createStub(InstanceRepository::class);
         $logger = $this->createStub(LoggerInterface::class);
 
@@ -45,7 +34,6 @@ class SettingsManagerTest extends WebTestCase
             entityManager: $entityManager,
             repository: $settingsRepository,
             requestStack: $requestStack,
-            kernel: $kernel,
             instanceRepository: $instanceRepository,
             kbinDomain: 'domain.tld',
             kbinTitle: 'title',
@@ -80,17 +68,13 @@ class SettingsManagerTest extends WebTestCase
 
     public function testGetMaxImageByteStringOverridden(): void
     {
-        SettingsManager::resetDto();
-
         // Set max images bytes (as if its coming from the .env)
         $setMaxImagesBytes = 1572864;
 
         $settingsRepository = $this->createStub(SettingsRepository::class);
-        $settingsRepository->method('findAll')->willReturn([]);
+        $settingsRepository->method('findAllIndexedByName')->willReturn([]);
         $entityManager = $this->createStub(EntityManagerInterface::class);
         $requestStack = $this->createStub(RequestStack::class);
-        $kernel = $this->createStub(KernelInterface::class);
-        $kernel->method('getEnvironment')->willReturn('prod');
         $instanceRepository = $this->createStub(InstanceRepository::class);
         $logger = $this->createStub(LoggerInterface::class);
 
@@ -99,7 +83,6 @@ class SettingsManagerTest extends WebTestCase
             entityManager: $entityManager,
             repository: $settingsRepository,
             requestStack: $requestStack,
-            kernel: $kernel,
             instanceRepository: $instanceRepository,
             kbinDomain: 'domain.tld',
             kbinTitle: 'title',
@@ -154,8 +137,6 @@ class SettingsManagerTest extends WebTestCase
         );
         $this->assertFalse($manager->get('MBIN_PRIVATE_INSTANCE'));
 
-        SettingsManager::resetDto();
-
         $manager = $this->createManagerForPrivateInstance(
             settings: [new Settings('MBIN_PRIVATE_INSTANCE', 'true')],
             mbinPrivateInstance: false,
@@ -168,18 +149,13 @@ class SettingsManagerTest extends WebTestCase
      */
     private function createManagerForPrivateInstance(array $settings, bool $mbinPrivateInstance): SettingsManager
     {
-        SettingsManager::resetDto();
-
         $settingsRepository = $this->createStub(SettingsRepository::class);
-        $settingsRepository->method('findAll')->willReturn($settings);
-        $kernel = $this->createStub(KernelInterface::class);
-        $kernel->method('getEnvironment')->willReturn('prod');
+        $settingsRepository->method('findAllIndexedByName')->willReturn($settings);
 
         return new SettingsManager(
             entityManager: $this->createStub(EntityManagerInterface::class),
             repository: $settingsRepository,
             requestStack: $this->createStub(RequestStack::class),
-            kernel: $kernel,
             instanceRepository: $this->createStub(InstanceRepository::class),
             kbinDomain: 'domain.tld',
             kbinTitle: 'title',
@@ -206,6 +182,117 @@ class SettingsManagerTest extends WebTestCase
             mbinAuthorizedFetch: false,
             mbinSearchLang: 'english',
             mbinPrivateInstance: $mbinPrivateInstance,
+        );
+    }
+
+    public function testDoesNotReadTheDatabaseUntilASettingIsUsed(): void
+    {
+        $settingsRepository = $this->createMock(SettingsRepository::class);
+        $settingsRepository->expects($this->never())->method('findAllIndexedByName');
+
+        $this->createManager($settingsRepository, $this->createStub(EntityManagerInterface::class));
+    }
+
+    public function testDatabaseValueWinsOverConfiguredValueAndDefault(): void
+    {
+        $settingsRepository = $this->createStub(SettingsRepository::class);
+        $settingsRepository->method('findAllIndexedByName')->willReturn([]);
+        $manager = $this->createManager($settingsRepository, $this->createStub(EntityManagerInterface::class));
+
+        $this->assertSame('title', $manager->get('KBIN_TITLE'));
+        $this->assertFalse($manager->get('MBIN_PRIVATE_INSTANCE'));
+
+        $settingsRepository = $this->createStub(SettingsRepository::class);
+        $settingsRepository->method('findAllIndexedByName')->willReturn([
+            new Settings('KBIN_TITLE', 'database title'),
+            new Settings('MBIN_PRIVATE_INSTANCE', 'true'),
+        ]);
+        $manager = $this->createManager($settingsRepository, $this->createStub(EntityManagerInterface::class));
+
+        $this->assertSame('database title', $manager->get('KBIN_TITLE'));
+        $this->assertTrue($manager->get('MBIN_PRIVATE_INSTANCE'));
+    }
+
+    public function testResetReloadsSettingsChangedInTheDatabase(): void
+    {
+        $rows = [new Settings('KBIN_TITLE', 'old title')];
+        $settingsRepository = $this->createStub(SettingsRepository::class);
+        $settingsRepository->method('findAllIndexedByName')->willReturnCallback(function () use (&$rows) {
+            return $rows;
+        });
+        $manager = $this->createManager($settingsRepository, $this->createStub(EntityManagerInterface::class));
+
+        $this->assertInstanceOf(ResetInterface::class, $manager);
+        $this->assertSame('old title', $manager->get('KBIN_TITLE'));
+
+        $rows = [new Settings('KBIN_TITLE', 'new title')];
+
+        $this->assertSame('old title', $manager->getDto()->KBIN_TITLE);
+
+        $manager->reset();
+
+        $this->assertSame('new title', $manager->get('KBIN_TITLE'));
+    }
+
+    public function testResetPicksUpASettingSavedByAnotherInstance(): void
+    {
+        // Two managers over one store stand in for two long-running workers.
+        $rows = [];
+        $settingsRepository = $this->createStub(SettingsRepository::class);
+        $settingsRepository->method('findAllIndexedByName')->willReturnCallback(function () use (&$rows) {
+            return $rows;
+        });
+        $entityManager = $this->createStub(EntityManagerInterface::class);
+        $entityManager->method('persist')->willReturnCallback(function (Settings $settings) use (&$rows) {
+            $rows[$settings->name] = $settings;
+        });
+
+        $savingWorker = $this->createManager($settingsRepository, $entityManager);
+        $otherWorker = $this->createManager($settingsRepository, $entityManager);
+        $this->assertFalse($otherWorker->get('MBIN_PRIVATE_INSTANCE'));
+
+        $savingWorker->set('MBIN_PRIVATE_INSTANCE', true);
+
+        $this->assertTrue($savingWorker->get('MBIN_PRIVATE_INSTANCE'));
+        $this->assertFalse($otherWorker->get('MBIN_PRIVATE_INSTANCE'));
+
+        $otherWorker->reset();
+
+        $this->assertTrue($otherWorker->get('MBIN_PRIVATE_INSTANCE'));
+    }
+
+    private function createManager(SettingsRepository $settingsRepository, EntityManagerInterface $entityManager): SettingsManager
+    {
+        return new SettingsManager(
+            entityManager: $entityManager,
+            repository: $settingsRepository,
+            requestStack: $this->createStub(RequestStack::class),
+            instanceRepository: $this->createStub(InstanceRepository::class),
+            kbinDomain: 'domain.tld',
+            kbinTitle: 'title',
+            kbinMetaTitle: 'meta title',
+            kbinMetaDescription: 'meta description',
+            kbinMetaKeywords: 'meta keywords',
+            kbinDefaultLang: 'en',
+            kbinContactEmail: 'contact@domain.tld',
+            kbinSenderEmail: 'sender@domain.tld',
+            mbinDefaultTheme: 'light',
+            kbinJsEnabled: true,
+            kbinFederationEnabled: true,
+            kbinRegistrationsEnabled: true,
+            kbinHeaderLogo: true,
+            kbinCaptchaEnabled: true,
+            kbinFederationPageEnabled: true,
+            kbinAdminOnlyOauthClients: true,
+            mbinSsoOnlyMode: false,
+            mbinMaxImageBytes: 1500000,
+            mbinDownvotesMode: DownvotesMode::Enabled,
+            mbinNewUsersNeedApproval: false,
+            logger: $this->createStub(LoggerInterface::class),
+            mbinUseFederationAllowList: false,
+            mbinAuthorizedFetch: false,
+            mbinSearchLang: 'english',
+            mbinPrivateInstance: false,
         );
     }
 }
