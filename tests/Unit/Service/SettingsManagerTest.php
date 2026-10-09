@@ -23,7 +23,7 @@ class SettingsManagerTest extends WebTestCase
         $setMaxImagesBytes = 1500000;
 
         $settingsRepository = $this->createStub(SettingsRepository::class);
-        $settingsRepository->method('findAll')->willReturn([]);
+        $settingsRepository->method('findAllIndexedByName')->willReturn([]);
         $entityManager = $this->createStub(EntityManagerInterface::class);
         $requestStack = $this->createStub(RequestStack::class);
         $instanceRepository = $this->createStub(InstanceRepository::class);
@@ -70,7 +70,7 @@ class SettingsManagerTest extends WebTestCase
         $setMaxImagesBytes = 1572864;
 
         $settingsRepository = $this->createStub(SettingsRepository::class);
-        $settingsRepository->method('findAll')->willReturn([]);
+        $settingsRepository->method('findAllIndexedByName')->willReturn([]);
         $entityManager = $this->createStub(EntityManagerInterface::class);
         $requestStack = $this->createStub(RequestStack::class);
         $instanceRepository = $this->createStub(InstanceRepository::class);
@@ -114,7 +114,7 @@ class SettingsManagerTest extends WebTestCase
     public function testDoesNotReadTheDatabaseUntilASettingIsUsed(): void
     {
         $settingsRepository = $this->createMock(SettingsRepository::class);
-        $settingsRepository->expects($this->never())->method('findAll');
+        $settingsRepository->expects($this->never())->method('findAllIndexedByName');
 
         $this->createManager($settingsRepository, $this->createStub(EntityManagerInterface::class));
     }
@@ -122,14 +122,14 @@ class SettingsManagerTest extends WebTestCase
     public function testDatabaseValueWinsOverConfiguredValueAndDefault(): void
     {
         $settingsRepository = $this->createStub(SettingsRepository::class);
-        $settingsRepository->method('findAll')->willReturn([]);
+        $settingsRepository->method('findAllIndexedByName')->willReturn([]);
         $manager = $this->createManager($settingsRepository, $this->createStub(EntityManagerInterface::class));
 
         $this->assertSame('title', $manager->get('KBIN_TITLE'));
         $this->assertFalse($manager->get('MBIN_PRIVATE_INSTANCE'));
 
         $settingsRepository = $this->createStub(SettingsRepository::class);
-        $settingsRepository->method('findAll')->willReturn([
+        $settingsRepository->method('findAllIndexedByName')->willReturn([
             new Settings('KBIN_TITLE', 'database title'),
             new Settings('MBIN_PRIVATE_INSTANCE', 'true'),
         ]);
@@ -143,7 +143,7 @@ class SettingsManagerTest extends WebTestCase
     {
         $rows = [new Settings('KBIN_TITLE', 'old title')];
         $settingsRepository = $this->createStub(SettingsRepository::class);
-        $settingsRepository->method('findAll')->willReturnCallback(function () use (&$rows) {
+        $settingsRepository->method('findAllIndexedByName')->willReturnCallback(function () use (&$rows) {
             return $rows;
         });
         $manager = $this->createManager($settingsRepository, $this->createStub(EntityManagerInterface::class));
@@ -165,7 +165,7 @@ class SettingsManagerTest extends WebTestCase
         // Two managers over one store stand in for two long-running workers.
         $rows = [];
         $settingsRepository = $this->createStub(SettingsRepository::class);
-        $settingsRepository->method('findAll')->willReturnCallback(function () use (&$rows) {
+        $settingsRepository->method('findAllIndexedByName')->willReturnCallback(function () use (&$rows) {
             return $rows;
         });
         $entityManager = $this->createStub(EntityManagerInterface::class);
