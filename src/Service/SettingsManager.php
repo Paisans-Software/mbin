@@ -66,7 +66,7 @@ class SettingsManager implements ResetInterface
 
     private function load(): SettingsDto
     {
-        $results = $this->repository->findAll();
+        $results = $this->repository->findAllIndexedByName();
 
         $newUsersNeedApprovalDb = $this->find($results, 'MBIN_NEW_USERS_NEED_APPROVAL');
         if ('true' === $newUsersNeedApprovalDb) {
@@ -142,8 +142,10 @@ class SettingsManager implements ResetInterface
 
     public function save(SettingsDto $dto): void
     {
+        $rows = $this->repository->findAllIndexedByName();
+
         foreach ($dto as $name => $value) {
-            $s = $this->repository->findOneByName($name);
+            $s = $rows[$name] ?? null;
 
             if (\is_bool($value)) {
                 $value = $value ? 'true' : 'false';
