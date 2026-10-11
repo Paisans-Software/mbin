@@ -42,6 +42,15 @@ class ResetPasswordControllerTest extends WebTestCase
         $this->assertResponseHeaderSame('Location', $unknownLocation);
     }
 
+    public function testResetPasswordIsClosedInSsoOnlyMode(): void
+    {
+        $this->settingsManager->set('MBIN_SSO_ONLY_MODE', true);
+
+        $this->client->request('GET', '/reset-password');
+
+        $this->assertResponseRedirects('/login');
+    }
+
     private function requestReset(string $email): void
     {
         $crawler = $this->client->request('GET', '/reset-password');
