@@ -158,6 +158,9 @@ parameters:
     mbin_search_lang_default: 'english'
     mbin_search_lang: '%env(string:default:mbin_search_lang_default:MBIN_SEARCH_LANGUAGE)%'
 
+    # Comma-separated setting names that only the environment sets: an admin cannot change them
+    mbin_locked_settings: '%env(string:default::MBIN_LOCKED_SETTINGS)%'
+
     trueVal: 'true'
     mbin_monitoring_enabled: '%env(bool:default::MBIN_MONITORING_ENABLED)%'
     mbin_monitoring_query_parameters_enabled: '%env(bool:default::MBIN_MONITORING_QUERY_PARAMETERS_ENABLED)%'
@@ -252,6 +255,7 @@ services:
             $mbinAuthorizedFetch: '%mbin_authorized_fetch%'
             $mbinSearchLang: '%mbin_search_lang%'
             $mbinPrivateInstance: '%mbin_private_instance%'
+            $mbinLockedSettings: '%mbin_locked_settings%'
 
     # Markdown
     App\Markdown\Factory\EnvironmentFactory:
