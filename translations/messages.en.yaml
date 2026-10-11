@@ -1276,3 +1276,4 @@ filter_lists_feeds_help: Filter words in threads, microblogs and comments in fee
 filter_lists_comments_help: Filter words while viewing a thread or microblog in the comment tree.
 filter_lists_profile_help: Filter words while viewing a users' profile in their content.
 expired: Expired
+setting_locked_by_configuration: This server's configuration sets this, so it cannot be changed here.
