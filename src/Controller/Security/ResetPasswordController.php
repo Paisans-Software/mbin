@@ -61,7 +61,8 @@ class ResetPasswordController extends AbstractController
         ]);
 
         // Do not reveal whether a user account was found or not.
-        if (!$user) {
+        // An SSO account signs in through its identity provider, so it has no password to reset.
+        if (!$user || $user->isSsoControlled()) {
             return $this->redirectToRoute('app_check_email');
         }
 
