@@ -1,0 +1,4 @@
+{# The note under a field that MBIN_LOCKED_SETTINGS hands to the environment, which the form renders disabled. #}
+{% if field.vars.disabled %}
+    <div class="help-text{{ 'checkbox' in field.vars.block_prefixes ? ' checkbox' }}">{{ 'setting_locked_by_configuration'|trans }}</div>
+{% endif %}

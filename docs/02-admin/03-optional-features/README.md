@@ -14,3 +14,4 @@ Like setting-up:
 - [Monitoring](08-monitoring.md) - Internal monitoring of requests and messengers
 - [Image compression](09-image-compression.md) - compress images if they exceed your maximum image size
 - [Authorized fetch](10-authorized_fetch.md) - require a valid HTTP signature on inbound ActivityPub GET requests, so only instances you federate with can read your content
+- [Locked settings](11-locked_settings.md) - keep chosen settings under the control of your `.env` file, so an admin cannot change them

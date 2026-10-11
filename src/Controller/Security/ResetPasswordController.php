@@ -35,6 +35,10 @@ class ResetPasswordController extends AbstractController
 
     public function request(Request $request, MailerInterface $mailer, TranslatorInterface $translator): Response
     {
+        if (true === $this->settingsManager->get('MBIN_SSO_ONLY_MODE')) {
+            return $this->redirectToRoute('app_login');
+        }
+
         $form = $this->createForm(ResetPasswordRequestFormType::class);
         $form->handleRequest($request);
 
@@ -61,7 +65,8 @@ class ResetPasswordController extends AbstractController
         ]);
 
         // Do not reveal whether a user account was found or not.
-        if (!$user) {
+        // An SSO account signs in through its identity provider, so it has no password to reset.
+        if (!$user || $user->isSsoControlled()) {
             return $this->redirectToRoute('app_check_email');
         }
 

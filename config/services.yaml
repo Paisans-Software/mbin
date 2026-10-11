@@ -22,7 +22,7 @@ parameters:
     # our nodeinfo or our request log needs to know. software.name stays
     # 'mbin' on purpose: peers record and branch on it, so a novel name would
     # make us unrecognised software rather than honest software.
-    mbin_version: '1.14.0+paisans'
+    mbin_version: '1.15.0+paisans'
     kbin_domain: '%env(KBIN_DOMAIN)%'
     kbin_title: '%env(KBIN_TITLE)%'
     kbin_meta_title: '%env(KBIN_META_TITLE)%'
@@ -153,9 +153,13 @@ parameters:
     mbin_new_users_need_approval: '%env(bool:default::MBIN_NEW_USERS_NEED_APPROVAL)%'
     mbin_use_federation_allow_list: '%env(bool:default::MBIN_USE_FEDERATION_ALLOW_LIST)%'
     mbin_authorized_fetch: '%env(bool:default::MBIN_AUTHORIZED_FETCH)%'
+    mbin_private_instance: '%env(bool:default::MBIN_PRIVATE_INSTANCE)%'
 
     mbin_search_lang_default: 'english'
     mbin_search_lang: '%env(string:default:mbin_search_lang_default:MBIN_SEARCH_LANGUAGE)%'
+
+    # Comma-separated setting names that only the environment sets: an admin cannot change them
+    mbin_locked_settings: '%env(string:default::MBIN_LOCKED_SETTINGS)%'
 
     trueVal: 'true'
     mbin_monitoring_enabled: '%env(bool:default::MBIN_MONITORING_ENABLED)%'
@@ -250,6 +254,8 @@ services:
             $mbinUseFederationAllowList: '%mbin_use_federation_allow_list%'
             $mbinAuthorizedFetch: '%mbin_authorized_fetch%'
             $mbinSearchLang: '%mbin_search_lang%'
+            $mbinPrivateInstance: '%mbin_private_instance%'
+            $mbinLockedSettings: '%mbin_locked_settings%'
 
     # Markdown
     App\Markdown\Factory\EnvironmentFactory:

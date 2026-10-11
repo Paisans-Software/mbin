@@ -35,7 +35,7 @@ class InstanceUpdateSettingsApi extends InstanceBaseApi
     )]
     #[OA\Response(
         response: 400,
-        description: 'Invalid settings provided',
+        description: 'Invalid settings provided, or a change to a setting locked by MBIN_LOCKED_SETTINGS',
         content: new OA\JsonContent(ref: new Model(type: BadRequestErrorSchema::class))
     )]
     #[OA\Response(
@@ -80,7 +80,15 @@ class InstanceUpdateSettingsApi extends InstanceBaseApi
             throw new BadRequestHttpException((string) $errors);
         }
 
-        $settingDto = $dto->mergeIntoDto($settings->getDto());
+        // A locked setting may be sent unchanged, as part of a full set, but never changed.
+        $current = $settings->getDto();
+        foreach ($settings->getLockedSettings() as $name) {
+            if (isset($dto->{$name}) && $dto->{$name} !== $current->{$name}) {
+                throw new BadRequestHttpException(\sprintf('%s is locked by MBIN_LOCKED_SETTINGS and cannot be changed.', $name));
+            }
+        }
+
+        $settingDto = $dto->mergeIntoDto($current);
 
         $settings->save($settingDto);
 

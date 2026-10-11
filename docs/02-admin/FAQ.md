@@ -102,6 +102,10 @@ Now you can open the RabbitMQ management page: (insecure connection!) `http://<s
 
 ![Typical load on very small instances](../images/rabbit_small_load_typical.png)
 
+## How can an uptime monitor check Mbin?
+
+Point it at `https://<yourdomain>/healthz`. It accepts `GET` and `HEAD`, and answers `200` with an empty body when Mbin can reach both PostgreSQL and its cache (Redis or Valkey), or `503` with an empty body when it cannot. The answer carries no other detail, sets no cookie and needs no login, so it also works on a private instance. The request must use your instance domain as its host name, like any other request to Mbin.
+
 ## Messenger Queue is building up even though my messengers are idling
 
 We recently changed the messenger config to retry failed messages 3 times, instead of sending them straight to the `failed` queue.
