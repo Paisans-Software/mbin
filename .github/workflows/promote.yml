@@ -124,8 +124,9 @@ jobs:
 
       # Which release the channel names now is worked out from digests, not
       # from the image's org.opencontainers.image.version label. Releases are
-      # retags of a branch build, so that label says "main" on every one of
-      # them. The channel tag is a copy of a release's manifest, so its digest
+      # retags of a branch build, and until the build set that label from the
+      # version file it said "main", so every release published before then
+      # carries a label that names no version. The channel tag is a copy of a release's manifest, so its digest
       # equals the digest of the release tag it was promoted from. Fork tags
       # are tried newest first and the first match wins, so if two releases
       # ever share a build the channel is taken to name the newer one.

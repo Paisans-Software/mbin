@@ -191,8 +191,10 @@ already names does nothing and succeeds.
 
 It works out which release the channel names now by comparing the channel's
 digest with the digest of each fork release tag. The image's
-`org.opencontainers.image.version` label cannot be used for this: releases are
-retags of the `main` branch build, so the label reads `main` on all of them.
+`org.opencontainers.image.version` label cannot be relied on for this. Releases
+are retags of the `main` branch build, and the build only began setting that
+label to `mbin_version` after `1.15.0+paisans` was released, so on that release
+and every one before it the label reads `main`.
 
 It refuses to move a channel to an older release than the one it names, and to
 move a channel whose digest matches no fork release, unless the `rollback`
