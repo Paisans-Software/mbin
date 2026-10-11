@@ -75,6 +75,11 @@ class UserEditController extends AbstractController
         $user = $this->getUserOrThrow();
         $this->denyAccessUnlessGranted('edit_profile', $user);
 
+        // The identity provider owns the address of an SSO account. The page still shows it read only.
+        if ($user->isSsoControlled() && $request->isMethod('POST')) {
+            throw new AccessDeniedException();
+        }
+
         $dto = $this->manager->createDto($user);
 
         $form = $this->createForm(UserEmailType::class, $dto);
