@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Controller\Security;
 
+use App\Service\SettingsManager;
 use App\Tests\WebTestCase;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 
@@ -40,6 +41,21 @@ class ResetPasswordControllerTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame($unknownStatus);
         $this->assertResponseHeaderSame('Location', $unknownLocation);
+    }
+
+    public function testResetPasswordIsClosedInSsoOnlyMode(): void
+    {
+        $this->settingsManager->set('MBIN_SSO_ONLY_MODE', true);
+
+        $this->client->request('GET', '/reset-password');
+
+        $this->assertResponseRedirects('/login');
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        SettingsManager::resetDto();
     }
 
     private function requestReset(string $email): void

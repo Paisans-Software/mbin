@@ -35,6 +35,10 @@ class ResetPasswordController extends AbstractController
 
     public function request(Request $request, MailerInterface $mailer, TranslatorInterface $translator): Response
     {
+        if (true === $this->settingsManager->get('MBIN_SSO_ONLY_MODE')) {
+            return $this->redirectToRoute('app_login');
+        }
+
         $form = $this->createForm(ResetPasswordRequestFormType::class);
         $form->handleRequest($request);
 
