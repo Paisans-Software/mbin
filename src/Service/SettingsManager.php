@@ -20,11 +20,44 @@ use Symfony\Contracts\Service\ResetInterface;
 class SettingsManager implements ResetInterface
 {
     /**
+     * The settings that fall back to an environment variable when the database
+     * holds no value, which are the only ones MBIN_LOCKED_SETTINGS may name.
+     * A locked setting always reads that environment value.
+     */
+    public const array LOCKABLE_SETTINGS = [
+        'KBIN_DOMAIN',
+        'KBIN_TITLE',
+        'KBIN_META_TITLE',
+        'KBIN_META_KEYWORDS',
+        'KBIN_META_DESCRIPTION',
+        'KBIN_DEFAULT_LANG',
+        'KBIN_CONTACT_EMAIL',
+        'KBIN_SENDER_EMAIL',
+        'MBIN_DEFAULT_THEME',
+        'KBIN_JS_ENABLED',
+        'KBIN_FEDERATION_ENABLED',
+        'KBIN_REGISTRATIONS_ENABLED',
+        'KBIN_HEADER_LOGO',
+        'KBIN_CAPTCHA_ENABLED',
+        'KBIN_FEDERATION_PAGE_ENABLED',
+        'KBIN_ADMIN_ONLY_OAUTH_CLIENTS',
+        'MBIN_SSO_ONLY_MODE',
+        'MBIN_PRIVATE_INSTANCE',
+        'MBIN_DOWNVOTES_MODE',
+        'MBIN_NEW_USERS_NEED_APPROVAL',
+        'MBIN_USE_FEDERATION_ALLOW_LIST',
+        'MBIN_AUTHORIZED_FETCH',
+    ];
+
+    /**
      * Loaded on first use and cleared by reset(), which the kernel calls after every
      * request and the messenger worker after every message, so that a long-running
      * worker picks up settings that were saved by another process.
      */
     private ?SettingsDto $instanceDto = null;
+
+    /** @var string[] */
+    private readonly array $lockedSettings;
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -56,7 +89,9 @@ class SettingsManager implements ResetInterface
         private readonly bool $mbinAuthorizedFetch,
         private readonly string $mbinSearchLang,
         private readonly bool $mbinPrivateInstance,
+        string $mbinLockedSettings = '',
     ) {
+        $this->lockedSettings = self::parseLockedSettings($mbinLockedSettings);
     }
 
     public function reset(): void
@@ -66,7 +101,11 @@ class SettingsManager implements ResetInterface
 
     private function load(): SettingsDto
     {
-        $results = $this->repository->findAllIndexedByName();
+        // A locked setting ignores any row the database still holds for it.
+        $results = array_filter(
+            $this->repository->findAllIndexedByName(),
+            fn (Settings $s) => !$this->isLocked($s->name),
+        );
 
         $newUsersNeedApprovalDb = $this->find($results, 'MBIN_NEW_USERS_NEED_APPROVAL');
         if ('true' === $newUsersNeedApprovalDb) {
@@ -118,6 +157,46 @@ class SettingsManager implements ResetInterface
         );
     }
 
+    /**
+     * @return string[]
+     */
+    private static function parseLockedSettings(string $value): array
+    {
+        $names = array_values(array_unique(array_filter(
+            array_map('trim', explode(',', $value)),
+            fn (string $name) => '' !== $name,
+        )));
+
+        foreach ($names as $name) {
+            if (!property_exists(SettingsDto::class, $name)) {
+                throw new \InvalidArgumentException(\sprintf('MBIN_LOCKED_SETTINGS names "%s", which is not a setting.', $name));
+            }
+
+            if (!\in_array($name, self::LOCKABLE_SETTINGS, true)) {
+                throw new \InvalidArgumentException(\sprintf('MBIN_LOCKED_SETTINGS names "%s", which has no environment variable to fall back on, so it cannot be locked.', $name));
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Whether the setting is named in MBIN_LOCKED_SETTINGS, so that only the
+     * environment sets it and an admin cannot change it.
+     */
+    public function isLocked(string $name): bool
+    {
+        return \in_array($name, $this->lockedSettings, true);
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getLockedSettings(): array
+    {
+        return $this->lockedSettings;
+    }
+
     private function find(array $results, string $name, ?int $filter = null)
     {
         $res = array_values(array_filter($results, fn ($s) => $s->name === $name));
@@ -145,6 +224,12 @@ class SettingsManager implements ResetInterface
         $rows = $this->repository->findAllIndexedByName();
 
         foreach ($dto as $name => $value) {
+            // Never write a locked setting. A row left from before it was locked
+            // stays in place, ignored, and applies again if it is unlocked.
+            if ($this->isLocked($name)) {
+                continue;
+            }
+
             $s = $rows[$name] ?? null;
 
             if (\is_bool($value)) {
@@ -251,6 +336,10 @@ class SettingsManager implements ResetInterface
 
     public function set(string $name, $value): void
     {
+        if ($this->isLocked($name)) {
+            throw new \LogicException(\sprintf('%s is locked by MBIN_LOCKED_SETTINGS, so only the environment can change it.', $name));
+        }
+
         $dto = $this->getDto();
         $dto->{$name} = $value;
 
