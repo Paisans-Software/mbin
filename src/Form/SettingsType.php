@@ -62,6 +62,13 @@ class SettingsType extends AbstractType
             ])
             ->add('MBIN_NEW_USERS_NEED_APPROVAL', CheckboxType::class, ['required' => false])
             ->add('submit', SubmitType::class);
+
+        // A disabled field ignores whatever a request submits for it.
+        foreach ($this->settingsManager->getLockedSettings() as $name) {
+            if ($builder->has($name)) {
+                $builder->get($name)->setDisabled(true);
+            }
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void

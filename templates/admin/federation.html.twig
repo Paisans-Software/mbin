@@ -22,10 +22,12 @@
                     {{ form_label(form.federationEnabled, 'federation_enabled') }}
                     {{ form_widget(form.federationEnabled) }}
                 </div>
+                {{ include('admin/_locked_setting.html.twig', {field: form.federationEnabled}) }}
                 <div class="checkbox">
                     {{ form_label(form.federationPageEnabled, 'federation_page_enabled') }}
                     {{ form_widget(form.federationPageEnabled) }}
                 </div>
+                {{ include('admin/_locked_setting.html.twig', {field: form.federationPageEnabled}) }}
                 <div class="checkbox">
                     {{ form_label(form.federationUsesAllowList, 'federation_uses_allowlist') }}
                     {{ form_widget(form.federationUsesAllowList) }}
@@ -33,6 +35,7 @@
                 <div class="checkbox help-text">
                     {{ form_help(form.federationUsesAllowList) }}
                 </div>
+                {{ include('admin/_locked_setting.html.twig', {field: form.federationUsesAllowList}) }}
                 <div class="actions">
                     {{ form_row(form.submit, { 'label': 'save'|trans, attr: {class: 'btn btn__primary'} }) }}
                 </div>
