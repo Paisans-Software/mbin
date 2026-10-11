@@ -13,3 +13,4 @@ Like setting-up:
 - [Anubis](07-anubis.md) - A service for weighing the incoming requests and may present them with a proof-of-work challenge. It is useful if your instance gets hit a lot of bot traffic that you're tired of filtering through
 - [Monitoring](08-monitoring.md) - Internal monitoring of requests and messengers
 - [Image compression](09-image-compression.md) - compress images if they exceed your maximum image size
+- [Locked settings](10-locked_settings.md) - keep chosen settings under the control of your `.env` file, so an admin cannot change them
