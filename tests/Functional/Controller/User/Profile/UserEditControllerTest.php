@@ -207,4 +207,38 @@ class UserEditControllerTest extends WebTestCase
 
         $this->assertSelectorTextContains('#header', 'JohnDoe');
     }
+
+    public function testSsoControlledUserCannotChangeEmail(): void
+    {
+        $this->client = $this->register(true);
+
+        $user = $this->userRepository->findOneBy(['username' => 'JohnDoe']);
+        $this->client->loginUser($user);
+
+        $crawler = $this->client->request('GET', '/settings/email');
+        $form = $crawler->filter('#main form[name=user_email]')->selectButton('Save')->form([
+            'user_email[newEmail][first]' => 'acme@kbin.pub',
+            'user_email[newEmail][second]' => 'acme@kbin.pub',
+            'user_email[currentPassword]' => 'secret',
+        ]);
+
+        // Link the account to an identity provider after rendering the form, so the submission carries a valid CSRF token.
+        $user->oauthGoogleId = 'google-subject';
+        $this->entityManager->flush();
+
+        $this->client->submit($form);
+
+        $this->assertResponseStatusCodeSame(403);
+        $this->assertEmailCount(0);
+
+        $this->entityManager->refresh($user);
+        $this->assertSame('johndoe@kbin.pub', $user->email);
+        $this->assertTrue($user->isVerified);
+
+        $this->client->request('GET', '/settings/email');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorNotExists('#main form[name=user_email]');
+        $this->assertSelectorTextContains('#content', 'johndoe@kbin.pub');
+    }
 }
