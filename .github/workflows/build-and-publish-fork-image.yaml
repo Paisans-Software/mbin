@@ -41,6 +41,22 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Without this the version label is the branch name, since that is the
+      # first tag below, and a release only retags this build. So every
+      # release image would say "main". Tools that show which version an image
+      # is (the toolkit's dry run, for one) read this label.
+      - name: Read the version from config/services.yaml
+        id: version
+        run: |
+          set -euo pipefail
+          version=$(sed -nE "s/^[[:space:]]*mbin_version:[[:space:]]*'([^']+)'.*/\1/p" \
+            config/services.yaml | head -1)
+          if [ -z "$version" ]; then
+            echo "::error::Could not read mbin_version from config/services.yaml"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
       - name: Docker meta data
         id: meta
         uses: docker/metadata-action@v6
@@ -50,6 +66,9 @@ jobs:
             type=ref,event=branch
             type=sha,format=short
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          # A label given here replaces the generated one of the same name.
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7

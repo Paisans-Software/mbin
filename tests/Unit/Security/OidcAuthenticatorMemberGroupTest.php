@@ -95,6 +95,28 @@ class OidcAuthenticatorMemberGroupTest extends TestCase
         $this->loadUser(null, ['groups' => ['other']]);
     }
 
+    /**
+     * The admin group claim would promote this person as soon as the login
+     * succeeds, so refusing them entry contradicts it. Admitting them here is
+     * what lets a provider's administrators make their first login before
+     * anyone has added them to the member group.
+     */
+    public function testAnUnlinkedLoginInTheAdminGroupIsAdmitted(): void
+    {
+        // Registration is off in these cases, so getting as far as that check
+        // is what shows the gate let the login through.
+        $this->expectExceptionObject(new CustomUserMessageAuthenticationException('MBIN_SSO_REGISTRATIONS_ENABLED'));
+
+        $this->loadUser(null, ['groups' => ['admins']], adminGroup: 'admins');
+    }
+
+    public function testTheAdminGroupAdmitsNobodyWhenItIsNotConfigured(): void
+    {
+        $this->expectException(CustomUserMessageAuthenticationException::class);
+
+        $this->loadUser(null, ['groups' => ['admins']]);
+    }
+
     private function user(): User
     {
         $user = new User('member@example.test', 'member', 'irrelevant', 'Person');
@@ -108,14 +130,14 @@ class OidcAuthenticatorMemberGroupTest extends TestCase
      *
      * @param array<string, mixed> $idTokenClaims
      */
-    private function loadUser(?User $user, array $idTokenClaims, ?string $memberGroup = 'members'): ?object
+    private function loadUser(?User $user, array $idTokenClaims, ?string $memberGroup = 'members', ?string $adminGroup = null): ?object
     {
         $token = new AccessToken(['access_token' => 'access', 'id_token' => 'id-token']);
 
         $client = $this->createStub(OidcClient::class);
         $client->method('consumeNonce')->willReturn('nonce');
         $client->method('getAccessToken')->willReturn($token);
-        $client->method('fetchUserFromToken')->willReturn(new OidcResourceOwner(['sub' => 'user-1'], 'preferred_username'));
+        $client->method('fetchUserFromToken')->willReturn(new OidcResourceOwner(['sub' => 'user-1', 'email' => 'member@example.test'], 'preferred_username'));
 
         $validator = $this->createStub(OidcTokenValidator::class);
         $validator->method('validate')->willReturn($idTokenClaims + ['sub' => 'user-1']);
@@ -139,13 +161,16 @@ class OidcAuthenticatorMemberGroupTest extends TestCase
         );
         $groupClaims = new OidcGroupClaims($resolver);
 
+        $settings = $this->createStub(SettingsManager::class);
+        $settings->method('get')->willReturn(false);
+
         $router = $this->createStub(RouterInterface::class);
         $router->method('generate')->willReturn('/');
 
         $authenticator = new OidcAuthenticator(
             $client,
             $validator,
-            new OidcAdminGroupPolicy(null, $groupClaims),
+            new OidcAdminGroupPolicy($adminGroup, $groupClaims),
             new OidcMemberGroupPolicy($memberGroup, $groupClaims),
             $entityManager,
             $this->createStub(UserManager::class),
@@ -155,7 +180,7 @@ class OidcAuthenticatorMemberGroupTest extends TestCase
             $this->createStub(IpResolver::class),
             $this->createStub(Slugger::class),
             $this->createStub(UserRepository::class),
-            $this->createStub(SettingsManager::class),
+            $settings,
             new NullLogger(),
             $router,
         );
