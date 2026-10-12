@@ -135,7 +135,15 @@ class OidcAuthenticator extends MbinOAuthAuthenticatorBase
                 // recover through. The exemption reads the linked account, so
                 // it cannot apply to a first login. That is correct: provisioning
                 // a new account is exactly what the gate is for.
-                if (!$existingUser?->isAdmin() && !$this->memberGroupPolicy->permits($claims, $oidcUser)) {
+                //
+                // Someone the admin group claim names is admitted too, first
+                // login included. That claim promotes them as soon as the
+                // login succeeds, so refusing them entry would contradict it,
+                // and a provider's administrators need not also be listed in
+                // the member group to reach the instance they administer.
+                if (!$existingUser?->isAdmin()
+                    && !$this->memberGroupPolicy->permits($claims, $oidcUser)
+                    && !$this->adminGroupPolicy->shouldPromote($claims, $oidcUser)) {
                     $this->logger->warning('OIDC login refused: {subject} is not in {group}', [
                         'subject' => $oidcUser->getId(),
                         'group' => $this->memberGroupPolicy->group(),
