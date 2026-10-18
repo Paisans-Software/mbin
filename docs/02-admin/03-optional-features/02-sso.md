@@ -228,6 +228,40 @@ address at your provider could sign in as whichever member owns it. If your
 provider does not verify addresses, or does not send the claim, existing
 members cannot be matched this way: link them yourself, as described below.
 
+#### Profile pictures
+
+The provider's `picture` claim becomes the member's avatar. A new account takes
+it when it is created, and an existing linked account takes it again at every
+login through this provider, so a member who changes their picture at the
+provider sees the change in Mbin the next time they log in. A member who stays
+signed in through a remembered session keeps the old picture until that next
+login, because nothing is fetched between logins.
+
+The picture is applied only once the login has succeeded, so a refused login
+(a banned or deleted account, or an application still pending) changes
+nothing. An unchanged picture is recognised by its content and left in place.
+A login without the claim leaves the avatar as it is. A picture that cannot be
+fetched or read is logged and skipped, and never fails the login. A changed
+avatar federates like any other profile edit.
+
+Whether members may replace that picture with one of their own is the admin
+setting "Let members replace their SSO profile picture with an upload", backed
+by `MBIN_SSO_AVATAR_OVERRIDE`:
+
+- **On (the default, and what an unset or empty variable means).** A linked
+  member may upload an avatar. Mbin then keeps it and stops applying the
+  provider's picture for them. Removing their avatar hands it back to the
+  provider, whose picture applies again at their next login.
+- **Off.** The provider's picture is the only avatar a linked member can have.
+  The profile form does not offer an avatar upload or removal, the API refuses
+  both with `403`, and every login applies the provider's picture, replacing
+  any avatar the member uploaded earlier.
+
+Accounts that log in with a password, or through one of the named providers
+above, are not affected by the setting. It applies to the avatar only, not to
+the cover image. Like the other environment-backed settings it can be locked
+with `MBIN_LOCKED_SETTINGS`, so that only the environment decides it.
+
 #### Letting your provider appoint administrators
 
 By default it cannot, and that is the safe default: `OAUTH_OIDC_ADMIN_GROUP` is
