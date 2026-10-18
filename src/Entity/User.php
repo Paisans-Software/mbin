@@ -150,6 +150,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Visibil
     public ?string $oauthAuthentikId = null;
     #[Column(type: 'string', nullable: true)]
     public ?string $oauthOidcId = null;
+    /**
+     * Set when a member linked to the OIDC provider uploads an avatar of their
+     * own, so that logging in leaves it in place instead of applying the
+     * provider's picture. Removing the avatar clears it.
+     */
+    #[Column(type: 'boolean', nullable: false, options: ['default' => false])]
+    public bool $oidcAvatarOverridden = false;
     #[Column(type: 'boolean', nullable: false, options: ['default' => true])]
     public bool $hideAdult = true;
     #[Column(type: Types::JSONB, nullable: false, options: ['default' => '[]'])]
