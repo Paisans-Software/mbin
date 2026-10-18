@@ -53,6 +53,14 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
 		fi
 
 		php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing
+
+		# Generate the instance's ActivityPub and push notification keys if they are missing.
+		# Both commands keep existing keys. Only the web server runs them, so the messenger
+		# containers starting beside it do not race it to create the site row.
+		if [ "$1" = 'frankenphp' ]; then
+			php bin/console mbin:ap:keys:update
+			php bin/console mbin:push:keys:update
+		fi
 	fi
 
 	# Solution to allow non-root users, given here: https://github.com/dunglas/symfony-docker/issues/679#issuecomment-2501369223

@@ -15,6 +15,8 @@ php bin/console mbin:user:admin <username>
 php bin/console mbin:ap:keys:update
 ```
 
+The Docker image runs this command on every start, and it keeps keys that already exist.
+
 Next, log in and create a magazine named `random` to which unclassified content from the fediverse will flow.
 
 > [!IMPORTANT]
@@ -69,3 +71,5 @@ The push notification system needs encryption keys to work. They have to be gene
 ```bash
 php bin/console mbin:push:keys:update
 ```
+
+The Docker image runs this command on every start, and it keeps keys that already exist.
