@@ -57,6 +57,7 @@
                 {{ form_label(form.MBIN_SSO_REGISTRATIONS_ENABLED, 'sso_registrations_enabled') }}
                 {{ form_widget(form.MBIN_SSO_REGISTRATIONS_ENABLED) }}
             </div>
+            {{ include('admin/_locked_setting.html.twig', {field: form.MBIN_SSO_REGISTRATIONS_ENABLED}) }}
             <div class="checkbox">
                 {{ form_label(form.MBIN_SSO_ONLY_MODE, 'sso_only_mode') }}
                 {{ form_widget(form.MBIN_SSO_ONLY_MODE) }}
@@ -71,6 +72,7 @@
                 {{ form_label(form.KBIN_MERCURE_ENABLED, 'mercure_enabled') }}
                 {{ form_widget(form.KBIN_MERCURE_ENABLED) }}
             </div>
+            {{ include('admin/_locked_setting.html.twig', {field: form.KBIN_MERCURE_ENABLED}) }}
             <div class="checkbox">
                 {{ form_label(form.KBIN_ADMIN_ONLY_OAUTH_CLIENTS, 'restrict_oauth_clients') }}
                 {{ form_widget(form.KBIN_ADMIN_ONLY_OAUTH_CLIENTS) }}
@@ -85,6 +87,7 @@
                 {{ form_label(form.KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN, 'federated_search_only_loggedin') }}
                 {{ form_widget(form.KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN) }}
             </div>
+            {{ include('admin/_locked_setting.html.twig', {field: form.KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN}) }}
             <div class="checkbox">
                 {{ form_label(form.MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY, 'sidebar_sections_random_local_only') }}
                 {{ form_widget(form.MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY) }}
@@ -96,18 +99,22 @@
                     {% endfor %}
                 </div>
             {% endif %}
+            {{ include('admin/_locked_setting.html.twig', {field: form.MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY}) }}
             <div class="checkbox">
                 {{ form_label(form.MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY, 'sidebar_sections_users_local_only') }}
                 {{ form_widget(form.MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY) }}
             </div>
+            {{ include('admin/_locked_setting.html.twig', {field: form.MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY}) }}
             <div class="checkbox">
                 {{ form_label(form.MBIN_RESTRICT_MAGAZINE_CREATION, 'restrict_magazine_creation') }}
                 {{ form_widget(form.MBIN_RESTRICT_MAGAZINE_CREATION) }}
             </div>
+            {{ include('admin/_locked_setting.html.twig', {field: form.MBIN_RESTRICT_MAGAZINE_CREATION}) }}
             <div class="checkbox">
                 {{ form_label(form.MBIN_SSO_SHOW_FIRST, 'sso_show_first') }}
                 {{ form_widget(form.MBIN_SSO_SHOW_FIRST) }}
             </div>
+            {{ include('admin/_locked_setting.html.twig', {field: form.MBIN_SSO_SHOW_FIRST}) }}
             <div class="checkbox">
                 {{ form_label(form.MBIN_SSO_AVATAR_OVERRIDE, 'sso_avatar_override') }}
                 {{ form_widget(form.MBIN_SSO_AVATAR_OVERRIDE) }}

@@ -23,33 +23,40 @@ A value saved for a setting before it was locked stays in the database and is ig
 
 Only a setting that falls back to an environment variable can be locked, because a locked setting needs a value to read. These can:
 
-| Setting                          | Environment variable             |
-|----------------------------------|----------------------------------|
-| `KBIN_DOMAIN`                    | `KBIN_DOMAIN`                    |
-| `KBIN_TITLE`                     | `KBIN_TITLE`                     |
-| `KBIN_META_TITLE`                | `KBIN_META_TITLE`                |
-| `KBIN_META_KEYWORDS`             | `KBIN_META_KEYWORDS`             |
-| `KBIN_META_DESCRIPTION`          | `KBIN_META_DESCRIPTION`          |
-| `KBIN_DEFAULT_LANG`              | `KBIN_DEFAULT_LANG`              |
-| `KBIN_CONTACT_EMAIL`             | `KBIN_CONTACT_EMAIL`             |
-| `KBIN_SENDER_EMAIL`              | `KBIN_SENDER_EMAIL`              |
-| `MBIN_DEFAULT_THEME`             | `MBIN_DEFAULT_THEME`             |
-| `KBIN_JS_ENABLED`                | `KBIN_JS_ENABLED`                |
-| `KBIN_FEDERATION_ENABLED`        | `KBIN_FEDERATION_ENABLED`        |
-| `KBIN_REGISTRATIONS_ENABLED`     | `KBIN_REGISTRATIONS_ENABLED`     |
-| `KBIN_HEADER_LOGO`               | `KBIN_HEADER_LOGO`               |
-| `KBIN_CAPTCHA_ENABLED`           | `KBIN_CAPTCHA_ENABLED`           |
-| `KBIN_FEDERATION_PAGE_ENABLED`   | `KBIN_FEDERATION_PAGE_ENABLED`   |
-| `KBIN_ADMIN_ONLY_OAUTH_CLIENTS`  | `KBIN_ADMIN_ONLY_OAUTH_CLIENTS`  |
-| `MBIN_SSO_ONLY_MODE`             | `SSO_ONLY_MODE`                  |
-| `MBIN_PRIVATE_INSTANCE`          | `MBIN_PRIVATE_INSTANCE`          |
-| `MBIN_DOWNVOTES_MODE`            | `MBIN_DOWNVOTES_MODE`            |
-| `MBIN_NEW_USERS_NEED_APPROVAL`   | `MBIN_NEW_USERS_NEED_APPROVAL`   |
-| `MBIN_USE_FEDERATION_ALLOW_LIST` | `MBIN_USE_FEDERATION_ALLOW_LIST` |
-| `MBIN_AUTHORIZED_FETCH`          | `MBIN_AUTHORIZED_FETCH`          |
-| `MBIN_SSO_AVATAR_OVERRIDE`       | `MBIN_SSO_AVATAR_OVERRIDE`       |
+| Setting                                   | Environment variable                      |
+|-------------------------------------------|-------------------------------------------|
+| `KBIN_DOMAIN`                             | `KBIN_DOMAIN`                             |
+| `KBIN_TITLE`                              | `KBIN_TITLE`                              |
+| `KBIN_META_TITLE`                         | `KBIN_META_TITLE`                         |
+| `KBIN_META_KEYWORDS`                      | `KBIN_META_KEYWORDS`                      |
+| `KBIN_META_DESCRIPTION`                   | `KBIN_META_DESCRIPTION`                   |
+| `KBIN_DEFAULT_LANG`                       | `KBIN_DEFAULT_LANG`                       |
+| `KBIN_CONTACT_EMAIL`                      | `KBIN_CONTACT_EMAIL`                      |
+| `KBIN_SENDER_EMAIL`                       | `KBIN_SENDER_EMAIL`                       |
+| `MBIN_DEFAULT_THEME`                      | `MBIN_DEFAULT_THEME`                      |
+| `KBIN_JS_ENABLED`                         | `KBIN_JS_ENABLED`                         |
+| `KBIN_FEDERATION_ENABLED`                 | `KBIN_FEDERATION_ENABLED`                 |
+| `KBIN_REGISTRATIONS_ENABLED`              | `KBIN_REGISTRATIONS_ENABLED`              |
+| `KBIN_HEADER_LOGO`                        | `KBIN_HEADER_LOGO`                        |
+| `KBIN_CAPTCHA_ENABLED`                    | `KBIN_CAPTCHA_ENABLED`                    |
+| `KBIN_FEDERATION_PAGE_ENABLED`            | `KBIN_FEDERATION_PAGE_ENABLED`            |
+| `KBIN_ADMIN_ONLY_OAUTH_CLIENTS`           | `KBIN_ADMIN_ONLY_OAUTH_CLIENTS`           |
+| `MBIN_SSO_ONLY_MODE`                      | `SSO_ONLY_MODE`                           |
+| `MBIN_PRIVATE_INSTANCE`                   | `MBIN_PRIVATE_INSTANCE`                   |
+| `MBIN_DOWNVOTES_MODE`                     | `MBIN_DOWNVOTES_MODE`                     |
+| `MBIN_NEW_USERS_NEED_APPROVAL`            | `MBIN_NEW_USERS_NEED_APPROVAL`            |
+| `MBIN_USE_FEDERATION_ALLOW_LIST`          | `MBIN_USE_FEDERATION_ALLOW_LIST`          |
+| `MBIN_AUTHORIZED_FETCH`                   | `MBIN_AUTHORIZED_FETCH`                   |
+| `MBIN_SSO_AVATAR_OVERRIDE`                | `MBIN_SSO_AVATAR_OVERRIDE`                |
+| `KBIN_MERCURE_ENABLED`                    | `KBIN_MERCURE_ENABLED`                    |
+| `KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN`     | `KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN`     |
+| `MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY` | `MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY` |
+| `MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY`  | `MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY`  |
+| `MBIN_SSO_REGISTRATIONS_ENABLED`          | `MBIN_SSO_REGISTRATIONS_ENABLED`          |
+| `MBIN_RESTRICT_MAGAZINE_CREATION`         | `MBIN_RESTRICT_MAGAZINE_CREATION`         |
+| `MBIN_SSO_SHOW_FIRST`                     | `MBIN_SSO_SHOW_FIRST`                     |
 
-Every other setting has only a built-in default and cannot be locked.
+That is every instance setting.
 
 > [!WARNING]
 > Mbin answers every request with an error, instead of serving pages, if `MBIN_LOCKED_SETTINGS` names something that is not a setting, or a setting that cannot be locked. The error names the entry, so a typo never leaves a setting silently unlocked.

@@ -13,9 +13,10 @@ class InstanceSettingsUpdateLockedApiTest extends WebTestCase
      * settings would set it.
      */
     private const array ENVIRONMENT = [
-        'MBIN_LOCKED_SETTINGS' => 'KBIN_TITLE,KBIN_REGISTRATIONS_ENABLED',
+        'MBIN_LOCKED_SETTINGS' => 'KBIN_TITLE,KBIN_REGISTRATIONS_ENABLED,MBIN_SSO_REGISTRATIONS_ENABLED',
         'KBIN_TITLE' => 'Environment title',
         'KBIN_REGISTRATIONS_ENABLED' => 'true',
+        'MBIN_SSO_REGISTRATIONS_ENABLED' => 'false',
     ];
 
     /** @var array<string, array{0: ?string, 1: ?string}> */
@@ -62,6 +63,19 @@ class InstanceSettingsUpdateLockedApiTest extends WebTestCase
         $this->assertStringContainsString('KBIN_TITLE is locked by MBIN_LOCKED_SETTINGS', (string) $this->client->getResponse()->getContent());
         $this->assertNull($this->findSettingValue('KBIN_TITLE'));
         $this->assertNull($this->findSettingValue('KBIN_META_TITLE'));
+    }
+
+    public function testApiRefusesAChangeToANewlyLockableSetting(): void
+    {
+        $settings = $this->settingsManager->getDto()->jsonSerialize();
+        $this->assertFalse($settings['MBIN_SSO_REGISTRATIONS_ENABLED']);
+        $settings['MBIN_SSO_REGISTRATIONS_ENABLED'] = true;
+
+        $this->client->jsonRequest('PUT', '/api/instance/settings', $settings, server: ['HTTP_AUTHORIZATION' => $this->getAdminToken()]);
+
+        self::assertResponseStatusCodeSame(400);
+        $this->assertStringContainsString('MBIN_SSO_REGISTRATIONS_ENABLED is locked by MBIN_LOCKED_SETTINGS', (string) $this->client->getResponse()->getContent());
+        $this->assertNull($this->findSettingValue('MBIN_SSO_REGISTRATIONS_ENABLED'));
     }
 
     public function testApiAcceptsUnchangedLockedValuesInAFullSet(): void

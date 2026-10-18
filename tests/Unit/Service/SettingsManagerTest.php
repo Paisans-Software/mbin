@@ -60,6 +60,13 @@ class SettingsManagerTest extends WebTestCase
             mbinAuthorizedFetch: false,
             mbinSearchLang: 'english',
             mbinPrivateInstance: false,
+            kbinMercureEnabled: false,
+            kbinFederatedSearchOnlyLoggedin: true,
+            mbinSidebarSectionsRandomLocalOnly: false,
+            mbinSidebarSectionsUsersLocalOnly: false,
+            mbinSsoRegistrationsEnabled: true,
+            mbinRestrictMagazineCreation: false,
+            mbinSsoShowFirst: false,
         );
 
         // Assert
@@ -109,6 +116,13 @@ class SettingsManagerTest extends WebTestCase
             mbinAuthorizedFetch: false,
             mbinSearchLang: 'english',
             mbinPrivateInstance: false,
+            kbinMercureEnabled: false,
+            kbinFederatedSearchOnlyLoggedin: true,
+            mbinSidebarSectionsRandomLocalOnly: false,
+            mbinSidebarSectionsUsersLocalOnly: false,
+            mbinSsoRegistrationsEnabled: true,
+            mbinRestrictMagazineCreation: false,
+            mbinSsoShowFirst: false,
         );
 
         // Assert
@@ -182,6 +196,13 @@ class SettingsManagerTest extends WebTestCase
             mbinAuthorizedFetch: false,
             mbinSearchLang: 'english',
             mbinPrivateInstance: $mbinPrivateInstance,
+            kbinMercureEnabled: false,
+            kbinFederatedSearchOnlyLoggedin: true,
+            mbinSidebarSectionsRandomLocalOnly: false,
+            mbinSidebarSectionsUsersLocalOnly: false,
+            mbinSsoRegistrationsEnabled: true,
+            mbinRestrictMagazineCreation: false,
+            mbinSsoShowFirst: false,
         );
     }
 
@@ -293,6 +314,13 @@ class SettingsManagerTest extends WebTestCase
             mbinAuthorizedFetch: false,
             mbinSearchLang: 'english',
             mbinPrivateInstance: false,
+            kbinMercureEnabled: false,
+            kbinFederatedSearchOnlyLoggedin: true,
+            mbinSidebarSectionsRandomLocalOnly: false,
+            mbinSidebarSectionsUsersLocalOnly: false,
+            mbinSsoRegistrationsEnabled: true,
+            mbinRestrictMagazineCreation: false,
+            mbinSsoShowFirst: false,
         );
     }
 }
