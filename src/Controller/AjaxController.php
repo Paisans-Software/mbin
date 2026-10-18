@@ -316,20 +316,7 @@ class AjaxController extends AbstractController
         $this->entityManager->persist($pushSubscription);
         $this->entityManager->flush();
 
-        try {
-            $testNotification = new PushNotification(null, '', $this->translator->trans('test_push_message', locale: $pushSubscription->locale));
-            $this->pushSubscriptionManager->sendTextToUser($user, $testNotification, specificDeviceKey: $payload->deviceKey);
-
-            return new JsonResponse();
-        } catch (\ErrorException $e) {
-            $this->logger->error('[AjaxController::handle] There was an exception while deleting a UserPushSubscription: {e} - {m}. {o}', [
-                'e' => \get_class($e),
-                'm' => $e->getMessage(),
-                'o' => json_encode($e),
-            ]);
-
-            return new JsonResponse(status: 500);
-        }
+        return new JsonResponse();
     }
 
     public function unregisterPushNotifications(#[MapRequestPayload] UnRegisterPushRequestPayload $payload): JsonResponse
