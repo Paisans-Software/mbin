@@ -161,51 +161,6 @@ gh release list --limit 1
 docker pull ghcr.io/paisans-software/mbin:<version with + as ->
 ```
 
-## Promoting a release to a toolkit channel
-
-A release is not yet what toolkit deployments run. They follow a channel tag,
-`stack-<N>`, where `N` is the toolkit's template contract: the set of settings
-and files the toolkit renders for Mbin. A maintainer moves the channel to a
-release once that release is known to work with what the toolkit renders, and
-every deployment picks it up on its next apply.
-
-`N` changes only when a release needs something rendered that an older toolkit
-does not render, or stops reading something an older toolkit renders. Every
-other release, a new major version included, is promoted within the channel it
-already has.
-
-Promote with the `Promote a release to a stack channel` workflow, run by hand
-from `main` (the form offers `develop` first, and the workflow refuses to run
-there):
-
-```sh
-gh workflow run promote.yml --ref main -f version=1.15.0+paisans -f channel=1
-```
-
-It refuses unless the tag `v<version>` exists, its GitHub Release is published,
-and the image `<version with + as ->` is in the registry. It then copies that
-image's manifest to `stack-<channel>` (nothing is rebuilt), appends
-`Promoted to stack-<channel> on <date>.` to the release notes, and writes the
-old and new digests to the job summary. Promoting the release the channel
-already names does nothing and succeeds.
-
-It works out which release the channel names now by comparing the channel's
-digest with the digest of each fork release tag. The image's
-`org.opencontainers.image.version` label cannot be relied on for this. Releases
-are retags of the `main` branch build, and the build only began setting that
-label to `mbin_version` after `1.15.0+paisans` was released, so on that release
-and every one before it the label reads `main`.
-
-It refuses to move a channel to an older release than the one it names, and to
-move a channel whose digest matches no fork release, unless the `rollback`
-input is set.
-
-**Rolling back moves the tag, not the data.** A release that ran a one way
-database migration leaves its schema behind when the channel moves back, and
-the older build may not run on it. Read the notes of every release being
-stepped back over, and carry out their recovery steps first, before promoting
-an older release with `rollback` set.
-
 ## If something goes wrong
 
 The tag and the release are created near the end, so a failure usually means no
@@ -227,10 +182,8 @@ is public and wrong, cut a new patch release instead.
 - Opening the release pull request.
 - Merging it.
 - Deleting a published release.
-- Promoting a release to a toolkit channel.
 
 ## Reference
 
-`.github/workflows/build-and-publish-fork-image.yaml` is the implementation, and
-`.github/workflows/promote.yml` moves the channel tags.
+`.github/workflows/build-and-publish-fork-image.yaml` is the implementation.
 `docs/02-admin/01-installation/02-docker.md` is what operators read.
