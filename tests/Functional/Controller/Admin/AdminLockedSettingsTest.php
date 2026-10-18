@@ -14,12 +14,13 @@ class AdminLockedSettingsTest extends WebTestCase
      * settings would set it.
      */
     private const array ENVIRONMENT = [
-        'MBIN_LOCKED_SETTINGS' => 'KBIN_TITLE, KBIN_REGISTRATIONS_ENABLED,MBIN_USE_FEDERATION_ALLOW_LIST,MBIN_PRIVATE_INSTANCE,MBIN_AUTHORIZED_FETCH',
+        'MBIN_LOCKED_SETTINGS' => 'KBIN_TITLE, KBIN_REGISTRATIONS_ENABLED,MBIN_USE_FEDERATION_ALLOW_LIST,MBIN_PRIVATE_INSTANCE,MBIN_AUTHORIZED_FETCH,MBIN_SSO_AVATAR_OVERRIDE',
         'KBIN_TITLE' => 'Environment title',
         'KBIN_REGISTRATIONS_ENABLED' => 'true',
         'MBIN_USE_FEDERATION_ALLOW_LIST' => 'false',
         'MBIN_PRIVATE_INSTANCE' => 'false',
         'MBIN_AUTHORIZED_FETCH' => 'false',
+        'MBIN_SSO_AVATAR_OVERRIDE' => 'false',
     ];
 
     /** @var array<string, array{0: ?string, 1: ?string}> */
@@ -64,9 +65,11 @@ class AdminLockedSettingsTest extends WebTestCase
         self::assertSelectorExists('#settings_KBIN_TITLE[disabled]');
         self::assertSelectorExists('#settings_KBIN_REGISTRATIONS_ENABLED[disabled]');
         self::assertSelectorExists('#settings_MBIN_PRIVATE_INSTANCE[disabled]');
+        self::assertSelectorExists('#settings_MBIN_SSO_AVATAR_OVERRIDE[disabled]');
+        self::assertSelectorNotExists('#settings_MBIN_SSO_AVATAR_OVERRIDE[checked]');
         self::assertSelectorNotExists('#settings_KBIN_META_TITLE[disabled]');
         self::assertSelectorNotExists('#settings_KBIN_HEADER_LOGO[disabled]');
-        $this->assertCount(3, $crawler->filter('#content .help-text')->reduce(
+        $this->assertCount(4, $crawler->filter('#content .help-text')->reduce(
             fn ($note) => str_contains($note->text(), 'cannot be changed here'),
         ));
     }
@@ -99,6 +102,7 @@ class AdminLockedSettingsTest extends WebTestCase
         $values['settings']['KBIN_TITLE'] = 'Crafted title';
         unset($values['settings']['KBIN_REGISTRATIONS_ENABLED']);
         $values['settings']['MBIN_PRIVATE_INSTANCE'] = '1';
+        $values['settings']['MBIN_SSO_AVATAR_OVERRIDE'] = '1';
         $values['settings']['KBIN_META_TITLE'] = 'Admin meta title';
 
         $this->client->request('POST', '/admin/settings', $values);
@@ -107,6 +111,7 @@ class AdminLockedSettingsTest extends WebTestCase
         $this->assertSame('Database title', $this->findSettingValue('KBIN_TITLE'));
         $this->assertNull($this->findSettingValue('KBIN_REGISTRATIONS_ENABLED'));
         $this->assertNull($this->findSettingValue('MBIN_PRIVATE_INSTANCE'));
+        $this->assertNull($this->findSettingValue('MBIN_SSO_AVATAR_OVERRIDE'));
         $this->assertSame('Admin meta title', $this->findSettingValue('KBIN_META_TITLE'));
     }
 

@@ -154,6 +154,9 @@ parameters:
     mbin_use_federation_allow_list: '%env(bool:default::MBIN_USE_FEDERATION_ALLOW_LIST)%'
     mbin_authorized_fetch: '%env(bool:default::MBIN_AUTHORIZED_FETCH)%'
     mbin_private_instance: '%env(bool:default::MBIN_PRIVATE_INSTANCE)%'
+    # On unless set to false: an unset or empty variable reads the default
+    mbin_sso_avatar_override_default: 'true'
+    mbin_sso_avatar_override: '%env(bool:default:mbin_sso_avatar_override_default:MBIN_SSO_AVATAR_OVERRIDE)%'
 
     mbin_search_lang_default: 'english'
     mbin_search_lang: '%env(string:default:mbin_search_lang_default:MBIN_SEARCH_LANGUAGE)%'
@@ -256,6 +259,7 @@ services:
             $mbinSearchLang: '%mbin_search_lang%'
             $mbinPrivateInstance: '%mbin_private_instance%'
             $mbinLockedSettings: '%mbin_locked_settings%'
+            $mbinSsoAvatarOverride: '%mbin_sso_avatar_override%'
 
     # Markdown
     App\Markdown\Factory\EnvironmentFactory:
