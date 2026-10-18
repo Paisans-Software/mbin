@@ -25,6 +25,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\OAuth2\Client\Token\AccessToken;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
@@ -33,6 +34,7 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\RememberMeBadge
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
+use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 
 class OidcAuthenticator extends MbinOAuthAuthenticatorBase
 {
@@ -68,6 +70,7 @@ class OidcAuthenticator extends MbinOAuthAuthenticatorBase
         private readonly UserRepository $userRepository,
         private readonly SettingsManager $settingsManager,
         private readonly LoggerInterface $logger,
+        private readonly RequestStack $requestStack,
         RouterInterface $router,
     ) {
         parent::__construct($router);
@@ -226,6 +229,28 @@ class OidcAuthenticator extends MbinOAuthAuthenticatorBase
                 $rememberBadge,
             ]
         );
+    }
+
+    /**
+     * Builds the token with ROLE_ADMIN when the provider placed this person
+     * in the admin group, although the database is not promoted until
+     * onAuthenticationSuccess. The firewall keeps this token's roles for the
+     * whole session and never compares them again (User::isEqualTo leaves
+     * roles out), so a token built from the unpromoted user would leave a
+     * first login without admin until the next one. A login the user checker
+     * refuses discards the token, so nothing is granted early.
+     */
+    public function createToken(Passport $passport, string $firewallName): TokenInterface
+    {
+        $token = parent::createToken($passport, $firewallName);
+
+        if (true !== $this->requestStack->getCurrentRequest()?->attributes->get(self::PROMOTE_ATTRIBUTE)) {
+            return $token;
+        }
+
+        $roles = array_values(array_unique([...$token->getRoleNames(), 'ROLE_ADMIN']));
+
+        return new PostAuthenticationToken($passport->getUser(), $firewallName, $roles);
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response

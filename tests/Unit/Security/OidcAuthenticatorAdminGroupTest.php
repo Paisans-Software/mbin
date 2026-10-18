@@ -29,6 +29,7 @@ use Psr\Log\NullLogger;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Routing\RouterInterface;
@@ -54,6 +55,34 @@ class OidcAuthenticatorAdminGroupTest extends TestCase
         $authenticator->onAuthenticationSuccess($request, $this->token($passport), 'main');
 
         self::assertTrue($user->isAdmin());
+    }
+
+    /**
+     * The firewall stores the token createToken returns, with the roles it was
+     * built with, and never compares roles again (User is an
+     * EquatableInterface that leaves them out). A token built from the
+     * unpromoted user would keep a first login without admin for the whole
+     * session.
+     */
+    public function testTheTokenCarriesAdminFromTheFirstLogin(): void
+    {
+        $user = $this->user();
+        [$authenticator, , $passport] = $this->authenticate($user, ['groups' => ['mbin-admins']]);
+
+        $token = $authenticator->createToken($passport, 'main');
+
+        self::assertContains('ROLE_ADMIN', $token->getRoleNames());
+        self::assertFalse($user->isAdmin(), 'building the token must not grant admin in the database');
+    }
+
+    public function testTheTokenOfSomeoneOutsideTheGroupCarriesNoAdmin(): void
+    {
+        $user = $this->user();
+        [$authenticator, , $passport] = $this->authenticate($user, ['groups' => ['members']]);
+
+        $token = $authenticator->createToken($passport, 'main');
+
+        self::assertNotContains('ROLE_ADMIN', $token->getRoleNames());
     }
 
     public function testARefusedLoginLeavesNoAdminBehind(): void
@@ -150,6 +179,11 @@ class OidcAuthenticatorAdminGroupTest extends TestCase
         $router = $this->createStub(RouterInterface::class);
         $router->method('generate')->willReturn('/');
 
+        $request = new Request();
+        $request->setSession(new Session(new MockArraySessionStorage()));
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+
         $authenticator = new OidcAuthenticator(
             $client,
             $validator,
@@ -165,11 +199,9 @@ class OidcAuthenticatorAdminGroupTest extends TestCase
             $this->createStub(UserRepository::class),
             $this->createStub(SettingsManager::class),
             new NullLogger(),
+            $requestStack,
             $router,
         );
-
-        $request = new Request();
-        $request->setSession(new Session(new MockArraySessionStorage()));
 
         $passport = $authenticator->authenticate($request);
         $passport->getBadge(UserBadge::class)->getUser();
