@@ -178,7 +178,7 @@ class EntryFrontController extends AbstractController
     private function createCriteria(string $content, Request $request, ?User $user): Criteria
     {
         if ('default' === $content) {
-            $content = $user?->frontDefaultContent ?? 'threads';
+            $content = $user?->frontDefaultContent ?? 'combined';
         }
 
         if ('threads' === $content || 'combined' === $content) {

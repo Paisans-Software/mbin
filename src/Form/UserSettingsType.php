@@ -45,7 +45,7 @@ class UserSettingsType extends AbstractType
             $directMessageSettingChoices[$this->translator->trans($option)] = $option;
         }
         $frontDefaultContentChoices = [
-            $this->translator->trans('default_content_default') => null,
+            $this->translator->trans('default_content_server_combined') => null,
         ];
         foreach (EFrontContentOptions::OPTIONS as $option) {
             $frontDefaultContentChoices[$this->translator->trans('default_content_'.$option)] = $option;

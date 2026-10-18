@@ -1158,6 +1158,7 @@ you_have_been_banned_from_magazine_permanently: You have been permanently banned
 you_are_no_longer_banned_from_magazine: You are no longer banned from magazine %m.
 front_default_content: Frontpage default view
 default_content_default: Server default (Threads)
+default_content_server_combined: Server default (Threads + Microblog)
 default_content_combined: Threads + Microblog
 default_content_threads: Threads
 default_content_microblog: Microblog

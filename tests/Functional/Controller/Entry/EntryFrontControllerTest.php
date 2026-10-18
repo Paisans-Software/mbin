@@ -33,6 +33,35 @@ class EntryFrontControllerTest extends WebTestCase
         }
     }
 
+    public function testRootPageDefaultsToCombined(): void
+    {
+        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->createPost('test post 1');
+
+        $this->client->request('GET', '/');
+
+        $this->assertSelectorTextContains('#header .active', 'Combined');
+        $this->assertSelectorTextContains('#content', 'test entry 1');
+        $this->assertSelectorTextContains('#content', 'test post 1');
+    }
+
+    public function testRootPageHonoursUserDefaultContent(): void
+    {
+        $user = $this->getUserByUsername('JohnDoe');
+        $user->frontDefaultContent = 'threads';
+        $this->entityManager->flush();
+        $this->client->loginUser($user);
+
+        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->createPost('test post 1');
+
+        $this->client->request('GET', '/');
+
+        $this->assertSelectorTextContains('#header .active', 'Threads');
+        $this->assertSelectorTextContains('#content', 'test entry 1');
+        $this->assertSelectorTextNotContains('#content', 'test post 1');
+    }
+
     public function testXmlRootPage(): void
     {
         $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
