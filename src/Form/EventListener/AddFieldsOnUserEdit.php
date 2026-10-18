@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Form\EventListener;
 
+use App\Repository\UserRepository;
 use App\Service\ImageManager;
+use App\Service\UserManager;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\FormEvent;
@@ -13,6 +15,12 @@ use Symfony\Component\Validator\Constraints\Image as ImageConstraint;
 
 final class AddFieldsOnUserEdit implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly UserRepository $userRepository,
+        private readonly UserManager $userManager,
+    ) {
+    }
+
     public static function getSubscribedEvents(): array
     {
         return [FormEvents::PRE_SET_DATA => 'preSetData'];
@@ -27,15 +35,20 @@ final class AddFieldsOnUserEdit implements EventSubscriberInterface
             return;
         }
 
-        $form->add(
-            'avatar',
-            FileType::class,
-            [
-                'required' => false,
-                'constraints' => $this->getConstraint(),
-                'mapped' => false,
-            ]
-        );
+        $account = $this->userRepository->find($user->getId());
+
+        // Not offered when the avatar is the OIDC provider's picture and members may not replace it.
+        if (null === $account || $this->userManager->canChangeAvatar($account)) {
+            $form->add(
+                'avatar',
+                FileType::class,
+                [
+                    'required' => false,
+                    'constraints' => $this->getConstraint(),
+                    'mapped' => false,
+                ]
+            );
+        }
 
         $form->add(
             'cover',

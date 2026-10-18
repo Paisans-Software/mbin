@@ -185,6 +185,11 @@ class UserEditController extends AbstractController
             }
 
             if ($form->isSubmitted() && $form->isValid()) {
+                // An avatar the member chose is kept over the OIDC provider's picture at login.
+                if ($form->has('avatar') && null !== $form->get('avatar')->getData() && null !== $user->oauthOidcId) {
+                    $user->oidcAvatarOverridden = true;
+                }
+
                 $email = $this->getUser()->email;
                 $this->manager->edit($this->getUser(), $dto);
 

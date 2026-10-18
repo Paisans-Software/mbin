@@ -13,6 +13,7 @@ use Nelmio\ApiDocBundle\Attribute\Security;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class UserDeleteImagesApi extends UserBaseApi
@@ -33,6 +34,11 @@ class UserDeleteImagesApi extends UserBaseApi
         content: new OA\JsonContent(ref: new Model(type: \App\Schema\Errors\UnauthorizedErrorSchema::class))
     )]
     #[OA\Response(
+        response: 403,
+        description: 'The avatar of an account linked to the OIDC provider is the provider\'s picture, and the instance does not let members remove it',
+        content: new OA\JsonContent(ref: new Model(type: \App\Schema\Errors\ForbiddenErrorSchema::class))
+    )]
+    #[OA\Response(
         response: 429,
         description: 'You are being rate limited',
         content: new OA\JsonContent(ref: new Model(type: \App\Schema\Errors\TooManyRequestsErrorSchema::class)),
@@ -50,9 +56,15 @@ class UserDeleteImagesApi extends UserBaseApi
         UserFactory $factory,
         RateLimiterFactoryInterface $apiImageLimiter,
     ): JsonResponse {
+        if (!$manager->canChangeAvatar($this->getUserOrThrow())) {
+            throw new AccessDeniedException();
+        }
+
         $headers = $this->rateLimit($apiImageLimiter);
 
         $user = $this->getUserOrThrow();
+        // Without an avatar of their own, the member takes the OIDC provider's picture again at login.
+        $user->oidcAvatarOverridden = false;
         $manager->detachAvatar($user);
         /*
          * Call edit so the @see UserEditedEvent is triggered and the changes are federated
