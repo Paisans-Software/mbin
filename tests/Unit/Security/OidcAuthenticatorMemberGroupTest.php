@@ -29,6 +29,7 @@ use Psr\Log\NullLogger;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Routing\RouterInterface;
@@ -182,6 +183,7 @@ class OidcAuthenticatorMemberGroupTest extends TestCase
             $this->createStub(UserRepository::class),
             $settings,
             new NullLogger(),
+            new RequestStack(),
             $router,
         );
 

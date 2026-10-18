@@ -29,6 +29,7 @@ use Psr\Log\NullLogger;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
@@ -104,6 +105,7 @@ class OidcAuthenticatorEmailLinkTest extends TestCase
             $userRepository,
             $this->createStub(SettingsManager::class),
             new NullLogger(),
+            new RequestStack(),
             $this->createStub(RouterInterface::class),
         );
 
