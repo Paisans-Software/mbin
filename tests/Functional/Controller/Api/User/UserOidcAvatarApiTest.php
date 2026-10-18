@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  */
 class UserOidcAvatarApiTest extends WebTestCase
 {
-    #[Group(name: 'NonThreadSafe')]
+    #[Group('NonThreadSafe')]
     public function testAnUploadIsMarkedAndRemovingItClearsTheMark(): void
     {
         $user = $this->oidcUser();
@@ -53,7 +53,7 @@ class UserOidcAvatarApiTest extends WebTestCase
         $this->assertFalse($user->oidcAvatarOverridden);
     }
 
-    #[Group(name: 'NonThreadSafe')]
+    #[Group('NonThreadSafe')]
     public function testALocalAccountMayStillUploadAndRemoveWhenOverridesAreOff(): void
     {
         $this->settingsManager->set('MBIN_SSO_AVATAR_OVERRIDE', false);

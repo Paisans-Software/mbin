@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Controller\User\Profile;
 use App\Entity\User;
 use App\Tests\WebTestCase;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\DomCrawler\Field\FileFormField;
 
 /**
  * A member linked to the OIDC provider who uploads an avatar keeps it over
@@ -16,7 +17,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 class UserOidcAvatarTest extends WebTestCase
 {
-    #[Group(name: 'NonThreadSafe')]
+    #[Group('NonThreadSafe')]
     public function testAnUploadMarksTheAvatarAsTheMembersOwn(): void
     {
         $user = $this->oidcUser();
@@ -24,7 +25,9 @@ class UserOidcAvatarTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/settings/profile');
         $form = $crawler->filter('#main form[name=user_basic]')->selectButton('Save')->form();
-        $form['user_basic[avatar]']->upload($this->kibbyPath);
+        $field = $form['user_basic[avatar]'];
+        self::assertInstanceOf(FileFormField::class, $field);
+        $field->upload($this->kibbyPath);
         $this->client->submit($form);
 
         $user = $this->reload($user);
@@ -102,7 +105,7 @@ class UserOidcAvatarTest extends WebTestCase
         $this->assertFalse($user->oidcAvatarOverridden);
     }
 
-    #[Group(name: 'NonThreadSafe')]
+    #[Group('NonThreadSafe')]
     public function testALocalAccountUploadIsNotMarked(): void
     {
         $user = $this->getUserByUsername('JohnDoe');
@@ -110,7 +113,9 @@ class UserOidcAvatarTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/settings/profile');
         $form = $crawler->filter('#main form[name=user_basic]')->selectButton('Save')->form();
-        $form['user_basic[avatar]']->upload($this->kibbyPath);
+        $field = $form['user_basic[avatar]'];
+        self::assertInstanceOf(FileFormField::class, $field);
+        $field->upload($this->kibbyPath);
         $this->client->submit($form);
 
         $user = $this->reload($user);

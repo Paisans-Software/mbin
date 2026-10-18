@@ -70,7 +70,7 @@ class OidcAuthenticatorAvatarSyncTest extends TestCase
         $this->download = $this->image('b');
 
         [$authenticator, $request, $passport] = $this->authenticate($user);
-        self::assertSame([], $this->edited, 'loading the user must not touch the avatar yet');
+        self::assertCount(0, $this->edited, 'loading the user must not touch the avatar yet');
 
         $authenticator->onAuthenticationSuccess($request, $this->token($passport), 'main');
 
