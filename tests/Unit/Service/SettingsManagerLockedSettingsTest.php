@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
+use App\DTO\SettingsDto;
 use App\Entity\Settings;
 use App\Repository\InstanceRepository;
 use App\Repository\SettingsRepository;
@@ -194,12 +195,50 @@ class SettingsManagerLockedSettingsTest extends TestCase
         $this->createManager(lockedSettings: 'kbin_title', rows: []);
     }
 
-    public function testSettingWithoutAnEnvironmentFallbackIsRefused(): void
+    public function testEveryInstanceSettingIsLockable(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('MBIN_LOCKED_SETTINGS names "KBIN_MERCURE_ENABLED", which has no environment variable to fall back on');
+        $settings = array_map(
+            fn (\ReflectionProperty $p) => $p->getName(),
+            (new \ReflectionClass(SettingsDto::class))->getProperties(\ReflectionProperty::IS_PUBLIC),
+        );
+        $lockable = SettingsManager::LOCKABLE_SETTINGS;
+        sort($settings);
+        sort($lockable);
 
-        $this->createManager(lockedSettings: 'KBIN_MERCURE_ENABLED', rows: []);
+        $this->assertSame($settings, $lockable);
+    }
+
+    public function testNewlyLockableSettingsReadTheEnvironmentOverADatabaseRow(): void
+    {
+        // createManager's environment holds the opposite of each built-in
+        // default, and each row the opposite of the environment.
+        $environment = [
+            'KBIN_MERCURE_ENABLED' => true,
+            'KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN' => false,
+            'MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY' => true,
+            'MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY' => true,
+            'MBIN_SSO_REGISTRATIONS_ENABLED' => false,
+            'MBIN_RESTRICT_MAGAZINE_CREATION' => true,
+            'MBIN_SSO_SHOW_FIRST' => true,
+        ];
+        $rows = [];
+        foreach ($environment as $name => $value) {
+            $rows[] = new Settings($name, $value ? 'false' : 'true');
+        }
+
+        $manager = $this->createManager(lockedSettings: implode(',', array_keys($environment)), rows: $rows);
+
+        foreach ($environment as $name => $value) {
+            $this->assertSame($value, $manager->get($name), $name);
+        }
+    }
+
+    public function testNewlyLockableSettingsStillReadAnUnlockedDatabaseRow(): void
+    {
+        $manager = $this->createManager(lockedSettings: '', rows: [new Settings('KBIN_MERCURE_ENABLED', 'false')]);
+
+        $this->assertFalse($manager->get('KBIN_MERCURE_ENABLED'));
+        $this->assertTrue($manager->get('MBIN_SSO_SHOW_FIRST'), 'with no row, the environment value applies');
     }
 
     /**
@@ -240,6 +279,13 @@ class SettingsManagerLockedSettingsTest extends TestCase
             mbinAuthorizedFetch: false,
             mbinSearchLang: 'english',
             mbinPrivateInstance: false,
+            kbinMercureEnabled: true,
+            kbinFederatedSearchOnlyLoggedin: false,
+            mbinSidebarSectionsRandomLocalOnly: true,
+            mbinSidebarSectionsUsersLocalOnly: true,
+            mbinSsoRegistrationsEnabled: false,
+            mbinRestrictMagazineCreation: true,
+            mbinSsoShowFirst: true,
             mbinLockedSettings: $lockedSettings,
             mbinSsoAvatarOverride: $mbinSsoAvatarOverride,
         );

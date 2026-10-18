@@ -153,6 +153,18 @@ parameters:
     mbin_new_users_need_approval: '%env(bool:default::MBIN_NEW_USERS_NEED_APPROVAL)%'
     mbin_use_federation_allow_list: '%env(bool:default::MBIN_USE_FEDERATION_ALLOW_LIST)%'
     mbin_authorized_fetch: '%env(bool:default::MBIN_AUTHORIZED_FETCH)%'
+    # Settings an admin normally sets in the admin panel, read from the
+    # environment so that MBIN_LOCKED_SETTINGS can lock them. Unset, each
+    # keeps the default it had before it could be set here.
+    kbin_mercure_enabled: '%env(bool:default::KBIN_MERCURE_ENABLED)%'
+    kbin_federated_search_only_loggedin_default: true
+    kbin_federated_search_only_loggedin: '%env(bool:default:kbin_federated_search_only_loggedin_default:KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN)%'
+    mbin_sidebar_sections_random_local_only: '%env(bool:default::MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY)%'
+    mbin_sidebar_sections_users_local_only: '%env(bool:default::MBIN_SIDEBAR_SECTIONS_USERS_LOCAL_ONLY)%'
+    mbin_sso_registrations_enabled_default: true
+    mbin_sso_registrations_enabled: '%env(bool:default:mbin_sso_registrations_enabled_default:MBIN_SSO_REGISTRATIONS_ENABLED)%'
+    mbin_restrict_magazine_creation: '%env(bool:default::MBIN_RESTRICT_MAGAZINE_CREATION)%'
+    mbin_sso_show_first: '%env(bool:default::MBIN_SSO_SHOW_FIRST)%'
     mbin_private_instance: '%env(bool:default::MBIN_PRIVATE_INSTANCE)%'
     # On unless set to false: an unset or empty variable reads the default
     mbin_sso_avatar_override_default: 'true'
@@ -258,6 +270,13 @@ services:
             $mbinAuthorizedFetch: '%mbin_authorized_fetch%'
             $mbinSearchLang: '%mbin_search_lang%'
             $mbinPrivateInstance: '%mbin_private_instance%'
+            $kbinMercureEnabled: '%kbin_mercure_enabled%'
+            $kbinFederatedSearchOnlyLoggedin: '%kbin_federated_search_only_loggedin%'
+            $mbinSidebarSectionsRandomLocalOnly: '%mbin_sidebar_sections_random_local_only%'
+            $mbinSidebarSectionsUsersLocalOnly: '%mbin_sidebar_sections_users_local_only%'
+            $mbinSsoRegistrationsEnabled: '%mbin_sso_registrations_enabled%'
+            $mbinRestrictMagazineCreation: '%mbin_restrict_magazine_creation%'
+            $mbinSsoShowFirst: '%mbin_sso_show_first%'
             $mbinLockedSettings: '%mbin_locked_settings%'
             $mbinSsoAvatarOverride: '%mbin_sso_avatar_override%'
 
