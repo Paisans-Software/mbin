@@ -47,6 +47,7 @@ class SettingsManager implements ResetInterface
         'MBIN_NEW_USERS_NEED_APPROVAL',
         'MBIN_USE_FEDERATION_ALLOW_LIST',
         'MBIN_AUTHORIZED_FETCH',
+        'MBIN_SSO_AVATAR_OVERRIDE',
     ];
 
     /**
@@ -90,6 +91,7 @@ class SettingsManager implements ResetInterface
         private readonly string $mbinSearchLang,
         private readonly bool $mbinPrivateInstance,
         string $mbinLockedSettings = '',
+        private readonly bool $mbinSsoAvatarOverride = true,
     ) {
         $this->lockedSettings = self::parseLockedSettings($mbinLockedSettings);
     }
@@ -154,6 +156,7 @@ class SettingsManager implements ResetInterface
             $newUsersNeedApprovalEdited,
             $this->find($results, 'MBIN_USE_FEDERATION_ALLOW_LIST', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinUseFederationAllowList,
             $this->find($results, 'MBIN_AUTHORIZED_FETCH', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinAuthorizedFetch,
+            $this->find($results, 'MBIN_SSO_AVATAR_OVERRIDE', FILTER_VALIDATE_BOOLEAN) ?? $this->mbinSsoAvatarOverride,
         );
     }
 
@@ -312,6 +315,18 @@ class SettingsManager implements ResetInterface
     public function isAuthorizedFetchEnabled(): bool
     {
         return $this->getDto()->MBIN_AUTHORIZED_FETCH;
+    }
+
+    /**
+     * Whether a member whose account is linked to the OIDC provider may replace
+     * the profile picture it supplies with an upload of their own.
+     *
+     * On by default. Turned off, the provider's picture is the only avatar such
+     * a member can have, and it is applied again at every OIDC login.
+     */
+    public function isSsoAvatarOverrideAllowed(): bool
+    {
+        return $this->getDto()->MBIN_SSO_AVATAR_OVERRIDE;
     }
 
     public function getAllowedInstances(): array

@@ -50,6 +50,7 @@
                 'data-input-length-max-value' : constant('App\\DTO\\UserDto::MAX_ABOUT_LENGTH')
                 }}) }}
 
+            {% if form.avatar is defined %}
             {{ form_row(form.avatar, {label: 'avatar'}) }}
             {% if app.user.avatar is not same as null %}
                 <div class="actions">
@@ -67,6 +68,7 @@
                         </button>
                     </ul>
                 </div>
+            {% endif %}
             {% endif %}
 
             {{ form_row(form.cover, {label: 'cover'}) }}

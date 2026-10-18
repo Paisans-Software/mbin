@@ -64,6 +64,34 @@ class SettingsManagerLockedSettingsTest extends TestCase
         $this->assertTrue($manager->get('MBIN_SSO_ONLY_MODE'));
     }
 
+    public function testSsoAvatarOverrideIsAllowedByDefault(): void
+    {
+        $manager = $this->createManager(lockedSettings: '', rows: []);
+
+        $this->assertTrue($manager->isSsoAvatarOverrideAllowed());
+    }
+
+    public function testSsoAvatarOverrideCanBeLockedOverADatabaseRow(): void
+    {
+        $manager = $this->createManager(
+            lockedSettings: 'MBIN_SSO_AVATAR_OVERRIDE',
+            rows: [new Settings('MBIN_SSO_AVATAR_OVERRIDE', 'true')],
+            mbinSsoAvatarOverride: false,
+        );
+
+        $this->assertFalse($manager->isSsoAvatarOverrideAllowed());
+    }
+
+    public function testSsoAvatarOverrideReadsItsDatabaseRowWhenUnlocked(): void
+    {
+        $manager = $this->createManager(
+            lockedSettings: '',
+            rows: [new Settings('MBIN_SSO_AVATAR_OVERRIDE', 'false')],
+        );
+
+        $this->assertFalse($manager->isSsoAvatarOverrideAllowed());
+    }
+
     public function testUnlockedSettingStillReadsItsDatabaseRow(): void
     {
         $manager = $this->createManager(
@@ -177,7 +205,7 @@ class SettingsManagerLockedSettingsTest extends TestCase
     /**
      * @param Settings[] $rows
      */
-    private function createManager(string $lockedSettings, array $rows, ?EntityManagerInterface $entityManager = null, bool $mbinSsoOnlyMode = false): SettingsManager
+    private function createManager(string $lockedSettings, array $rows, ?EntityManagerInterface $entityManager = null, bool $mbinSsoOnlyMode = false, bool $mbinSsoAvatarOverride = true): SettingsManager
     {
         $settingsRepository = $this->createStub(SettingsRepository::class);
         $settingsRepository->method('findAllIndexedByName')->willReturn($rows);
@@ -213,6 +241,7 @@ class SettingsManagerLockedSettingsTest extends TestCase
             mbinSearchLang: 'english',
             mbinPrivateInstance: false,
             mbinLockedSettings: $lockedSettings,
+            mbinSsoAvatarOverride: $mbinSsoAvatarOverride,
         );
     }
 }

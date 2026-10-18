@@ -13,6 +13,7 @@ use Nelmio\ApiDocBundle\Attribute\Security;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class UserUpdateImagesApi extends UserBaseApi
@@ -71,6 +72,10 @@ class UserUpdateImagesApi extends UserBaseApi
         UserFactory $factory,
         RateLimiterFactoryInterface $apiImageLimiter,
     ): JsonResponse {
+        if (!$manager->canChangeAvatar($this->getUserOrThrow())) {
+            throw new AccessDeniedException();
+        }
+
         $headers = $this->rateLimit($apiImageLimiter);
 
         $image = $this->handleUploadedImage();
@@ -78,6 +83,11 @@ class UserUpdateImagesApi extends UserBaseApi
         $dto = $manager->createDto($this->getUserOrThrow());
 
         $dto->avatar = $image ? $this->imageFactory->createDto($image) : $dto->avatar;
+
+        // An avatar the member chose is kept over the OIDC provider's picture at login.
+        if ($image && null !== $this->getUserOrThrow()->oauthOidcId) {
+            $this->getUserOrThrow()->oidcAvatarOverridden = true;
+        }
 
         $user = $manager->edit($this->getUserOrThrow(), $dto);
 

@@ -328,6 +328,16 @@ readonly class UserManager
         $this->eventDispatcher->dispatch(new InstanceBanEvent($user, $bannedBy, $reason));
     }
 
+    /**
+     * Whether the user may upload or remove an avatar of their own. A member
+     * linked to the OIDC provider may not while MBIN_SSO_AVATAR_OVERRIDE is
+     * off, because the provider's picture is then the only avatar they have.
+     */
+    public function canChangeAvatar(User $user): bool
+    {
+        return null === $user->oauthOidcId || $this->settingsManager->isSsoAvatarOverrideAllowed();
+    }
+
     public function detachAvatar(User $user): void
     {
         if (!$user->avatar) {
