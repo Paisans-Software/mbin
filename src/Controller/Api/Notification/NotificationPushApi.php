@@ -70,8 +70,6 @@ class NotificationPushApi extends NotificationBaseApi
         RateLimiterFactoryInterface $apiNotificationLimiter,
         UserPushSubscriptionRepository $repository,
         SettingsManager $settingsManager,
-        UserPushSubscriptionManager $pushSubscriptionManager,
-        TranslatorInterface $translator,
         #[MapRequestPayload] NotificationPushSubscriptionRequestDto $payload,
     ): JsonResponse {
         $headers = $this->rateLimit($apiNotificationLimiter);
@@ -92,20 +90,7 @@ class NotificationPushApi extends NotificationBaseApi
         $this->entityManager->persist($pushSubscription);
         $this->entityManager->flush();
 
-        try {
-            $testNotification = new PushNotification(null, '', $translator->trans('test_push_message', locale: $pushSubscription->locale));
-            $pushSubscriptionManager->sendTextToUser($user, $testNotification, specificToken: $apiToken);
-
-            return new JsonResponse(headers: $headers);
-        } catch (\ErrorException $e) {
-            $this->logger->error('There was an exception while deleting a UserPushSubscription: {e} - {m}. {o}', [
-                'e' => \get_class($e),
-                'm' => $e->getMessage(),
-                'o' => json_encode($e),
-            ]);
-
-            return new JsonResponse(status: 500, headers: $headers);
-        }
+        return new JsonResponse(headers: $headers);
     }
 
     #[OA\Response(
