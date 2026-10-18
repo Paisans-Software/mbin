@@ -39,6 +39,7 @@ class SettingsDto implements \JsonSerializable
         public bool $MBIN_NEW_USERS_NEED_APPROVAL,
         public bool $MBIN_USE_FEDERATION_ALLOW_LIST,
         public bool $MBIN_AUTHORIZED_FETCH,
+        public bool $MBIN_SSO_AVATAR_OVERRIDE,
     ) {
     }
 
@@ -73,6 +74,7 @@ class SettingsDto implements \JsonSerializable
         $dto->MBIN_NEW_USERS_NEED_APPROVAL = $this->MBIN_NEW_USERS_NEED_APPROVAL ?? $dto->MBIN_NEW_USERS_NEED_APPROVAL;
         $dto->MBIN_USE_FEDERATION_ALLOW_LIST = $this->MBIN_USE_FEDERATION_ALLOW_LIST ?? $dto->MBIN_USE_FEDERATION_ALLOW_LIST;
         $dto->MBIN_AUTHORIZED_FETCH = $this->MBIN_AUTHORIZED_FETCH ?? $dto->MBIN_AUTHORIZED_FETCH;
+        $dto->MBIN_SSO_AVATAR_OVERRIDE = $this->MBIN_SSO_AVATAR_OVERRIDE ?? $dto->MBIN_SSO_AVATAR_OVERRIDE;
 
         return $dto;
     }
@@ -109,6 +111,7 @@ class SettingsDto implements \JsonSerializable
             'MBIN_NEW_USERS_NEED_APPROVAL' => $this->MBIN_NEW_USERS_NEED_APPROVAL,
             'MBIN_USE_FEDERATION_ALLOW_LIST' => $this->MBIN_USE_FEDERATION_ALLOW_LIST,
             'MBIN_AUTHORIZED_FETCH' => $this->MBIN_AUTHORIZED_FETCH,
+            'MBIN_SSO_AVATAR_OVERRIDE' => $this->MBIN_SSO_AVATAR_OVERRIDE,
         ];
     }
 }

@@ -55,6 +55,14 @@ class OidcAuthenticator extends MbinOAuthAuthenticatorBase
      */
     private const PROMOTE_ATTRIBUTE = 'oidc_admin_group_entitled';
 
+    /**
+     * Request attribute carrying the provider's picture URL for an account
+     * that was already linked, read back once the login has succeeded. The
+     * avatar is synced there rather than while loading the user for the same
+     * reason as PROMOTE_ATTRIBUTE: a refused login must leave nothing behind.
+     */
+    private const PICTURE_ATTRIBUTE = 'oidc_picture_url';
+
     public function __construct(
         private readonly OidcClient $client,
         private readonly OidcTokenValidator $tokenValidator,
@@ -157,6 +165,7 @@ class OidcAuthenticator extends MbinOAuthAuthenticatorBase
 
                 if ($existingUser) {
                     $this->rememberEntitlement($request, $existingUser, $claims, $oidcUser);
+                    $this->rememberPicture($request, $oidcUser);
 
                     return $existingUser;
                 }
@@ -188,6 +197,7 @@ class OidcAuthenticator extends MbinOAuthAuthenticatorBase
                     $this->entityManager->flush();
 
                     $this->rememberEntitlement($request, $user, $claims, $oidcUser);
+                    $this->rememberPicture($request, $oidcUser);
 
                     return $user;
                 }
@@ -261,6 +271,12 @@ class OidcAuthenticator extends MbinOAuthAuthenticatorBase
             $this->promote($user);
         }
 
+        $pictureUrl = $request->attributes->get(self::PICTURE_ATTRIBUTE);
+
+        if ($user instanceof User && \is_string($pictureUrl)) {
+            $this->syncAvatar($user, $pictureUrl);
+        }
+
         return parent::onAuthenticationSuccess($request, $token, $firewallName);
     }
 
@@ -277,6 +293,64 @@ class OidcAuthenticator extends MbinOAuthAuthenticatorBase
         }
 
         $request->attributes->set(self::PROMOTE_ATTRIBUTE, true);
+    }
+
+    /**
+     * Records, for onAuthenticationSuccess, the picture the provider supplies
+     * for an account that was already linked. A missing claim records
+     * nothing, so the avatar is left as it is.
+     */
+    private function rememberPicture(Request $request, OidcResourceOwner $oidcUser): void
+    {
+        $pictureUrl = $oidcUser->getPictureUrl();
+
+        if (null !== $pictureUrl) {
+            $request->attributes->set(self::PICTURE_ATTRIBUTE, $pictureUrl);
+        }
+    }
+
+    /**
+     * Applies the provider's picture as the avatar, so that a member who
+     * changes it at the provider sees the change at their next login. An
+     * avatar the member uploaded themselves is kept while
+     * MBIN_SSO_AVATAR_OVERRIDE allows that.
+     *
+     * The change goes through UserManager::edit so that it federates and the
+     * replaced image is cleaned up. Nothing here may fail the login: the
+     * member has already been authenticated, and a picture that cannot be
+     * fetched is only logged.
+     */
+    private function syncAvatar(User $user, string $pictureUrl): void
+    {
+        $overrideAllowed = $this->settingsManager->isSsoAvatarOverrideAllowed();
+
+        if ($overrideAllowed && $user->oidcAvatarOverridden) {
+            return;
+        }
+
+        try {
+            $avatar = $this->getAvatar($pictureUrl);
+
+            // The image repository dedupes by hash, so an unchanged picture
+            // resolves to the image the member already has.
+            if (null === $avatar || $avatar === $user->avatar) {
+                return;
+            }
+
+            $dto = $this->userManager->createDto($user);
+            $dto->avatar = $this->imageFactory->createDto($avatar);
+
+            if (!$overrideAllowed) {
+                $user->oidcAvatarOverridden = false;
+            }
+
+            $this->userManager->edit($user, $dto);
+        } catch (\Throwable $e) {
+            $this->logger->warning('OIDC avatar sync failed for {username}: {reason}', [
+                'username' => $user->getUserIdentifier(),
+                'reason' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

@@ -47,6 +47,7 @@ Only a setting that falls back to an environment variable can be locked, because
 | `MBIN_NEW_USERS_NEED_APPROVAL`   | `MBIN_NEW_USERS_NEED_APPROVAL`   |
 | `MBIN_USE_FEDERATION_ALLOW_LIST` | `MBIN_USE_FEDERATION_ALLOW_LIST` |
 | `MBIN_AUTHORIZED_FETCH`          | `MBIN_AUTHORIZED_FETCH`          |
+| `MBIN_SSO_AVATAR_OVERRIDE`       | `MBIN_SSO_AVATAR_OVERRIDE`       |
 
 Every other setting has only a built-in default and cannot be locked.
 

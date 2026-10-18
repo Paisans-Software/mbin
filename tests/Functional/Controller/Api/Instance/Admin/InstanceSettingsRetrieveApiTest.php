@@ -38,6 +38,7 @@ class InstanceSettingsRetrieveApiTest extends WebTestCase
         'MBIN_NEW_USERS_NEED_APPROVAL',
         'MBIN_USE_FEDERATION_ALLOW_LIST',
         'MBIN_AUTHORIZED_FETCH',
+        'MBIN_SSO_AVATAR_OVERRIDE',
     ];
 
     public function testApiCannotRetrieveInstanceSettingsAnonymous(): void
