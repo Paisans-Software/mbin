@@ -85,7 +85,7 @@ class UserUpdateImagesApi extends UserBaseApi
         $dto->avatar = $image ? $this->imageFactory->createDto($image) : $dto->avatar;
 
         // An avatar the member chose is kept over the OIDC provider's picture at login.
-        if (null !== $this->getUserOrThrow()->oauthOidcId) {
+        if ($image && null !== $this->getUserOrThrow()->oauthOidcId) {
             $this->getUserOrThrow()->oidcAvatarOverridden = true;
         }
 
