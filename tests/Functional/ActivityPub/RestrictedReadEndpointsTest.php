@@ -9,11 +9,13 @@ use App\Entity\Magazine;
 use App\Entity\MagazineFollow;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
+use App\Service\ActivityPub\Wrapper\AnnounceWrapper;
 use App\Service\ActivityPub\Wrapper\FollowWrapper;
 use App\Tests\Functional\Controller\RestrictedContentFixtureTrait;
 use App\Tests\WebTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
@@ -92,6 +94,23 @@ class RestrictedReadEndpointsTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testActivityAboutRestrictedContentIsNotFoundUnderAnotherHost(): void
+    {
+        // generated ids then carry the other host, so the payload no longer looks local
+        $create = $this->activityAbout($this->entry);
+        $announce = self::getContainer()->get(AnnounceWrapper::class)->build($this->alice, $create);
+        $this->entityManager->flush();
+
+        foreach (['Create' => $create, 'Announce' => $announce] as $type => $activity) {
+            $this->client->request('GET', "/f/object/{$activity->uuid}", server: [
+                'HTTP_ACCEPT' => 'application/activity+json',
+                'HTTP_HOST' => 'other.example',
+            ]);
+
+            self::assertResponseStatusCodeSame(404, $type);
+        }
+    }
+
     public function testActivityAboutPublicContentIsServed(): void
     {
         $activity = $this->activityAbout($this->createEntry('Open entry', $this->open, $this->alice));
@@ -131,21 +150,63 @@ class RestrictedReadEndpointsTest extends WebTestCase
         self::assertSame('Group', $json['type']);
     }
 
-    public function testHiddenActorLooksExactlyLikeAMissingOne(): void
+    /**
+     * Each route as a path template: {m} is the magazine name, {e} {ec} {p} {pc} the ids of
+     * vault's content. A missing magazine gets the same ids, so only the name differs.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function provideMagazineRoutes(): iterable
     {
-        $this->apGet('/m/no-such-mag');
+        yield 'actor' => ['/m/{m}'];
+        yield 'outbox' => ['/m/{m}/outbox'];
+        yield 'followers' => ['/m/{m}/followers'];
+        yield 'moderators' => ['/m/{m}/moderators'];
+        yield 'featured' => ['/m/{m}/pinned'];
+        yield 'entry' => ['/m/{m}/t/{e}/-'];
+        yield 'entry comment' => ['/m/{m}/t/{e}/-/comment/{ec}'];
+        yield 'post' => ['/m/{m}/p/{p}/-'];
+        yield 'post comment' => ['/m/{m}/p/{p}/-/reply/{pc}'];
+    }
+
+    #[DataProvider('provideMagazineRoutes')]
+    public function testHiddenMagazineLooksExactlyLikeAMissingOne(string $route): void
+    {
+        $admin = $this->getUserByUsername('admin');
+        $entry = $this->createEntry('Vault entry', $this->vault, $admin);
+        $entryComment = $this->createEntryComment('Vault entry comment', $entry, $admin);
+        $post = $this->createPost('Vault post', $this->vault, $admin);
+        $postComment = $this->createPostComment('Vault post comment', $post, $admin);
+        $ids = ['{e}' => $entry->getId(), '{ec}' => $entryComment->getId(), '{p}' => $post->getId(), '{pc}' => $postComment->getId()];
+
+        $this->apGet(strtr($route, $ids + ['{m}' => 'nosuchmag']));
         $missing = $this->client->getResponse();
 
-        $this->apGet('/m/vault');
+        $this->apGet(strtr($route, $ids + ['{m}' => 'vault']));
         $hidden = $this->client->getResponse();
 
-        self::assertSame(404, $missing->getStatusCode());
         self::assertSame($missing->getStatusCode(), $hidden->getStatusCode());
         self::assertSame($missing->headers->get('Content-Type'), $hidden->headers->get('Content-Type'));
-        self::assertSame(
-            json_decode($missing->getContent(), true)['detail'] ?? $missing->getContent(),
-            json_decode($hidden->getContent(), true)['detail'] ?? $hidden->getContent(),
-        );
+        self::assertSame($this->comparableBody($missing->getContent()), $this->comparableBody($hidden->getContent()));
+    }
+
+    /**
+     * The error body as production renders it. The test kernel runs in debug mode, where
+     * ProblemNormalizer adds the exception class and trace and puts the exception message
+     * in "detail"; those name the code that threw, which differs between a missing name
+     * (the argument resolver) and a withheld one (the visibility listener). With debug off,
+     * as in production, it emits only type, title, status and the status text as detail.
+     */
+    private function comparableBody(string $content): mixed
+    {
+        $json = json_decode($content, true);
+        if (!\is_array($json) || !isset($json['status'])) {
+            return $content;
+        }
+        unset($json['class'], $json['trace']);
+        $json['detail'] = Response::$statusTexts[$json['status']];
+
+        return $json;
     }
 
     private function remoteFriend(): User

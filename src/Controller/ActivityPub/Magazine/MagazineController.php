@@ -9,6 +9,7 @@ use App\Entity\Magazine;
 use App\Factory\ActivityPub\GroupFactory;
 use App\Repository\MagazineFollowRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class MagazineController extends AbstractController
 {
@@ -19,13 +20,16 @@ class MagazineController extends AbstractController
     ) {
     }
 
-    // FORK DIVERGENCE — do not offer this upstream: private magazines
-    // nullable so that a missing name is the same 404 as a withheld one, instead of the
-    // TypeError (a 500) a non-nullable argument gets when no magazine resolves
-    public function __invoke(?Magazine $magazine): JsonResponse
+    public function __invoke(Magazine $magazine): JsonResponse
     {
-        if (null === $magazine || $magazine->apId || !$this->actorIsServed($magazine)) {
+        if ($magazine->apId) {
             throw $this->createNotFoundException();
+        }
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // the same exception MagazineResolver throws for a missing name, so the two match
+        if (!$this->actorIsServed($magazine)) {
+            throw new NotFoundHttpException();
         }
 
         $response = new JsonResponse($this->groupFactory->create($magazine));
@@ -44,6 +48,6 @@ class MagazineController extends AbstractController
      */
     private function actorIsServed(Magazine $magazine): bool
     {
-        return !$magazine->isRestricted() || [] !== $this->magazineFollowRepository->findByMagazine($magazine);
+        return !$magazine->isRestricted() || $this->magazineFollowRepository->magazineHasFollows($magazine);
     }
 }

@@ -80,6 +80,22 @@ class MagazineFollowRepository extends ServiceEntityRepository
     }
 
     /**
+     * Whether the magazine follows anybody at all, regardless of status.
+     *
+     * FORK DIVERGENCE — do not offer this upstream: private magazines
+     */
+    public function magazineHasFollows(Magazine $magazine): bool
+    {
+        return null !== $this->createQueryBuilder('mf')
+            ->select('mf.id')
+            ->where('mf.magazine = :magazine')
+            ->setParameter('magazine', $magazine)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Whether the magazine already follows this actor, regardless of status.
      */
     public function findOneByMagazineAndActor(Magazine $magazine, User|Magazine $actor): ?MagazineFollow
