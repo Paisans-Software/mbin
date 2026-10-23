@@ -206,6 +206,12 @@ class Magazine implements VisibilityInterface, ActivityPubActorInterface, ApiRes
     }
 
     // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public function isHidden(): bool
+    {
+        return $this->isRestricted() && MagazineAccess::Hidden === $this->access;
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
     public function isMember(User $user): bool
     {
         $criteria = Criteria::create()
