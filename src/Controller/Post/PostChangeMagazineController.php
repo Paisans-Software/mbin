@@ -35,6 +35,10 @@ class PostChangeMagazineController extends AbstractController
 
         $newMagazine = $this->repository->findOneByName(Polyfills::requestParam($request, 'change_magazine')['new_magazine']);
 
+        if (null === $newMagazine) {
+            throw $this->createNotFoundException();
+        }
+
         $this->manager->changeMagazine($post, $newMagazine);
 
         return $this->redirectToRefererOrHome($request);
