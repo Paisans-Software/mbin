@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Controller\Api\Notification;
 
+use App\DTO\MagazineBanDto;
 use App\DTO\MessageDto;
 use App\Entity\Message;
 use App\Tests\WebTestCase;
@@ -78,6 +79,31 @@ class NotificationRetrieveApiTest extends WebTestCase
         self::assertNull($jsonData['items'][0]['subject']['status']);
         self::assertNull($jsonData['items'][0]['subject']['createdAt']);
         self::assertEquals('This app has not received permission to read your messages.', $jsonData['items'][0]['subject']['body']);
+    }
+
+    public function testApiCanGetMagazineBanNotificationWithSubject(): void
+    {
+        self::createOAuth2AuthCodeClient();
+        $user = $this->getUserByUsername('JohnDoe');
+        $moderator = $this->getUserByUsername('JaneDoe');
+        $magazine = $this->getMagazineByName('acme', $moderator);
+
+        $this->magazineManager->ban($magazine, $user, $moderator, MagazineBanDto::create('test ban', new \DateTimeImmutable('+1 day')));
+
+        $this->client->loginUser($user);
+        $codes = self::getAuthorizationCodeTokenResponse($this->client, scopes: 'read user:notification:read');
+        $token = $codes['token_type'].' '.$codes['access_token'];
+
+        $this->client->request('GET', '/api/notifications/all', server: ['HTTP_AUTHORIZATION' => $token]);
+        self::assertResponseIsSuccessful();
+        $jsonData = self::getJsonResponse($this->client);
+
+        self::assertCount(1, $jsonData['items']);
+        self::assertSame('magazine_ban_notification', $jsonData['items'][0]['type']);
+        self::assertArrayHasKey('subject', $jsonData['items'][0]);
+        self::assertIsArray($jsonData['items'][0]['subject']);
+        self::assertSame('test ban', $jsonData['items'][0]['subject']['reason']);
+        self::assertSame($user->getId(), $jsonData['items'][0]['subject']['bannedUser']['userId']);
     }
 
     public function testApiCanGetNotificationsByStatusAll(): void
