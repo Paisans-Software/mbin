@@ -172,6 +172,11 @@ class ShadowThreadCreationTest extends ActivityPubFunctionalTestCase
         self::assertSame($this->pageToNobody['object']['id'], $this->shadowUrlFor([['type' => 'Link', 'href' => 'https://evil.example/phish']]));
     }
 
+    public function testSameHostUrlRejectedByTheCleanerFallsBackToTheId(): void
+    {
+        self::assertSame($this->pageToNobody['object']['id'], $this->shadowUrlFor("https://$this->remoteDomain/some page"));
+    }
+
     public function testSameHostUrlIsCleanedOfTrackingParameters(): void
     {
         self::assertSame(

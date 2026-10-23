@@ -173,7 +173,16 @@ class ShadowThreadManager
         try {
             return ($this->urlCleaner)($url);
         } catch (BadUrlException) {
-            return $url;
+            // the cleaner's validation is stricter than the checks above, so a url it rejects
+            // is never linked: fall back to the id, and to no shadow if the id fails too
+            if ($url === $id) {
+                return null;
+            }
+            try {
+                return ($this->urlCleaner)($id);
+            } catch (BadUrlException) {
+                return null;
+            }
         }
     }
 
