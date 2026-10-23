@@ -108,7 +108,7 @@ class NotificationBaseApi extends BaseApi
                 $message = $dto->getSubject();
                 $toReturn['subject'] = $this->messageFactory->createResponseDto($message);
                 break;
-            case 'ban':
+            case 'magazine_ban_notification':
                 /**
                  * @var \App\Entity\MagazineBanNotification $dto
                  */
