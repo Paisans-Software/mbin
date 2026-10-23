@@ -8,7 +8,6 @@ use App\Entity\Contracts\ContentInterface;
 
 /**
  * @method createAccessDeniedException()
- * @method createNotFoundException()
  */
 trait PrivateContentTrait
 {
