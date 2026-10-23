@@ -28,6 +28,15 @@ class DeleteService
 
     public function announceIfNecessary(?User $deletingUser, Entry|EntryComment|Post|PostComment $content): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // restricted content was never federated, so there is nothing to retract. Deciding
+        // here, before any Delete is built or queued, also covers a magazine purge, where
+        // a queued Delete could otherwise reach the delivery guard after the magazine row
+        // is gone and its URLs no longer look restricted.
+        if ($content->magazine->isRestricted()) {
+            return;
+        }
+
         if (null !== $deletingUser && (!$content->apId || !$content->magazine->apId || !$deletingUser->apId) && ($content->magazine->userIsModerator($deletingUser) || $content->magazine->hasSameHostAsUser($deletingUser) || $content->isAuthor($deletingUser))) {
             if ($deletingUser->apId) {
                 $deleteActivity = $this->activityRepository->findFirstActivitiesByTypeAndObject('Delete', $content);

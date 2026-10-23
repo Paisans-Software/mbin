@@ -76,6 +76,24 @@ class RestrictedDeliveryTest extends ActivityPubFunctionalTestCase
         self::assertSame([], $this->postedSummary());
     }
 
+    public function testPurgingRestrictedMagazineDeliversNothing(): void
+    {
+        // the content of a restricted magazine is never announced as deleted, so no
+        // Delete can be left queued for the moment the magazine row is gone and the
+        // delivery guard can no longer tell its URLs are restricted
+        $this->createEntry('Alice circle entry', $this->circle, $this->alice);
+        $this->createPost('Alice circle post', $this->circle, $this->alice);
+        self::assertSame([], $this->postedSummary());
+
+        // as the purge worker would: from a fresh unit of work
+        $this->entityManager->clear();
+        $this->magazineManager->purge($this->magazineRepository->find($this->circle->getId()));
+
+        self::assertNull($this->magazineRepository->findOneByName('circle'));
+        self::assertSame([], $this->postedSummary());
+        self::assertSame(0, $this->activityRepository->count(['type' => 'Delete']), 'no Delete should even be built');
+    }
+
     public function testPublicContentStillDelivered(): void
     {
         $this->createPost('a public post', $this->open, $this->alice);
