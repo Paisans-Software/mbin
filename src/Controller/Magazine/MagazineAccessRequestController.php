@@ -25,6 +25,7 @@ class MagazineAccessRequestController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function request(#[MapEntity(mapping: ['name' => 'name'])] Magazine $magazine, Request $request): Response
     {
+        // @phpstan-ignore arguments.count (the @method tag on AbstractController hides the real signature, as for every upstream caller)
         $this->validateCsrf('magazine_access_request', $request->getPayload()->get('token'));
 
         try {
