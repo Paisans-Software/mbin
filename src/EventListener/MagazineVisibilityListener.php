@@ -29,6 +29,7 @@ class MagazineVisibilityListener
 
     public function onKernelControllerArguments(ControllerArgumentsEvent $event): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
         // Content resolved by id carries its own magazine, which may differ from any magazine in the URL.
         foreach ($event->getArguments() as $argument) {
             if ($argument instanceof ContentInterface
