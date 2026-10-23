@@ -11,5 +11,7 @@
         {%- if fullName -%}
             @{{- magazine.name|apDomain -}}
         {%- endif -%}
+        {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+        {{ include('components/_magazine_access_icon.html.twig', {access: magazine.access.value}, with_context: false) }}
     </a>
 {% endif %}

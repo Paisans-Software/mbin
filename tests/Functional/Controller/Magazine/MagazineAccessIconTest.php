@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Controller\Magazine;
 
+use App\Controller\User\ThemeSettingsController;
 use App\Entity\Magazine;
 use App\Entity\MagazineMember;
 use App\Entity\User;
@@ -11,6 +12,7 @@ use App\Enum\MagazineAccess;
 use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
+use Symfony\Component\BrowserKit\Cookie;
 
 /**
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
@@ -44,7 +46,9 @@ class MagazineAccessIconTest extends WebTestCase
 
         $icon = $crawler->filterXPath('//a[contains(@href, "/m/circle")]//i[@data-magazine-access="private"]');
         self::assertGreaterThan(0, $icon->count());
-        self::assertStringContainsString('fa-lock', $icon->attr('class'));
+        // fa-lock already means posting-restricted upstream, so private has its own glyph
+        self::assertContains('fa-user-lock', explode(' ', $icon->attr('class')));
+        self::assertNotContains('fa-lock', explode(' ', $icon->attr('class')));
         self::assertSame('Private', $icon->attr('aria-label'));
         self::assertCount(0, $crawler->filter('[data-magazine-access="hidden"]'));
     }
@@ -129,5 +133,19 @@ class MagazineAccessIconTest extends WebTestCase
         $crawler = $this->client->request('GET', '/u/alice/subscriptions');
         self::assertResponseIsSuccessful();
         self::assertGreaterThan(0, $crawler->filter('.magazines [data-magazine-access="private"]')->count());
+    }
+
+    public function testPlainMagazineMentionShowsIcon(): void
+    {
+        $open = $this->magazineRepository->findOneByName('open');
+        $entry = $this->createEntry('Mentions circle', $open, $this->admin, body: 'see !circle');
+
+        $this->client->getCookieJar()->set(new Cookie(ThemeSettingsController::MBIN_ENTRIES_SHOW_RICH_MENTION_MAGAZINE, ThemeSettingsController::FALSE));
+        $crawler = $this->client->request('GET', "/m/open/t/{$entry->getId()}");
+        self::assertResponseIsSuccessful();
+
+        $icon = $crawler->filter('.entry__body a[href="/m/circle"] [data-magazine-access="private"]');
+        self::assertCount(1, $icon);
+        self::assertSame(0, $crawler->filter('.entry__body .magazine-inline')->count(), 'the plain, not the rich, mention');
     }
 }
