@@ -193,18 +193,33 @@ class RestrictedContentByIdTest extends WebTestCase
         }
     }
 
-    public function testBookmarkMenuRefreshOnRestrictedEntryIs404(): void
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function bookmarkSubjectProvider(): array
+    {
+        return [
+            'entry' => ['entry', '%entry%'],
+            'entry comment' => ['entry_comment', '%entryComment%'],
+            'post' => ['post', '%post%'],
+            'post comment' => ['post_comment', '%postComment%'],
+        ];
+    }
+
+    #[DataProvider('bookmarkSubjectProvider')]
+    public function testBookmarkMenuRefreshOnRestrictedSubjectIs404(string $type, string $id): void
     {
         $xhr = ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest'];
+        $path = $this->path("/blr/$id/$type");
 
         $this->client->loginUser($this->bob);
-        $this->client->request('GET', '/blr/999999/entry', server: $xhr);
+        $this->client->request('GET', "/blr/999999/$type", server: $xhr);
         self::assertResponseStatusCodeSame(404);
-        $this->client->request('GET', '/blr/'.$this->entry->getId().'/entry', server: $xhr);
+        $this->client->request('GET', $path, server: $xhr);
         self::assertResponseStatusCodeSame(404);
 
         $this->client->loginUser($this->alice);
-        $this->client->request('GET', '/blr/'.$this->entry->getId().'/entry', server: $xhr);
+        $this->client->request('GET', $path, server: $xhr);
         self::assertResponseIsSuccessful();
     }
 }

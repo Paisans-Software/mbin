@@ -90,11 +90,12 @@ class RestrictedContentByIdApiTest extends WebTestCase
 
         $this->client->request('PUT', '/api/notification/update/entry/999999/Loud', server: ['HTTP_AUTHORIZATION' => $token]);
         self::assertResponseStatusCodeSame(404);
-        $missing = $this->client->getResponse()->getContent();
+        $missing = $this->productionProblem();
 
         foreach ($paths as $path) {
             $this->client->request('PUT', $path, server: ['HTTP_AUTHORIZATION' => $token]);
             self::assertResponseStatusCodeSame(404, $path);
+            self::assertSame($missing, $this->productionProblem(), $path);
         }
         self::assertSame(0, $this->entityManager->getRepository(NotificationSettings::class)->count(['user' => $this->bob->getId()]));
         self::assertNotEmpty($missing);
@@ -103,5 +104,19 @@ class RestrictedContentByIdApiTest extends WebTestCase
             $this->client->request('PUT', $path, server: ['HTTP_AUTHORIZATION' => $aliceToken]);
             self::assertResponseIsSuccessful($path);
         }
+    }
+
+    /**
+     * The problem document without what only debug mode adds (the exception message and
+     * trace); the exception class stays, so both answers have the same cause.
+     *
+     * @return array<string, mixed>
+     */
+    private function productionProblem(): array
+    {
+        $problem = self::getJsonResponse($this->client);
+        unset($problem['detail'], $problem['trace']);
+
+        return $problem;
     }
 }
