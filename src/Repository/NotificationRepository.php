@@ -56,6 +56,13 @@ class NotificationRepository extends ServiceEntityRepository
                 ->setParameter('status', $status);
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $hidden = $this->findIdsOfUnviewableContent($user);
+        if ([] !== $hidden) {
+            $qb->andWhere('n.id NOT IN (:hiddenNotifications)')
+                ->setParameter('hiddenNotifications', $hidden);
+        }
+
         $pagerfanta = new Pagerfanta(
             new QueryAdapter(
                 $qb
@@ -70,6 +77,40 @@ class NotificationRepository extends ServiceEntityRepository
         }
 
         return $pagerfanta;
+    }
+
+    /**
+     * Ids of the user's notifications about content (or a report on content) in a magazine
+     * the user cannot see now, for example after being removed from a private magazine.
+     * Native SQL because the content columns belong to the notification subclasses, which
+     * DQL on the root class cannot reach.
+     *
+     * FORK DIVERGENCE — do not offer this upstream: private magazines
+     *
+     * @return int[]
+     */
+    private function findIdsOfUnviewableContent(User $user): array
+    {
+        [$access, $parameters] = MagazineAccessClause::sql('nam', $user);
+        if ('TRUE' === $access) {
+            return [];
+        }
+
+        $sql = "SELECT n.id FROM notification n
+            LEFT JOIN entry e ON e.id = n.entry_id
+            LEFT JOIN entry_comment ec ON ec.id = n.entry_comment_id
+            LEFT JOIN post p ON p.id = n.post_id
+            LEFT JOIN post_comment pc ON pc.id = n.post_comment_id
+            LEFT JOIN report r ON r.id = n.report_id
+            INNER JOIN magazine nam ON nam.id = COALESCE(e.magazine_id, ec.magazine_id, p.magazine_id, pc.magazine_id, r.magazine_id)
+            WHERE n.user_id = :nam_user AND NOT $access";
+
+        return array_map(
+            'intval',
+            $this->getEntityManager()->getConnection()
+                ->executeQuery($sql, ['nam_user' => $user->getId()] + $parameters)
+                ->fetchFirstColumn(),
+        );
     }
 
     public function findUnreadEntryNotifications(User $user, Entry $entry): iterable
