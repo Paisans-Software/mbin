@@ -2,7 +2,7 @@
 
 
 # Base FrankenPHP image
-FROM docker.io/dunglas/frankenphp:1-php8.5-trixie AS base
+FROM docker.io/dunglas/frankenphp:1-php8.5.12-trixie AS base
 
 WORKDIR /app
 
