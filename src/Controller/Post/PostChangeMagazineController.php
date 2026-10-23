@@ -35,6 +35,10 @@ class PostChangeMagazineController extends AbstractController
 
         $newMagazine = $this->repository->findOneByName($request->get('change_magazine')['new_magazine']);
 
+        if (null === $newMagazine) {
+            throw $this->createNotFoundException();
+        }
+
         // FORK DIVERGENCE — do not offer this upstream: private magazines
         try {
             $this->manager->changeMagazine($post, $newMagazine);
