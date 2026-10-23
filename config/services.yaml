@@ -329,6 +329,9 @@ services:
             - {
                   name: kernel.event_listener,
                   event: kernel.controller_arguments,
+                  # FORK DIVERGENCE — do not offer this upstream: private magazines
+                  # Must run before IsGrantedAttributeListener (20) so a non-viewer gets 404, never 403.
+                  priority: 30,
               }
 
     # Monolog handlers

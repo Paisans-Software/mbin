@@ -8,6 +8,7 @@ use App\Controller\AbstractController;
 use App\DTO\PostDto;
 use App\Entity\Magazine;
 use App\Entity\User;
+use App\EventListener\MagazineVisibilityListener;
 use App\Form\PostType;
 use App\PageView\EntryPageView;
 use App\PageView\PostPageView;
@@ -115,6 +116,11 @@ class EntryFrontController extends AbstractController
         #[MapQueryParameter] ?string $cursor = null,
         #[MapQueryParameter] ?string $cursor2 = null,
     ): Response {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if ($request->attributes->getBoolean(MagazineVisibilityListener::STUB_ATTRIBUTE)) {
+            return $this->render('magazine/stub.html.twig', ['stubMagazine' => $magazine]);
+        }
+
         $user = $this->getUser();
         $response = new Response();
         if ($magazine->apId) {

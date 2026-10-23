@@ -1,0 +1,34 @@
+{# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+{# The magazine is passed as stubMagazine, not magazine, so the layout does not render magazine widgets (moderators, content links) for a viewer who may not see them. #}
+{% extends 'base.html.twig' %}
+
+{%- block title -%}
+    {{- stubMagazine.title }} - {{ parent() -}}
+{%- endblock -%}
+
+{% block mainClass %}page-magazine-stub{% endblock %}
+
+{% block header_nav %}
+{% endblock %}
+
+{% block sidebar_top %}
+{% endblock %}
+
+{% block sidebar %}
+{% endblock %}
+
+{% block body %}
+    <div class="section magazine-stub" data-magazine-stub>
+        {% if stubMagazine.icon %}
+            <img src="{{ stubMagazine.icon.filePath ? (asset(stubMagazine.icon.filePath)|imagine_filter('avatar_thumb')) : stubMagazine.icon.sourceUrl }}"
+                 alt="{{ stubMagazine.name }}" class="image-inline magazine-stub__icon" loading="lazy">
+        {% endif %}
+        <h1>
+            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+            {{ stubMagazine.title }}
+        </h1>
+        {% if stubMagazine.description %}
+            <div class="magazine-stub__description">{{ stubMagazine.description|markdown|raw }}</div>
+        {% endif %}
+    </div>
+{% endblock %}

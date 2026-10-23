@@ -161,8 +161,12 @@ class MagazineFactory
             throw new NotFoundHttpException('Magazine was not found!');
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $viewer = $this->security->getUser();
+        $canView = $magazine->userCanView($viewer instanceof User ? $viewer : null);
+
         return MagazineResponseDto::create(
-            $dto->getOwner() ? $this->moderatorFactory->createDtoWithUser($dto->getOwner(), $magazine) : null,
+            $canView && $dto->getOwner() ? $this->moderatorFactory->createDtoWithUser($dto->getOwner(), $magazine) : null,
             $dto->icon,
             $dto->banner,
             $dto->name,
@@ -179,14 +183,14 @@ class MagazineFactory
             $dto->isBlockedByUser,
             $dto->tags,
             array_map(fn (Badge|BadgeDto $badge) => new BadgeResponseDto($badge), $dto->badges?->toArray() ?? []),
-            array_map(fn (Moderator $moderator) => $this->moderatorFactory->createDto($moderator), $dto->moderators?->toArray() ?? []),
+            $canView ? array_map(fn (Moderator $moderator) => $this->moderatorFactory->createDto($moderator), $dto->moderators?->toArray() ?? []) : [],
             $dto->apId,
             $dto->apProfileId,
             $dto->getId(),
             $dto->serverSoftware,
             $dto->serverSoftwareVersion,
             $dto->isPostingRestrictedToMods,
-            $dto->localSubscribers,
+            $canView ? $dto->localSubscribers : null,
             $dto->discoverable,
             $dto->indexable,
             // FORK DIVERGENCE — do not offer this upstream: private magazines
