@@ -1290,4 +1290,5 @@ members: Members
 add_member: Add member
 remove_member: Remove
 member_must_be_local_user: Only people with an account on this instance can be added.
+member_cannot_be_added: This account is banned or deleted and cannot be added.
 oauth2.grant.moderate.magazine.members: Manage the members of magazines you moderate

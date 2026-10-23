@@ -30,6 +30,9 @@ class MagazineMemberManager
         if (!$magazine->isRestricted()) {
             throw new \InvalidArgumentException('Only private and hidden magazines have members.');
         }
+        if ($user->isBanned || $user->isDeleted || $user->isSoftDeleted()) {
+            throw new \InvalidArgumentException('Banned or deleted accounts cannot be members of a magazine.');
+        }
 
         $existing = $this->repository->findOneByMagazineAndUser($magazine, $user);
         if (null !== $existing) {

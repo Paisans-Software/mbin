@@ -53,9 +53,13 @@ class MagazineMemberController extends AbstractController
             if (null === $user || null !== $user->apId) {
                 $form->get('username')->addError(new FormError($this->translator->trans('member_must_be_local_user')));
             } else {
-                $this->manager->add($magazine, $user, $this->getUserOrThrow());
+                try {
+                    $this->manager->add($magazine, $user, $this->getUserOrThrow());
 
-                return $this->redirectToRoute('magazine_panel_members', ['name' => $magazine->name]);
+                    return $this->redirectToRoute('magazine_panel_members', ['name' => $magazine->name]);
+                } catch (\InvalidArgumentException) {
+                    $form->get('username')->addError(new FormError($this->translator->trans('member_cannot_be_added')));
+                }
             }
         }
 

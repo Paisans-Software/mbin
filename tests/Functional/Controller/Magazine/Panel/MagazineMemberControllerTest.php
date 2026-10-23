@@ -64,6 +64,25 @@ class MagazineMemberControllerTest extends WebTestCase
         self::assertTrue($circle->userCanView($this->getUserByUsername('alice')));
     }
 
+    public function testBannedAccountIsAFormError(): void
+    {
+        $bob = $this->getUserByUsername('bob');
+        $bob->isBanned = true;
+        $this->entityManager->flush();
+
+        $this->client->loginUser($this->getUserByUsername('owner'));
+        $crawler = $this->client->request('GET', '/m/circle/panel/members');
+        $this->client->submit(
+            $crawler->filter('#main form[name=magazine_member]')->selectButton('Add member')->form([
+                'magazine_member[username]' => 'bob',
+            ])
+        );
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('#main form[name=magazine_member]', 'banned or deleted');
+        self::assertFalse($this->circle->isMember($bob));
+    }
+
     public function testModeratorRemovesMember(): void
     {
         $this->memberManager()->add($this->circle, $this->getUserByUsername('alice'), $this->getUserByUsername('owner'));

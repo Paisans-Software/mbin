@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Service;
 
 use App\Entity\Magazine;
-use App\Entity\MagazineMember;
+use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
@@ -18,14 +19,7 @@ class MagazineMemberManagerTest extends WebTestCase
 {
     private function manager(): MagazineMemberManager
     {
-        /** @var MagazineMemberRepository $memberRepository */
-        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
-
-        return new MagazineMemberManager(
-            $memberRepository,
-            $this->magazineManager,
-            $this->entityManager,
-        );
+        return static::getContainer()->get(MagazineMemberManager::class);
     }
 
     private function restrictedMagazine(): Magazine
@@ -87,5 +81,67 @@ class MagazineMemberManagerTest extends WebTestCase
 
         self::assertFalse($magazine->isMember($user));
         self::assertFalse($magazine->isSubscribed($user));
+
+        $this->entityManager->clear();
+        $magazine = $this->magazineRepository->findOneByName('secret');
+        $user = $this->userRepository->findOneByUsername('member');
+        self::assertNull(static::getContainer()->get(MagazineMemberRepository::class)->findOneByMagazineAndUser($magazine, $user));
+        self::assertFalse($magazine->isSubscribed($user));
+    }
+
+    public function testAddToHiddenMagazine(): void
+    {
+        $magazine = $this->restrictedMagazine();
+        $magazine->access = MagazineAccess::Hidden;
+        $this->entityManager->flush();
+        $user = $this->getUserByUsername('member');
+
+        $this->manager()->add($magazine, $user, $this->getUserByUsername('owner'));
+
+        self::assertTrue($magazine->isMember($user));
+        self::assertTrue($magazine->userCanView($user));
+    }
+
+    public function testRemoveOfNonMemberIsANoOp(): void
+    {
+        $magazine = $this->restrictedMagazine();
+        $member = $this->getUserByUsername('member');
+        $this->manager()->add($magazine, $member, $this->getUserByUsername('owner'));
+
+        $this->manager()->remove($magazine, $this->getUserByUsername('stranger'));
+
+        self::assertCount(1, $magazine->members);
+        self::assertTrue($magazine->isMember($member));
+    }
+
+    /**
+     * @return array<string, array{callable(User): void}>
+     */
+    public static function unusableAccountProvider(): array
+    {
+        return [
+            'banned from the instance' => [fn (User $user) => $user->isBanned = true],
+            'deleted' => [fn (User $user) => $user->isDeleted = true],
+            'soft-deleted' => [fn (User $user) => $user->softDelete()],
+        ];
+    }
+
+    /**
+     * @param callable(User): void $makeUnusable
+     */
+    #[DataProvider('unusableAccountProvider')]
+    public function testAddRefusesUnusableAccount(callable $makeUnusable): void
+    {
+        $magazine = $this->restrictedMagazine();
+        $user = $this->getUserByUsername('member');
+        $makeUnusable($user);
+        $this->entityManager->flush();
+
+        try {
+            $this->manager()->add($magazine, $user, $this->getUserByUsername('owner'));
+            self::fail('expected the add to be refused');
+        } catch (\InvalidArgumentException) {
+        }
+        self::assertFalse($magazine->isMember($user));
     }
 }

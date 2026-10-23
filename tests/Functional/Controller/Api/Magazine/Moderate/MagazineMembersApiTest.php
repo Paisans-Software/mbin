@@ -102,6 +102,17 @@ class MagazineMembersApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    public function testBannedAccountIs400(): void
+    {
+        $banned = $this->getUserByUsername('banned_bea');
+        $banned->isBanned = true;
+        $this->entityManager->flush();
+        $token = $this->token('owner');
+
+        $this->client->request('PUT', "/api/moderate/magazine/{$this->circle->getId()}/members/{$banned->getId()}", server: ['HTTP_AUTHORIZATION' => $token]);
+        self::assertResponseStatusCodeSame(400);
+    }
+
     public function testPublicMagazineIs404OnListAddAndRemove(): void
     {
         $open = $this->getMagazineByName('open', $this->getUserByUsername('owner'));
