@@ -68,7 +68,9 @@ class FollowHandler extends MbinMessageHandler
                         return;
                     }
 
-                    if ($object instanceof Magazine and null === $object->apId and 'random' === $object->name) {
+                    // FORK DIVERGENCE — do not offer this upstream: private magazines
+                    // a restricted magazine has no remote followers, so it answers exactly as random does
+                    if ($object instanceof Magazine and null === $object->apId and ('random' === $object->name || $object->isRestricted())) {
                         $this->handleFollowRequest($message->payload, $object, isReject: true);
                     } else {
                         $this->handleFollow($object, $actor);

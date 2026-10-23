@@ -8,6 +8,7 @@ use App\DTO\EntryCommentDto;
 use App\DTO\PostCommentDto;
 use App\DTO\PostDto;
 use App\Entity\Contracts\ActivityPubActivityInterface;
+use App\Entity\Contracts\ContentInterface;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
 use App\Entity\Magazine;
@@ -83,6 +84,13 @@ class Note extends ActivityPubContent
             // Create post or entry comment
             $parentObjectId = $this->repository->findByObjectId($replyTo);
             $parent = $this->entityManager->getRepository($parentObjectId['type'])->find((int) $parentObjectId['id']);
+
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a reply is filed under its parent's magazine whatever it was addressed to,
+            // and local ids are easy to guess, so addressing alone does not keep it out
+            if ($parent instanceof ContentInterface && $parent->getMagazine()?->isRestricted()) {
+                throw new NoMagazineFoundException(\sprintf('Not accepting reply "%s" to content in a restricted magazine', $object['id']));
+            }
 
             if ($parent instanceof Entry) {
                 $root = $parent;

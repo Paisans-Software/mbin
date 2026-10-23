@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Magazine;
 use App\Entity\MagazineFollow;
 use App\Entity\User;
+use App\Enum\MagazineAccess;
 use App\Enum\MagazineFollowKind;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -41,7 +42,13 @@ class MagazineFollowRepository extends ServiceEntityRepository
             ->leftJoin('mf.followingUser', 'u')
             ->leftJoin('mf.followingMagazine', 'm')
             ->where('u.apProfileId = :url OR m.apProfileId = :url')
-            ->setParameter('url', $actorUrl);
+            ->setParameter('url', $actorUrl)
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a restricted magazine takes in no federated content, so its follows never
+            // route anything to it and the object takes the normal unrouted path instead
+            ->join('mf.magazine', 'fm')
+            ->andWhere('fm.access = :public')
+            ->setParameter('public', MagazineAccess::Public);
 
         if (null !== $activityType) {
             // A follow that does not carry this kind does not answer, and the object then
