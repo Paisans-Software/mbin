@@ -46,6 +46,8 @@ class Note extends ActivityPubContent
         private readonly SettingsManager $settingsManager,
         private readonly ImageFactory $imageFactory,
         private readonly ApObjectExtractor $objectExtractor,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly ShadowThreadManager $shadowThreadManager,
     ) {
     }
 
@@ -238,7 +240,12 @@ class Note extends ActivityPubContent
                 $dto->isLocked = !$object['commentsEnabled'];
             }
 
-            return $this->postManager->create($dto, $actor, false, $stickyIt);
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a restricted magazine following this actor gets its own private copy
+            $post = $this->postManager->create($dto, $actor, false, $stickyIt);
+            $this->shadowThreadManager->shadow($post, $object, $deliveredBy, $activityType);
+
+            return $post;
         } elseif ($actor instanceof Magazine) {
             throw new UnrecoverableMessageHandlingException('Actor "'.$object['attributedTo'].'" is not a user, but a magazine for post "'.$dto->apId.'".');
         } else {

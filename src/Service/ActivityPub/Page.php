@@ -35,6 +35,8 @@ class Page extends ActivityPubContent
         private readonly ApObjectExtractor $objectExtractor,
         private readonly LoggerInterface $logger,
         private readonly InstanceRepository $instanceRepository,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly ShadowThreadManager $shadowThreadManager,
     ) {
     }
 
@@ -132,7 +134,12 @@ class Page extends ActivityPubContent
 
             $this->logger->debug('creating page');
 
-            return $this->entryManager->create($dto, $actor, false, $stickyIt);
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a restricted magazine following this actor gets its own private copy
+            $entry = $this->entryManager->create($dto, $actor, false, $stickyIt);
+            $this->shadowThreadManager->shadow($entry, $object, $deliveredBy, $activityType);
+
+            return $entry;
         } else {
             throw new EntityNotFoundException('Actor could not be found for entry.');
         }
