@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Post;
 
 use App\Controller\AbstractController;
-use App\Controller\Traits\PrivateContentTrait;
+use App\Controller\Traits\MagazineViewTrait;
 use App\Entity\Magazine;
 use App\Entity\Post;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -18,7 +18,7 @@ use Twig\Runtime\EscaperRuntime;
 class PostVotersController extends AbstractController
 {
     // FORK DIVERGENCE — do not offer this upstream: private magazines
-    use PrivateContentTrait;
+    use MagazineViewTrait;
 
     public function __invoke(
         #[MapEntity(mapping: ['magazine_name' => 'name'])]

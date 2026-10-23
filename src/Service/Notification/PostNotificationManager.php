@@ -99,7 +99,8 @@ class PostNotificationManager implements ContentNotificationManagerInterface
     private function notifyMagazine(Notification $notification): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        if ($notification->post->magazine->isRestricted()) {
+        $post = property_exists($notification, 'post') ? $notification->post : null;
+        if (!$post instanceof Post || $post->magazine->isRestricted()) {
             return;
         }
 

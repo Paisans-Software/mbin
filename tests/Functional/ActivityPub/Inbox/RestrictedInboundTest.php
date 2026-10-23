@@ -208,6 +208,7 @@ class RestrictedInboundTest extends ActivityPubFunctionalTestCase
             'Dislike' => $entry->getDownVotes()->count(),
             'Announce' => $entry->getUpVotes()->count(),
             'Flag' => null === $this->reportRepository->findBySubject($entry) ? 0 : 1,
+            default => throw new \LogicException("no count for $type"),
         };
     }
 

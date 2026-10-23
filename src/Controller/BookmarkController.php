@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Controller\Traits\PrivateContentTrait;
+use App\Controller\Traits\MagazineViewTrait;
 use App\Entity\BookmarkList;
 use App\Repository\BookmarkRepository;
 use App\Service\BookmarkManager;
@@ -19,7 +19,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class BookmarkController extends AbstractController
 {
     // FORK DIVERGENCE — do not offer this upstream: private magazines
-    use PrivateContentTrait;
+    use MagazineViewTrait;
 
     public function __construct(
         private readonly BookmarkManager $bookmarkManager,

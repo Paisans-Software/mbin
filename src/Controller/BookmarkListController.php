@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Controller\Traits\PrivateContentTrait;
+use App\Controller\Traits\MagazineViewTrait;
 use App\DTO\BookmarkListDto;
 use App\Entity\BookmarkList;
 use App\Form\BookmarkListType;
@@ -27,7 +27,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class BookmarkListController extends AbstractController
 {
     // FORK DIVERGENCE — do not offer this upstream: private magazines
-    use PrivateContentTrait;
+    use MagazineViewTrait;
 
     public function __construct(
         private readonly BookmarkListRepository $bookmarkListRepository,

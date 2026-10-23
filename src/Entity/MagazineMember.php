@@ -39,6 +39,7 @@ class MagazineMember
     #[Id]
     #[GeneratedValue]
     #[Column(type: 'integer')]
+    // @phpstan-ignore property.onlyRead (written by Doctrine, as every generated id in this codebase)
     private int $id;
 
     public function __construct(Magazine $magazine, User $user, ?User $addedBy)

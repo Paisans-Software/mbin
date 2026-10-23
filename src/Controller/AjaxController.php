@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Controller\Traits\PrivateContentTrait;
+use App\Controller\Traits\MagazineViewTrait;
 use App\DTO\UserNoteDto;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
@@ -48,7 +48,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class AjaxController extends AbstractController
 {
     // FORK DIVERGENCE — do not offer this upstream: private magazines
-    use PrivateContentTrait;
+    use MagazineViewTrait;
 
     public function __construct(
         private readonly UserPushSubscriptionRepository $repository,

@@ -82,6 +82,7 @@ class MagazineMemberController extends AbstractController
             throw new NotFoundHttpException();
         }
 
+        // @phpstan-ignore arguments.count (the @method tag on AbstractController hides the real signature, as for every upstream caller)
         $this->validateCsrf('magazine_member_remove', $request->getPayload()->get('token'));
 
         $this->manager->remove($magazine, $user);

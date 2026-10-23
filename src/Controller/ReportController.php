@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Controller\Traits\PrivateContentTrait;
+use App\Controller\Traits\MagazineViewTrait;
 use App\DTO\ReportDto;
 use App\Entity\Contracts\ReportInterface;
 use App\Exception\SubjectHasBeenReportedException;
@@ -20,7 +20,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class ReportController extends AbstractController
 {
     // FORK DIVERGENCE — do not offer this upstream: private magazines
-    use PrivateContentTrait;
+    use MagazineViewTrait;
 
     public function __construct(
         private readonly ReportManager $manager,
@@ -32,7 +32,7 @@ class ReportController extends AbstractController
     public function __invoke(ReportInterface $subject, Request $request): Response
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        $this->assertMagazineViewable($subject->magazine);
+        $this->assertTargetViewable($subject);
 
         $dto = ReportDto::create($subject);
 

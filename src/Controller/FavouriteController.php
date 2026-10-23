@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Controller\Traits\PrivateContentTrait;
+use App\Controller\Traits\MagazineViewTrait;
 use App\Entity\Contracts\FavouriteInterface;
 use App\Service\FavouriteManager;
 use App\Service\GenerateHtmlClassService;
@@ -16,7 +16,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class FavouriteController extends AbstractController
 {
     // FORK DIVERGENCE — do not offer this upstream: private magazines
-    use PrivateContentTrait;
+    use MagazineViewTrait;
 
     public function __construct(private readonly GenerateHtmlClassService $classService)
     {
@@ -26,7 +26,7 @@ class FavouriteController extends AbstractController
     public function __invoke(FavouriteInterface $subject, Request $request, FavouriteManager $manager): Response
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        $this->assertMagazineViewable($subject->magazine);
+        $this->assertTargetViewable($subject);
 
         $manager->toggle($this->getUserOrThrow(), $subject);
 

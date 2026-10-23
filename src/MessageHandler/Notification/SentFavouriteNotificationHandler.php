@@ -49,7 +49,7 @@ class SentFavouriteNotificationHandler extends MbinMessageHandler
     private function notifyMagazine(FavouriteInterface $subject): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        if ($subject->magazine->isRestricted()) {
+        if (true === $subject->getMagazine()?->isRestricted()) {
             return;
         }
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Entry;
 
 use App\Controller\AbstractController;
-use App\Controller\Traits\PrivateContentTrait;
+use App\Controller\Traits\MagazineViewTrait;
 use App\Entity\Contracts\VotableInterface;
 use App\Entity\Entry;
 use App\Entity\Magazine;
@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EntryVotersController extends AbstractController
 {
     // FORK DIVERGENCE — do not offer this upstream: private magazines
-    use PrivateContentTrait;
+    use MagazineViewTrait;
 
     public function __construct(
         private readonly SettingsManager $settingsManager,

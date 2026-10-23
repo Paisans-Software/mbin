@@ -67,6 +67,8 @@ class HiddenMagazineOracleTest extends WebTestCase
     }
 
     /**
+     * @param array<string, string> $fields
+     *
      * @return array{int, string}
      */
     private function submitWithMagazine(string $page, string $form, string $button, array $fields, int $magazineId): array

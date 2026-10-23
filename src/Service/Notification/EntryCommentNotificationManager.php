@@ -177,7 +177,8 @@ class EntryCommentNotificationManager implements ContentNotificationManagerInter
     private function notifyMagazine(Notification $notification): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        if ($notification->getComment()->magazine->isRestricted()) {
+        $comment = method_exists($notification, 'getComment') ? $notification->getComment() : null;
+        if (!$comment instanceof EntryComment || $comment->magazine->isRestricted()) {
             return;
         }
 

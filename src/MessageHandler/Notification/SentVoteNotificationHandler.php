@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Notification;
 
+use App\Entity\Contracts\ContentInterface;
 use App\Entity\Contracts\VotableInterface;
 use App\Message\Contracts\MessageInterface;
 use App\Message\Notification\VoteNotificationMessage;
@@ -49,7 +50,8 @@ class SentVoteNotificationHandler extends MbinMessageHandler
     private function notifyMagazine(VotableInterface $votable): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        if ($votable->magazine->isRestricted()) {
+        // every votable is content; anything else is not announced at all
+        if (!$votable instanceof ContentInterface || false !== $votable->getMagazine()?->isRestricted()) {
             return;
         }
 

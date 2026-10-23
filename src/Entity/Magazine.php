@@ -16,6 +16,7 @@ use App\Service\MagazineManager;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\Criteria;
+use Doctrine\Common\Collections\Selectable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
@@ -104,6 +105,7 @@ class Magazine implements VisibilityInterface, ActivityPubActorInterface, ApiRes
     #[OneToMany(mappedBy: 'magazine', targetEntity: MagazineBan::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     public Collection $bans;
     // FORK DIVERGENCE — do not offer this upstream: private magazines
+    /** @var Collection<int, MagazineMember>&Selectable<int, MagazineMember> */
     #[OneToMany(mappedBy: 'magazine', targetEntity: MagazineMember::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     public Collection $members;
     #[OneToMany(mappedBy: 'magazine', targetEntity: Report::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY', orphanRemoval: true)]

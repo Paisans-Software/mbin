@@ -106,7 +106,8 @@ class EntryNotificationManager implements ContentNotificationManagerInterface
     private function notifyMagazine(Notification $notification): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        if ($notification->entry->magazine->isRestricted()) {
+        $entry = property_exists($notification, 'entry') ? $notification->entry : null;
+        if (!$entry instanceof Entry || $entry->magazine->isRestricted()) {
             return;
         }
 

@@ -120,7 +120,6 @@ class MagazineMembersApi extends MagazineBaseApi
 
         $dtos = [];
         foreach ($members->getCurrentPageResults() as $member) {
-            \assert($member instanceof MagazineMember);
             $dtos[] = $this->createDto($member, $userFactory);
         }
 
