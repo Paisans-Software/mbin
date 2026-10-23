@@ -8,6 +8,7 @@ use App\ActivityPub\ActorHandle;
 use App\Entity\Contracts\ContentInterface;
 use App\Entity\Magazine;
 use App\Entity\User;
+use App\Enum\MagazineAccess;
 use App\Message\ActivityPub\Inbox\ActivityMessage;
 use App\Message\ActivityPub\Inbox\CreateMessage;
 use App\Repository\DomainRepository;
@@ -19,6 +20,7 @@ use Pagerfanta\Adapter\ArrayAdapter;
 use Pagerfanta\Pagerfanta;
 use Pagerfanta\PagerfantaInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
 
@@ -32,6 +34,8 @@ class SearchManager
         private readonly MessageBusInterface $bus,
         private readonly ApHttpClientInterface $apHttpClient,
         private readonly LoggerInterface $logger,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly Security $security,
     ) {
     }
 
@@ -174,6 +178,9 @@ class SearchManager
 
     private function mapApResultsToSearchModel(array $objects): array
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $objects = array_values(array_filter($objects, fn ($object) => $this->isVisibleToSearcher($object)));
+
         return array_map(function ($object) {
             if ($object instanceof Magazine) {
                 $type = 'magazine';
@@ -219,6 +226,11 @@ class SearchManager
                             $type = 'user';
                         }
 
+                        // FORK DIVERGENCE — do not offer this upstream: private magazines
+                        if (!$this->isVisibleToSearcher($object)) {
+                            continue;
+                        }
+
                         $objects[] = [
                             'type' => $type,
                             'object' => $object,
@@ -255,4 +267,28 @@ class SearchManager
         return $objects ?? [];
     }
     // endregion
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    /**
+     * A lookup by handle or URL resolves local magazines and content directly, without the
+     * listing filter. Leave out a hidden magazine (a private one stays findable, as in the
+     * directory) and content in a magazine the searching user cannot view.
+     */
+    private function isVisibleToSearcher(mixed $object): bool
+    {
+        $viewer = $this->security->getUser();
+        $viewer = $viewer instanceof User ? $viewer : null;
+
+        if ($object instanceof Magazine) {
+            return null !== $object->apId
+                || MagazineAccess::Hidden !== $object->access
+                || (null !== $viewer && ($viewer->isAdmin() || $viewer->isModerator()));
+        }
+
+        if ($object instanceof ContentInterface && null !== $object->getMagazine()) {
+            return $object->getMagazine()->userCanView($viewer);
+        }
+
+        return true;
+    }
 }

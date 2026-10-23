@@ -41,6 +41,11 @@ class MagazineAutocompleteType extends AbstractType
                         ->setParameter('user', $currentUser);
                 }
 
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                // before the early return: an empty query still lists magazines, page by page
+                $viewer = $this->security->getUser();
+                MagazineAccessClause::applyDiscovery($qb, 'entity', $viewer instanceof User ? $viewer : null);
+
                 if (!$query) {
                     return;
                 }
@@ -50,9 +55,6 @@ class MagazineAutocompleteType extends AbstractType
                     ->setParameter('filter', '%'.$query.'%')
                     ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
                 ;
-                // FORK DIVERGENCE — do not offer this upstream: private magazines
-                $viewer = $this->security->getUser();
-                MagazineAccessClause::applyDiscovery($qb, 'entity', $viewer instanceof User ? $viewer : null);
             },
         ]);
     }

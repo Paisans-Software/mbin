@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Controller\Magazine;
 
 use App\Controller\User\ThemeSettingsController;
+use App\Entity\Entry;
 use App\Entity\Magazine;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\Repository\MagazineRepository;
 use App\Tests\WebTestCase;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
@@ -143,6 +145,70 @@ class HiddenDiscoveryTest extends WebTestCase
         self::assertStringContainsString('circle', $this->client->getResponse()->getContent());
     }
 
+    public function testAutocompleteWithoutQueryOmitsHidden(): void
+    {
+        $paths = ['/autocomplete/magazine_autocomplete_type', '/autocomplete/magazine_autocomplete_type?page=1', '/autocomplete/magazine_autocomplete_type?page=2'];
+        foreach ([$this->bob, null] as $user) {
+            $this->client->restart();
+            if ($user) {
+                $this->client->loginUser($user);
+            }
+            foreach ($paths as $path) {
+                $this->client->request('GET', $path);
+                self::assertResponseIsSuccessful($path);
+                self::assertStringNotContainsString('vault', $this->client->getResponse()->getContent(), $path);
+            }
+            $this->client->request('GET', $paths[0]);
+            self::assertStringContainsString('circle', $this->client->getResponse()->getContent());
+        }
+
+        $this->client->loginUser($this->admin);
+        $this->client->request('GET', $paths[0]);
+        self::assertStringContainsString('vault', $this->client->getResponse()->getContent());
+    }
+
+    #[Group('NonThreadSafe')]
+    public function testUrlLookupDoesNotResolveHiddenMagazine(): void
+    {
+        $domain = $this->settingsManager->get('KBIN_DOMAIN');
+        $vaultUrl = "https://$domain/m/vault";
+        $circleUrl = "https://$domain/m/circle";
+
+        $this->client->loginUser($this->bob);
+        $crawler = $this->client->request('GET', '/search?search%5Bq%5D='.urlencode($vaultUrl));
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('a[href$="/m/vault"]'));
+        $crawler = $this->client->request('GET', '/search?search%5Bq%5D='.urlencode($circleUrl));
+        self::assertGreaterThan(0, $crawler->filter('a[href$="/m/circle"]')->count());
+
+        // v1 is left out: for a URL it finds nothing by AP id, then fetches the URL over the
+        // network, which the test environment cannot resolve
+        self::assertStringNotContainsString('"name":"vault"', $this->getApi('/api/search/v2?q='.urlencode($vaultUrl), $this->bob));
+        self::assertStringContainsString('"name":"circle"', $this->getApi('/api/search/v2?q='.urlencode($circleUrl), $this->bob));
+
+        $this->client->loginUser($this->admin);
+        $crawler = $this->client->request('GET', '/search?search%5Bq%5D='.urlencode($vaultUrl));
+        self::assertGreaterThan(0, $crawler->filter('a[href$="/m/vault"]')->count());
+        self::assertStringContainsString('"name":"vault"', $this->getApi('/api/search/v2?q='.urlencode($vaultUrl), $this->admin));
+    }
+
+    #[Group('NonThreadSafe')]
+    public function testUrlLookupDoesNotResolveRestrictedContent(): void
+    {
+        $entry = $this->entityManager->getRepository(Entry::class)->findOneBy(['title' => 'Circle entry']);
+        $entry->apId = 'https://remote.example/e/circle';
+        $this->entityManager->flush();
+        $query = '/api/search/v2?q='.urlencode('https://remote.example/e/circle');
+
+        self::assertStringNotContainsString('Circle entry', $this->getApi($query, $this->bob));
+        $this->client->loginUser($this->bob);
+        $crawler = $this->client->request('GET', '/search?search%5Bq%5D='.urlencode('https://remote.example/e/circle'));
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString('Circle entry', $crawler->filter('#main')->html());
+
+        self::assertStringContainsString('Circle entry', $this->getApi($query, $this->admin));
+    }
+
     public function testWebFingerDoesNotResolveRestricted(): void
     {
         $domain = $this->settingsManager->get('KBIN_DOMAIN');
@@ -185,9 +251,24 @@ class HiddenDiscoveryTest extends WebTestCase
         return $this->client->getResponse()->getContent();
     }
 
-    private function getApi(string $path): string
+    /** @var array<string, string> */
+    private array $tokens = [];
+
+    private function getApi(string $path, ?User $user = null): string
     {
-        $this->client->request('GET', $path);
+        $server = [];
+        if ($user) {
+            if (!isset($this->tokens[$user->username])) {
+                if (!$this->tokens) {
+                    self::createOAuth2AuthCodeClient();
+                }
+                $this->client->loginUser($user);
+                $codes = self::getAuthorizationCodeTokenResponse($this->client);
+                $this->tokens[$user->username] = $codes['token_type'].' '.$codes['access_token'];
+            }
+            $server['HTTP_AUTHORIZATION'] = $this->tokens[$user->username];
+        }
+        $this->client->request('GET', $path, server: $server);
         self::assertResponseIsSuccessful($path);
 
         return json_encode(json_decode($this->client->getResponse()->getContent(), true), JSON_UNESCAPED_SLASHES);
