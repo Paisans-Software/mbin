@@ -27,6 +27,7 @@ use App\Message\Contracts\MessageInterface;
 use App\MessageHandler\MbinMessageHandler;
 use App\Repository\ApActivityRepository;
 use App\Service\ActivityPub\ApObjectExtractor;
+use App\Service\ActivityPub\ShadowThreadManager;
 use App\Service\ActivityPubManager;
 use App\Service\EntryCommentManager;
 use App\Service\EntryManager;
@@ -60,6 +61,8 @@ class UpdateHandler extends MbinMessageHandler
         private readonly LoggerInterface $logger,
         private readonly MessageBusInterface $bus,
         private readonly ImageFactory $imageFactory,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly ShadowThreadManager $shadowThreadManager,
     ) {
         parent::__construct($this->entityManager, $this->kernel);
     }
@@ -149,6 +152,8 @@ class UpdateHandler extends MbinMessageHandler
 
         $this->extractChanges($dto, $payload);
         $this->entryManager->edit($entry, $dto, $user);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->shadowThreadManager->sync($entry);
     }
 
     private function editEntryComment(EntryComment $comment, User $user, array $payload): void
@@ -177,6 +182,8 @@ class UpdateHandler extends MbinMessageHandler
         $this->extractChanges($dto, $payload);
 
         $this->postManager->edit($post, $dto, $user);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->shadowThreadManager->sync($post);
     }
 
     private function editPostComment(PostComment $comment, User $user, array $payload): void

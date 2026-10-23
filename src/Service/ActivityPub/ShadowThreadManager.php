@@ -96,6 +96,37 @@ class ShadowThreadManager
     }
 
     /**
+     * Copies what the original now says onto each of its shadows: title, body, adult flag,
+     * language and visibility. The link is left alone. A soft delete, a trash and a restore
+     * of the original travel as its visibility. Nothing is dispatched, so a shadow sync
+     * never notifies, publishes or federates; a purge needs no sync, the foreign keys
+     * remove the shadows.
+     */
+    public function sync(Entry|Post $original): void
+    {
+        $shadows = $this->entryRepository->findBy(
+            $original instanceof Entry ? ['shadowOfEntry' => $original] : ['shadowOfPost' => $original]
+        );
+        if ([] === $shadows) {
+            return;
+        }
+
+        $title = $original instanceof Entry ? $this->titleForEntry($original) : $this->titleForPost($original);
+        foreach ($shadows as $shadow) {
+            if ($shadow->title !== $title) {
+                $shadow->title = $title;
+                $shadow->slug = $this->slugger->slug($title);
+            }
+            $shadow->body = $original->body;
+            $shadow->isAdult = $original->isAdult;
+            $shadow->lang = $original->lang;
+            $shadow->visibility = $original->visibility;
+        }
+
+        $this->entityManager->flush();
+    }
+
+    /**
      * A thread title for a microblog post, which has none: the first line of its text,
      * cut on a word boundary to fit.
      */
