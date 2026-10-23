@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Repository;
+
+use App\Entity\Magazine;
+use App\Entity\MagazineMember;
+use App\Entity\User;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Common\Collections\Criteria;
+use Doctrine\Persistence\ManagerRegistry;
+use Pagerfanta\Adapter\SelectableAdapter;
+use Pagerfanta\Exception\NotValidCurrentPageException;
+use Pagerfanta\Pagerfanta;
+use Pagerfanta\PagerfantaInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+/**
+ * FORK DIVERGENCE — do not offer this upstream: private magazines.
+ *
+ * @method MagazineMember|null find($id, $lockMode = null, $lockVersion = null)
+ * @method MagazineMember|null findOneBy(array $criteria, array $orderBy = null)
+ * @method MagazineMember[]    findAll()
+ * @method MagazineMember[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ */
+class MagazineMemberRepository extends ServiceEntityRepository
+{
+    public const PER_PAGE = 50;
+
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, MagazineMember::class);
+    }
+
+    public function findMembers(Magazine $magazine, int $page, int $perPage = self::PER_PAGE): PagerfantaInterface
+    {
+        $criteria = Criteria::create()->orderBy(['createdAt' => 'DESC']);
+
+        $members = new Pagerfanta(new SelectableAdapter($magazine->members, $criteria));
+        try {
+            $members->setMaxPerPage($perPage);
+            $members->setCurrentPage($page);
+        } catch (NotValidCurrentPageException) {
+            throw new NotFoundHttpException();
+        }
+
+        return $members;
+    }
+
+    public function findOneByMagazineAndUser(Magazine $magazine, User $user): ?MagazineMember
+    {
+        return $this->findOneBy(['magazine' => $magazine, 'user' => $user]);
+    }
+}
