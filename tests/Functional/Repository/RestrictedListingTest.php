@@ -86,6 +86,18 @@ class RestrictedListingTest extends WebTestCase
         self::assertSeen(self::HIDDEN_ENTRY, $body);
     }
 
+    public function testGlobalModeratorSeesEverythingThroughTheNativeSqlListing(): void
+    {
+        // no ties to either magazine: the rows come from MagazineAccessClause::sql()'s TRUE branch
+        $this->client->loginUser($this->getUserByUsername('gmod', isModerator: true));
+
+        foreach (['/all', '/all/combined'] as $path) {
+            $body = $this->get($path);
+            self::assertSeen('Secret entry title', $body, $path);
+            self::assertSeen(self::HIDDEN_ENTRY, $body, $path);
+        }
+    }
+
     public function testCombinedFeedAndMicroblogFeed(): void
     {
         foreach (['/all/microblog', '/all/combined'] as $path) {
