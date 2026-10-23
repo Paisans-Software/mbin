@@ -96,17 +96,16 @@ class ShadowThreadManager
     }
 
     /**
-     * Copies what the original now says onto each of its shadows: title, body, adult flag,
-     * language and visibility. The link is left alone. A soft delete, a trash and a restore
-     * of the original travel as its visibility. Nothing is dispatched, so a shadow sync
-     * never notifies, publishes or federates; a purge needs no sync, the foreign keys
-     * remove the shadows.
+     * Copies what the original now says onto each of its shadows: title, body, adult flag
+     * and language. The link is left alone. Of the original's visibility only what its
+     * author did travels: a soft delete, a restore and a change of audience. A moderator's
+     * trash of the original stays with the original, and a shadow trashed by its own
+     * magazine's moderators is never changed here, because each magazine governs its own
+     * copy. Nothing is dispatched, so a shadow sync never notifies, publishes or federates.
      */
     public function sync(Entry|Post $original): void
     {
-        $shadows = $this->entryRepository->findBy(
-            $original instanceof Entry ? ['shadowOfEntry' => $original] : ['shadowOfPost' => $original]
-        );
+        $shadows = $this->shadowsOf($original);
         if ([] === $shadows) {
             return;
         }
@@ -120,10 +119,73 @@ class ShadowThreadManager
             $shadow->body = $original->body;
             $shadow->isAdult = $original->isAdult;
             $shadow->lang = $original->lang;
-            $shadow->visibility = $original->visibility;
+            if (!$shadow->isTrashed() && !$original->isTrashed()) {
+                $shadow->visibility = $original->visibility;
+            }
         }
 
         $this->entityManager->flush();
+        $this->recount($shadows);
+    }
+
+    /**
+     * Soft deletes, and detaches from the original that is about to be purged, every shadow
+     * with comments, so that a remote action never destroys what members said to each other.
+     * The shadows without comments are returned for the caller to purge.
+     *
+     * @return Entry[]
+     */
+    public function detachDiscussedShadows(Entry|Post $original): array
+    {
+        $toPurge = [];
+        $kept = [];
+        foreach ($this->shadowsOf($original) as $shadow) {
+            if ($shadow->comments->isEmpty()) {
+                $toPurge[] = $shadow;
+                continue;
+            }
+            if (!$shadow->isTrashed()) {
+                $shadow->softDelete();
+            }
+            // the foreign key would otherwise take the shadow with the original
+            $shadow->shadowOfEntry = null;
+            $shadow->shadowOfPost = null;
+            $kept[] = $shadow;
+        }
+
+        if ([] !== $kept) {
+            $this->entityManager->flush();
+            $this->recount($kept);
+        }
+
+        return $toPurge;
+    }
+
+    /**
+     * Brings each shadow magazine's thread count up to date, without dispatching anything.
+     *
+     * @param Entry[] $shadows
+     */
+    public function recount(array $shadows): void
+    {
+        $magazines = [];
+        foreach ($shadows as $shadow) {
+            $magazines[$shadow->magazine->getId()] = $shadow->magazine;
+        }
+        foreach ($magazines as $magazine) {
+            $magazine->entryCount = $this->entryRepository->countEntriesByMagazine($magazine);
+        }
+        $this->entityManager->flush();
+    }
+
+    /**
+     * @return Entry[]
+     */
+    private function shadowsOf(Entry|Post $original): array
+    {
+        return $this->entryRepository->findBy(
+            $original instanceof Entry ? ['shadowOfEntry' => $original] : ['shadowOfPost' => $original]
+        );
     }
 
     /**
