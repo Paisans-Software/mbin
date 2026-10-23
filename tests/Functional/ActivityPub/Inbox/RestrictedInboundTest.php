@@ -65,22 +65,46 @@ class RestrictedInboundTest extends ActivityPubFunctionalTestCase
         $this->random = $this->magazineRepository->findOneByName('random');
     }
 
-    public function testRemoteFollowOfRestrictedMagazineIsRejected(): void
+    public function testRemoteFollowOfRestrictedMagazineIsDroppedLikeAFollowOfAMissingOne(): void
     {
+        foreach (['nosuchmag', 'circle'] as $name) {
+            $this->bus->dispatch(new ActivityMessage(json_encode([
+                '@context' => ActivityPubActivityInterface::CONTEXT_URL,
+                'id' => "https://$this->remoteDomain/f/object/follow-$name",
+                'type' => 'Follow',
+                'actor' => $this->remoteUser->apProfileId,
+                'object' => "https://$this->localDomain/m/$name",
+            ])));
+
+            self::assertSame([], array_map(fn (array $posted) => $posted['payload']['type'], $this->testingApHttpClient->getPostedObjects()), $name);
+        }
+
+        self::assertNull($this->entityManager->getRepository(MagazineSubscription::class)->findOneBy([
+            'user' => $this->remoteUser,
+            'magazine' => $this->circle,
+        ])?->getId());
+    }
+
+    public function testFollowFromAReadOnlyInstanceIsDroppedToo(): void
+    {
+        // a read only instance gets a Reject for any Follow of a magazine that exists,
+        // so answering one here would tell it circle exists
+        $settings = $this->settingsManager->getDto();
+        $settings->MBIN_USE_FEDERATION_ALLOW_LIST = true;
+        $this->settingsManager->save($settings);
+        $instance = $this->instanceRepository->getOrCreateInstance($this->remoteDomain);
+        $this->instanceManager->allowInstanceFederation($instance);
+        $this->instanceManager->markInstanceReadOnly($instance);
+
         $this->bus->dispatch(new ActivityMessage(json_encode([
             '@context' => ActivityPubActivityInterface::CONTEXT_URL,
-            'id' => "https://$this->remoteDomain/f/object/follow-circle",
+            'id' => "https://$this->remoteDomain/f/object/follow-circle-readonly",
             'type' => 'Follow',
             'actor' => $this->remoteUser->apProfileId,
             'object' => "https://$this->localDomain/m/circle",
         ])));
 
-        $this->assertCountOfSentActivitiesOfType(1, 'Reject');
-        $this->assertCountOfSentActivitiesOfType(0, 'Accept');
-        self::assertNull($this->entityManager->getRepository(MagazineSubscription::class)->findOneBy([
-            'user' => $this->remoteUser,
-            'magazine' => $this->circle,
-        ]));
+        self::assertSame([], $this->testingApHttpClient->getPostedObjects());
     }
 
     public function testContentAddressedToRestrictedMagazineIsDropped(): void

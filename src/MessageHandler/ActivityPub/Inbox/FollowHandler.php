@@ -58,6 +58,16 @@ class FollowHandler extends MbinMessageHandler
                 $object = $this->activityPubManager->findActorOrCreate($message->payload['object']);
                 // Check if object is not empty
                 if (!empty($object)) {
+                    // FORK DIVERGENCE — do not offer this upstream: private magazines
+                    // a restricted magazine has no remote followers, and the Follow gets
+                    // exactly what a Follow of a missing magazine gets: nothing at all,
+                    // decided before the read only Reject, which a missing magazine never gets
+                    if ($object instanceof Magazine && $object->isRestricted()) {
+                        $this->logger->debug('ignoring a Follow of restricted magazine {m}', ['m' => $object->name]);
+
+                        return;
+                    }
+
                     if ($this->policy->isReadOnlyInstance($message->payload['actor'])) {
                         // we read this instance but never send to it, so recording a follower
                         // there would be a subscription we silently never deliver. The Reject
@@ -68,9 +78,7 @@ class FollowHandler extends MbinMessageHandler
                         return;
                     }
 
-                    // FORK DIVERGENCE — do not offer this upstream: private magazines
-                    // a restricted magazine has no remote followers, so it answers exactly as random does
-                    if ($object instanceof Magazine and null === $object->apId and ('random' === $object->name || $object->isRestricted())) {
+                    if ($object instanceof Magazine and null === $object->apId and 'random' === $object->name) {
                         $this->handleFollowRequest($message->payload, $object, isReject: true);
                     } else {
                         $this->handleFollow($object, $actor);
