@@ -7,11 +7,10 @@ namespace App\Tests\Functional\Controller\Magazine;
 use App\DTO\ModeratorDto;
 use App\Entity\Entry;
 use App\Entity\Magazine;
-use App\Entity\MagazineMember;
+use App\Entity\MagazineSubscription;
 use App\Entity\Post;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
-use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineManager;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
@@ -52,14 +51,7 @@ class MagazineGateTest extends WebTestCase
 
     private function memberManager(): MagazineMemberManager
     {
-        /** @var MagazineMemberRepository $memberRepository */
-        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
-
-        return new MagazineMemberManager(
-            $memberRepository,
-            $this->magazineManager,
-            $this->entityManager,
-        );
+        return static::getContainer()->get(MagazineMemberManager::class);
     }
 
     private function assertStub(): void
@@ -75,20 +67,34 @@ class MagazineGateTest extends WebTestCase
 
     /**
      * The test kernel runs with debug on, so the body is an exception dump that carries the
-     * resolver's own message, file and line. Compare what a client sees: status, headers that
-     * are not per-request, and the exception class.
+     * thrower's own message, file and line. In production the error page is chosen by the
+     * status code alone, so what a client can tell apart is the status, the response
+     * headers and the exception's own status and headers; the exception class is compared
+     * as well, so both answers have the same cause.
+     *
+     * @return array<string, mixed>
      */
-    private function normalize404(string $name): string
+    private function production404(): array
     {
         $response = $this->client->getResponse();
         $headers = $response->headers->all();
-        foreach (['date', 'expires', 'x-debug-exception', 'x-debug-exception-file'] as $volatile) {
+        foreach (['date', 'expires', 'x-debug-exception', 'x-debug-exception-file', 'x-debug-token', 'x-debug-token-link'] as $volatile) {
             unset($headers[$volatile]);
         }
         ksort($headers);
-        $firstLine = strtok($response->getContent(), "\n");
 
-        return str_replace($name, 'NAME', json_encode([$response->getStatusCode(), $headers, preg_replace('/#\d+/', '', $firstLine)]));
+        $dump = (string) $response->getContent();
+        preg_match('/^(\S+) \{#\d+/', $dump, $class);
+        preg_match('/^\s+-statusCode: (\d+)$/m', $dump, $status);
+        preg_match('/^\s+-headers: (.*)$/m', $dump, $exceptionHeaders);
+
+        return [
+            'status' => $response->getStatusCode(),
+            'headers' => $headers,
+            'class' => $class[1] ?? null,
+            'exceptionStatus' => $status[1] ?? null,
+            'exceptionHeaders' => $exceptionHeaders[1] ?? null,
+        ];
     }
 
     public function testNonMemberSeesStubForPrivate(): void
@@ -116,13 +122,14 @@ class MagazineGateTest extends WebTestCase
 
         $this->client->request('GET', '/m/vault');
         self::assertResponseStatusCodeSame(404);
-        $bodyA = $this->normalize404('vault');
+        $hidden = $this->production404();
 
         $this->client->request('GET', '/m/no-such-mag');
         self::assertResponseStatusCodeSame(404);
-        $bodyB = $this->normalize404('no-such-mag');
+        $missing = $this->production404();
 
-        self::assertSame($bodyA, $bodyB);
+        self::assertSame('Symfony\\Component\\HttpKernel\\Exception\\NotFoundHttpException', $missing['class']);
+        self::assertSame($missing, $hidden);
     }
 
     public function testContentRoutesUnderPrivateAre404ForNonMember(): void
@@ -200,6 +207,6 @@ class MagazineGateTest extends WebTestCase
         $this->client->request('POST', '/m/circle/subscribe');
 
         self::assertResponseStatusCodeSame(404);
-        self::assertFalse($this->circle->isSubscribed($bob));
+        self::assertNull($this->entityManager->getRepository(MagazineSubscription::class)->findOneBy(['magazine' => $this->circle, 'user' => $bob]));
     }
 }

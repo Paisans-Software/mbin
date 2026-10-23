@@ -71,6 +71,39 @@ class MagazineGateApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    /**
+     * The problem document without what only debug mode adds (the exception message and
+     * trace); the exception class stays, so both answers have the same cause.
+     *
+     * @return array<string, mixed>
+     */
+    private function productionProblem(): array
+    {
+        $problem = self::getJsonResponse($this->client);
+        unset($problem['detail'], $problem['trace']);
+
+        return $problem;
+    }
+
+    public function testApiHiddenMagazineIndistinguishableFromMissing(): void
+    {
+        $token = $this->token();
+        $pairs = [
+            ['/api/magazine/name/vault', '/api/magazine/name/nosuchmag'],
+            ["/api/magazine/{$this->vault->getId()}", '/api/magazine/999999'],
+        ];
+
+        foreach ($pairs as [$hiddenPath, $missingPath]) {
+            $this->client->request('GET', $missingPath, server: ['HTTP_AUTHORIZATION' => $token]);
+            self::assertResponseStatusCodeSame(404, $missingPath);
+            $missing = $this->productionProblem();
+
+            $this->client->request('GET', $hiddenPath, server: ['HTTP_AUTHORIZATION' => $token]);
+            self::assertResponseStatusCodeSame(404, $hiddenPath);
+            self::assertSame($missing, $this->productionProblem(), $hiddenPath);
+        }
+    }
+
     public function testApiMagazineEntriesForNonMemberIs404(): void
     {
         $token = $this->token();
