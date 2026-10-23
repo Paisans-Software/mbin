@@ -429,7 +429,7 @@ class ContentRepository
 
         $visibilityClauseM = 'm.visibility = :visible';
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        [$accessClause, $accessParameters] = MagazineAccessClause::sql('m', $user);
+        [$accessClause, $accessParameters] = MagazineAccessClause::sql('m', $criteria->publicAccessOnly ? null : $user);
         $visibilityClauseM .= ' AND '.$accessClause;
         $parameters = array_merge($parameters, $accessParameters);
         if (null === $criteria->cachedUserFollows) {
