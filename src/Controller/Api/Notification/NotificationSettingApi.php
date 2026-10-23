@@ -103,6 +103,8 @@ class NotificationSettingApi extends NotificationBaseApi
         if (null === $target) {
             throw $this->createNotFoundException();
         }
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertTargetViewable($target);
         $this->notificationSettingsRepository->setStatusByTarget($user, $target, $notificationSetting);
 
         return new JsonResponse();

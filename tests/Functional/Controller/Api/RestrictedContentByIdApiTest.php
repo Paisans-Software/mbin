@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Controller\Api;
 
+use App\Entity\NotificationSettings;
 use App\Entity\User;
 use App\Tests\Functional\Controller\RestrictedContentFixtureTrait;
 use App\Tests\WebTestCase;
@@ -28,10 +29,10 @@ class RestrictedContentByIdApiTest extends WebTestCase
         $this->bobToken = $this->tokenFor($this->bob);
     }
 
-    private function tokenFor(User $user): string
+    private function tokenFor(User $user, string $scopes = 'read'): string
     {
         $this->client->loginUser($user);
-        $codes = self::getAuthorizationCodeTokenResponse($this->client, scopes: 'read');
+        $codes = self::getAuthorizationCodeTokenResponse($this->client, scopes: $scopes);
 
         return $codes['token_type'].' '.$codes['access_token'];
     }
@@ -73,6 +74,33 @@ class RestrictedContentByIdApiTest extends WebTestCase
     {
         foreach ($this->paths() as $path) {
             $this->client->jsonRequest('GET', $path, server: ['HTTP_AUTHORIZATION' => $this->aliceToken]);
+            self::assertResponseIsSuccessful($path);
+        }
+    }
+
+    public function testNotificationSettingOnRestrictedTargetsIs404ForNonMember(): void
+    {
+        $token = $this->tokenFor($this->bob, 'read user:notification:edit');
+        $aliceToken = $this->tokenFor($this->alice, 'read user:notification:edit');
+        $paths = [
+            '/api/notification/update/entry/'.$this->entry->getId().'/Loud',
+            '/api/notification/update/post/'.$this->post->getId().'/Loud',
+            '/api/notification/update/magazine/'.$this->circle->getId().'/Loud',
+        ];
+
+        $this->client->request('PUT', '/api/notification/update/entry/999999/Loud', server: ['HTTP_AUTHORIZATION' => $token]);
+        self::assertResponseStatusCodeSame(404);
+        $missing = $this->client->getResponse()->getContent();
+
+        foreach ($paths as $path) {
+            $this->client->request('PUT', $path, server: ['HTTP_AUTHORIZATION' => $token]);
+            self::assertResponseStatusCodeSame(404, $path);
+        }
+        self::assertSame(0, $this->entityManager->getRepository(NotificationSettings::class)->count(['user' => $this->bob->getId()]));
+        self::assertNotEmpty($missing);
+
+        foreach ($paths as $path) {
+            $this->client->request('PUT', $path, server: ['HTTP_AUTHORIZATION' => $aliceToken]);
             self::assertResponseIsSuccessful($path);
         }
     }

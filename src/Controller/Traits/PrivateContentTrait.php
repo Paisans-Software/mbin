@@ -37,4 +37,14 @@ trait PrivateContentTrait
             throw $this->createNotFoundException();
         }
     }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    private function assertTargetViewable(object $target): void
+    {
+        if ($target instanceof Magazine) {
+            $this->assertMagazineViewable($target);
+        } elseif ($target instanceof ContentInterface) {
+            $this->assertMagazineViewable($target->magazine);
+        }
+    }
 }

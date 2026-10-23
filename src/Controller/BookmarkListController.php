@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Controller\Traits\PrivateContentTrait;
 use App\DTO\BookmarkListDto;
 use App\Entity\BookmarkList;
 use App\Form\BookmarkListType;
@@ -25,6 +26,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class BookmarkListController extends AbstractController
 {
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    use PrivateContentTrait;
+
     public function __construct(
         private readonly BookmarkListRepository $bookmarkListRepository,
         private readonly BookmarkRepository $bookmarkRepository,
@@ -117,6 +121,11 @@ class BookmarkListController extends AbstractController
         $bookmarkLists = $this->bookmarkListRepository->findByUser($user);
         $subjectClass = BookmarkManager::GetClassFromSubjectType($subject_type);
         $subjectEntity = $this->entityManager->getRepository($subjectClass)->findOneBy(['id' => $subject_id]);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (null === $subjectEntity) {
+            throw $this->createNotFoundException();
+        }
+        $this->assertMagazineViewable($subjectEntity->magazine);
         if ($request->isXmlHttpRequest()) {
             return new JsonResponse([
                 'html' => $this->renderView('components/_ajax.html.twig', [

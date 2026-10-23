@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Controller;
 
 use App\Entity\Entry;
+use App\Entity\NotificationSettings;
 use App\Tests\WebTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -166,5 +167,44 @@ class RestrictedContentByIdTest extends WebTestCase
         $this->client->loginUser($this->alice);
         $this->client->request('POST', '/ajax/fetch_duplicates', content: $body);
         self::assertSame(1, json_decode($this->client->getResponse()->getContent(), true)['total']);
+    }
+
+    public function testNotificationSettingOnRestrictedTargetsIs404AndNotSaved(): void
+    {
+        $paths = [
+            '/cns/entry/'.$this->entry->getId().'/Loud',
+            '/cns/post/'.$this->post->getId().'/Loud',
+            '/cns/magazine/'.$this->circle->getId().'/Loud',
+        ];
+
+        $this->client->loginUser($this->bob);
+        $this->client->request('GET', '/cns/entry/999999/Loud', server: ['HTTP_REFERER' => '/']);
+        self::assertResponseStatusCodeSame(404);
+        foreach ($paths as $path) {
+            $this->client->request('GET', $path, server: ['HTTP_REFERER' => '/']);
+            self::assertResponseStatusCodeSame(404, $path);
+        }
+        self::assertSame(0, $this->entityManager->getRepository(NotificationSettings::class)->count(['user' => $this->bob->getId()]));
+
+        $this->client->loginUser($this->alice);
+        foreach ($paths as $path) {
+            $this->client->request('GET', $path, server: ['HTTP_REFERER' => '/']);
+            self::assertResponseStatusCodeSame(302, $path);
+        }
+    }
+
+    public function testBookmarkMenuRefreshOnRestrictedEntryIs404(): void
+    {
+        $xhr = ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest'];
+
+        $this->client->loginUser($this->bob);
+        $this->client->request('GET', '/blr/999999/entry', server: $xhr);
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('GET', '/blr/'.$this->entry->getId().'/entry', server: $xhr);
+        self::assertResponseStatusCodeSame(404);
+
+        $this->client->loginUser($this->alice);
+        $this->client->request('GET', '/blr/'.$this->entry->getId().'/entry', server: $xhr);
+        self::assertResponseIsSuccessful();
     }
 }
