@@ -463,18 +463,30 @@ class EntryRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
     /**
+     * @param bool $onlyVisibleToViewer when true, nothing is returned unless the signed-in user
+     *                                  may view the magazine. Off for the featured collection
+     *                                  sync of a remote magazine, which must see every pin.
+     *
      * @return Entry[]
      */
-    public function findPinned(Magazine $magazine): array
+    public function findPinned(Magazine $magazine, bool $onlyVisibleToViewer = false): array
     {
-        return $this->createQueryBuilder('e')
+        $qb = $this->createQueryBuilder('e')
             ->where('e.magazine = :m')
             ->andWhere('e.sticky = true')
             ->andWhere('e.visibility = :visibility')
             ->setParameter('m', $magazine)
-            ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
-            ->getQuery()
+            ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE);
+
+        if ($onlyVisibleToViewer) {
+            $viewer = $this->security->getUser();
+            $qb->join('e.magazine', 'm');
+            MagazineAccessClause::apply($qb, 'm', $viewer instanceof User ? $viewer : null);
+        }
+
+        return $qb->getQuery()
             ->getResult()
         ;
     }

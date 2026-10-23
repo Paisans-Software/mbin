@@ -112,6 +112,19 @@ final class MagazineAccessClause
         $qb->andWhere("$a.access <> '".MagazineAccess::Hidden->value."'");
     }
 
+    /**
+     * applyDiscovery() for native SQL, where $magazineAlias is an alias of the magazine table.
+     */
+    public static function sqlDiscovery(string $magazineAlias, ?User $viewer): string
+    {
+        $a = self::checkAlias($magazineAlias);
+        if (self::seesEverything($viewer)) {
+            return 'TRUE';
+        }
+
+        return "$a.access <> '".MagazineAccess::Hidden->value."'";
+    }
+
     private static function seesEverything(?User $viewer): bool
     {
         return null !== $viewer && ($viewer->isAdmin() || $viewer->isModerator());

@@ -398,6 +398,8 @@ class PostRepository extends ServiceEntityRepository
         if ($this->settingsManager->get('MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY')) {
             $qb = $qb->andWhere('m.apId IS NULL');
         }
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::apply($qb, 'm', $user);
 
         if (null !== $user) {
             $magazineBlocks = $this->sqlHelpers->getCachedUserMagazineBlocks($user);

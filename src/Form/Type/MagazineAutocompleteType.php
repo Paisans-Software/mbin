@@ -7,6 +7,8 @@ namespace App\Form\Type;
 use App\Entity\Contracts\VisibilityInterface;
 use App\Entity\Magazine;
 use App\Entity\MagazineBlock;
+use App\Entity\User;
+use App\Repository\MagazineAccessClause;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\AbstractType;
@@ -48,6 +50,9 @@ class MagazineAutocompleteType extends AbstractType
                     ->setParameter('filter', '%'.$query.'%')
                     ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
                 ;
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                $viewer = $this->security->getUser();
+                MagazineAccessClause::applyDiscovery($qb, 'entity', $viewer instanceof User ? $viewer : null);
             },
         ]);
     }

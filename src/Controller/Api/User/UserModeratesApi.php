@@ -85,7 +85,8 @@ class UserModeratesApi extends UserBaseApi
             throw $this->createNotFoundException();
         }
 
-        $magazines = $repository->findModeratedMagazines($user, $p ?? 1);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $magazines = $repository->findModeratedMagazines($user, $p ?? 1, asSeenByViewer: true);
 
         $result = [];
         foreach ($magazines as $magazine) {

@@ -127,7 +127,8 @@ class CollectionFactory
     ])]
     public function getMagazinePinnedCollection(Magazine $magazine, bool $includeContext = true): array
     {
-        $pinned = $this->entryRepository->findPinned($magazine);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $pinned = $this->entryRepository->findPinned($magazine, onlyVisibleToViewer: true);
 
         $items = [];
         foreach ($pinned as $entry) {

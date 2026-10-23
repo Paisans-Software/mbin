@@ -33,7 +33,9 @@ class UserLastActiveUpdateCommand extends Command
         $hideAdult = false;
 
         foreach ($repo->findAll() as $user) {
-            $activity = $this->searchRepository->findUserPublicActivity(1, $user, $hideAdult);
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // last activity counts content in every magazine, not only what an anonymous viewer sees
+            $activity = $this->searchRepository->findUserPublicActivity(1, $user, $hideAdult, onlyVisibleToViewer: false);
             if ($activity->count()) {
                 $user->lastActive = $activity->getCurrentPageResults()[0]->lastActive;
             }

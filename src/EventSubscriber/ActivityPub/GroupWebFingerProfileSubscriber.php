@@ -58,6 +58,10 @@ class GroupWebFingerProfileSubscriber implements EventSubscriberInterface
             return null;
         }
 
-        return $this->magazineRepository->findOneByName($name);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // WebFinger lookups are anonymous, so a restricted magazine is not resolvable
+        $magazine = $this->magazineRepository->findOneByName($name);
+
+        return $magazine?->userCanView(null) ? $magazine : null;
     }
 }

@@ -96,6 +96,14 @@ class MagazineAccessClauseTest extends TestCase
         self::assertSame($before, $qb->getDQL());
     }
 
+    public function testSqlDiscoveryHidesOnlyHidden(): void
+    {
+        self::assertSame("m.access <> 'hidden'", MagazineAccessClause::sqlDiscovery('m', $this->viewer()));
+        self::assertSame("m.access <> 'hidden'", MagazineAccessClause::sqlDiscovery('m', null));
+        self::assertSame('TRUE', MagazineAccessClause::sqlDiscovery('m', $this->viewer(admin: true)));
+        self::assertSame('TRUE', MagazineAccessClause::sqlDiscovery('m', $this->viewer(globalModerator: true)));
+    }
+
     public function testRejectsUnsafeAlias(): void
     {
         $this->expectException(\InvalidArgumentException::class);

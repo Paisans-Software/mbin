@@ -109,6 +109,11 @@ class EntryCommentRepository extends ServiceEntityRepository
             $this->filterWords($qb, $user);
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // last, so the followers-only orWhere above is filtered too
+        $qb->join('c.magazine', 'cmag');
+        MagazineAccessClause::apply($qb, 'cmag', $user instanceof User ? $user : null);
+
         return $qb;
     }
 
