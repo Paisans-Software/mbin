@@ -8,6 +8,7 @@ use App\Entity\EntryComment;
 use App\Entity\Favourite;
 use App\Entity\Magazine;
 use App\Entity\Report;
+use App\Exception\MoveRefusedException;
 use App\Repository\MagazineRepository;
 use App\Repository\PostRepository;
 use App\Service\PostManager;
@@ -66,7 +67,12 @@ class MovePostsByTagCommand extends Command
 
         foreach ($posts as $post) {
             $output->writeln((string) $post->getId());
-            $this->postManager->changeMagazine($post, $magazine);
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            try {
+                $this->postManager->changeMagazine($post, $magazine);
+            } catch (MoveRefusedException) {
+                $output->writeln('skipped, a restricted magazine is involved');
+            }
         }
 
         return Command::SUCCESS;

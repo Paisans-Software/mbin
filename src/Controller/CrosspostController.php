@@ -24,6 +24,16 @@ class CrosspostController extends AbstractController
         Entry $entry,
         Request $request,
     ): Response {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if ($entry->magazine->isRestricted()) {
+            $this->addFlash('error', 'crosspost_unavailable');
+
+            return $this->redirectToRoute('entry_single', [
+                'magazine_name' => $entry->magazine->name,
+                'entry_id' => $entry->getId(),
+            ]);
+        }
+
         $query = [];
 
         $query['isNsfw'] = $entry->isAdult ? '1' : '0';
