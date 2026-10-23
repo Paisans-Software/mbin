@@ -98,6 +98,11 @@ class MagazineBaseApi extends BaseApi
             throw new BadRequestHttpException($this->translator->trans('magazine_rules_deprecated'));
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if ($dto->access->isRestricted() && !$this->getUserOrThrow()->isAdmin()) {
+            throw new BadRequestHttpException('Only an admin can create a private or hidden magazine.');
+        }
+
         // Rate limit handled elsewhere
         $magazine = $this->manager->create($dto, $this->getUserOrThrow(), rateLimit: false);
 

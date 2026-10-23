@@ -10,6 +10,7 @@ use App\Entity\Contracts\VisibilityInterface;
 use App\Entity\Traits\ActivityPubActorTrait;
 use App\Entity\Traits\CreatedAtTrait;
 use App\Entity\Traits\VisibilityTrait;
+use App\Enum\MagazineAccess;
 use App\Repository\MagazineRepository;
 use App\Service\MagazineManager;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -119,6 +120,11 @@ class Magazine implements VisibilityInterface, ActivityPubActorInterface, ApiRes
     #[Column(type: 'text', nullable: true, insertable: false, updatable: false, options: ['default' => null])]
     private ?string $descriptionTs;
 
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    // Fixed when the magazine is created and never edited afterwards.
+    #[Column(type: 'string', nullable: false, options: ['default' => 'public'], enumType: MagazineAccess::class)]
+    public MagazineAccess $access = MagazineAccess::Public;
+
     #[Id]
     #[GeneratedValue]
     #[Column(type: 'integer')]
@@ -185,6 +191,13 @@ class Magazine implements VisibilityInterface, ActivityPubActorInterface, ApiRes
     public function getApId(): ?string
     {
         return $this->apId;
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public function isRestricted(): bool
+    {
+        // a remote magazine is never restricted here: the access level is a local decision
+        return null === $this->apId && $this->access->isRestricted();
     }
 
     public function userIsModerator(User $user): bool

@@ -63,6 +63,11 @@ class MagazineManager
             throw new AccessDeniedException();
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (!$dto->apId && $dto->access->isRestricted() && !$user?->isAdmin()) {
+            throw new \InvalidArgumentException('Only an admin can create a private or hidden magazine.');
+        }
+
         if ($rateLimit) {
             $limiter = $this->magazineLimiter->create($dto->ip);
             if (false === $limiter->consume()->isAccepted()) {
@@ -151,6 +156,7 @@ class MagazineManager
         $magazine->rules = $dto->rules;
         $magazine->isAdult = $dto->isAdult;
         $magazine->postingRestrictedToMods = $dto->isPostingRestrictedToMods;
+        // access is deliberately not copied: it is fixed when the magazine is created
 
         if (null !== $dto->discoverable) {
             $magazine->apDiscoverable = $dto->discoverable;

@@ -1279,3 +1279,7 @@ filter_lists_comments_help: Filter words while viewing a thread or microblog in 
 filter_lists_profile_help: Filter words while viewing a users' profile in their content.
 expired: Expired
 setting_locked_by_configuration: This server's configuration sets this, so it cannot be changed here.
+magazine_access: Access
+magazine_access.public: Public
+magazine_access.private: Private
+magazine_access.hidden: Hidden

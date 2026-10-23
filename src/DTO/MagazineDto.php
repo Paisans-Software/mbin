@@ -7,6 +7,7 @@ namespace App\DTO;
 use App\Entity\Image;
 use App\Entity\Magazine;
 use App\Entity\User;
+use App\Enum\MagazineAccess;
 use App\Utils\RegPatterns;
 use App\Validator\Unique;
 use Doctrine\Common\Collections\Collection;
@@ -56,6 +57,8 @@ class MagazineDto
     private ?int $id = null;
     public ?bool $discoverable = null;
     public ?bool $nameAsTag = null;
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public MagazineAccess $access = MagazineAccess::Public;
 
     public function getId(): ?int
     {

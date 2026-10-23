@@ -41,7 +41,7 @@ class MagazineFactory
 
     public function createFromDto(MagazineDto $dto, ?User $user): Magazine
     {
-        return new Magazine(
+        $magazine = new Magazine(
             $dto->name,
             $dto->title,
             $user,
@@ -51,6 +51,13 @@ class MagazineFactory
             $dto->isPostingRestrictedToMods,
             $dto->icon
         );
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (null === $dto->apId) {
+            $magazine->access = $dto->access;
+        }
+
+        return $magazine;
     }
 
     public function createDto(Magazine $magazine): MagazineDto
@@ -78,6 +85,8 @@ class MagazineFactory
         $dto->apId = $magazine->apId;
         $dto->apProfileId = $magazine->apProfileId;
         $dto->apFeaturedUrl = $magazine->apFeaturedUrl;
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $dto->access = $magazine->access;
         $dto->setId($magazine->getId());
 
         /** @var User $currentUser */
@@ -180,6 +189,8 @@ class MagazineFactory
             $dto->localSubscribers,
             $dto->discoverable,
             $dto->indexable,
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            $dto->access->value,
         );
     }
 
