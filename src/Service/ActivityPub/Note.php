@@ -66,7 +66,14 @@ class Note extends ActivityPubContent
         // First try to find the activity object in the database
         $current = $this->repository->findByObjectId($object['id']);
         if ($current) {
-            return $this->entityManager->getRepository($current['type'])->find((int) $current['id']);
+            $known = $this->entityManager->getRepository($current['type'])->find((int) $current['id']);
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a restricted magazine may have started following after the post first arrived
+            if ($known instanceof Post) {
+                $this->shadowThreadManager->shadow($known, $object, $deliveredBy, $activityType);
+            }
+
+            return $known;
         }
         if ($this->settingsManager->isBannedInstance($object['id'])) {
             throw new InstanceBannedException();

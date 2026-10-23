@@ -229,6 +229,54 @@ class ShadowThreadCreationTest extends ActivityPubFunctionalTestCase
         self::assertSame(1, $this->entryRepository->count(['apId' => $this->pageToNobody['object']['id']]));
     }
 
+    public function testLateFollowShadowsARedeliveredCreate(): void
+    {
+        $this->unfollowAll();
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToNobody)));
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->noteToNobody)));
+        self::assertSame(0, $this->entryRepository->count(['magazine' => $this->circle]));
+
+        // the follow is accepted after the posts arrived; a redelivery is the first chance
+        $this->follow($this->circle, MagazineFollowKind::Both);
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToNobody)));
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->noteToNobody)));
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToNobody)));
+
+        $original = $this->entryRepository->findOneBy(['apId' => $this->pageToNobody['object']['id']]);
+        $post = $this->postRepository->findOneBy(['apId' => $this->noteToNobody['object']['id']]);
+        self::assertSame(1, $this->entryRepository->count(['magazine' => $this->circle, 'shadowOfEntry' => $original]));
+        self::assertSame(1, $this->entryRepository->count(['magazine' => $this->circle, 'shadowOfPost' => $post]));
+        self::assertSame(2, $this->entryRepository->count(['magazine' => $this->circle]));
+    }
+
+    public function testAnnounceByAFollowedCommunityShadowsAKnownPost(): void
+    {
+        $this->unfollowAll();
+        $this->follow($this->circle, MagazineFollowKind::Announce, $this->remoteMagazine);
+
+        // the author's own Create comes first, and the circle does not follow the author
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToNobody)));
+        $original = $this->entryRepository->findOneBy(['apId' => $this->pageToNobody['object']['id']]);
+        self::assertNotNull($original);
+        self::assertSame(0, $this->entryRepository->count(['magazine' => $this->circle]));
+
+        $announce = [
+            '@context' => ActivityPubActivityInterface::CONTEXT_URL,
+            'id' => "https://$this->remoteDomain/activities/announce-by-the-community",
+            'type' => 'Announce',
+            'actor' => $this->remoteMagazine->apProfileId,
+            'object' => $this->pageToNobody['object']['id'],
+            'to' => [ActivityPubActivityInterface::PUBLIC_URL],
+            'cc' => [],
+        ];
+        $this->bus->dispatch(new ActivityMessage(json_encode($announce)));
+        $this->bus->dispatch(new ActivityMessage(json_encode($announce)));
+
+        $shadows = $this->entryRepository->findBy(['magazine' => $this->circle]);
+        self::assertCount(1, $shadows);
+        self::assertSame($original->getId(), $shadows[0]->shadowOfEntry?->getId());
+    }
+
     public function testFollowKindIsRespected(): void
     {
         $follow = $this->entityManager->getRepository(MagazineFollow::class)->findOneBy(['magazine' => $this->circle]);
@@ -294,6 +342,14 @@ class ShadowThreadCreationTest extends ActivityPubFunctionalTestCase
         // positive control: a thread created the normal way does notify carol
         $this->createEntry('a normal circle thread', $this->circle, $admin);
         self::assertSame($before + 1, $this->notificationRepository->countUnreadNotifications($carol));
+    }
+
+    private function unfollowAll(): void
+    {
+        foreach ($this->entityManager->getRepository(MagazineFollow::class)->findBy(['magazine' => $this->circle]) as $follow) {
+            $this->entityManager->remove($follow);
+        }
+        $this->entityManager->flush();
     }
 
     /**

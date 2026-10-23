@@ -46,7 +46,7 @@ class ShadowThreadManager
      */
     public function shadow(Entry|Post $original, array $object, ?string $deliveredBy, ?string $activityType): void
     {
-        if (null === $activityType || $original->magazine->isRestricted()) {
+        if (null === $activityType || null === $original->apId || $original->magazine->isRestricted()) {
             return;
         }
 

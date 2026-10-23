@@ -35,9 +35,9 @@ trait ShadowThreadFixtureTrait
         $this->entityManager->flush();
     }
 
-    protected function follow(Magazine $magazine, MagazineFollowKind $kind): void
+    protected function follow(Magazine $magazine, MagazineFollowKind $kind, ?Magazine $community = null): void
     {
-        $follow = new MagazineFollow($magazine, $this->remoteUser);
+        $follow = new MagazineFollow($magazine, $community ?? $this->remoteUser);
         $follow->status = MagazineFollow::STATUS_ACCEPTED;
         $follow->kind = $kind;
         $this->entityManager->persist($follow);
