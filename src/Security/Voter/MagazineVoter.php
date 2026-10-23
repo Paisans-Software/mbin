@@ -67,7 +67,8 @@ class MagazineVoter extends Voter
 
     private function canCreateContent(Magazine $magazine, User $user): bool
     {
-        return !$magazine->isBanned($user) && !$user->isBanned();
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        return $magazine->userCanView($user) && !$magazine->isBanned($user) && !$user->isBanned();
     }
 
     private function canEdit(Magazine $magazine, User $user): bool
@@ -92,11 +93,17 @@ class MagazineVoter extends Voter
 
     public function canSubscribe(Magazine $magazine, User $user): bool
     {
-        return !$magazine->isBanned($user) && !$user->isBanned();
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        return $magazine->userCanView($user) && !$magazine->isBanned($user) && !$user->isBanned();
     }
 
     public function canBlock(Magazine $magazine, User $user): bool
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (!$magazine->userCanView($user)) {
+            return false;
+        }
+
         if ($magazine->userIsOwner($user)) {
             return false;
         }

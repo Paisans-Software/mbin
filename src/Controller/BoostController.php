@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Controller\Traits\PrivateContentTrait;
 use App\Entity\Contracts\VotableInterface;
 use App\Service\GenerateHtmlClassService;
 use App\Service\VoteManager;
@@ -14,6 +15,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class BoostController extends AbstractController
 {
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    use PrivateContentTrait;
+
     public function __construct(
         private readonly GenerateHtmlClassService $classService,
         private readonly VoteManager $manager,
@@ -23,6 +27,9 @@ class BoostController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function __invoke(VotableInterface $subject, Request $request): Response
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($subject->magazine);
+
         $this->manager->vote(VotableInterface::VOTE_UP, $subject, $this->getUserOrThrow());
 
         if ($request->isXmlHttpRequest()) {

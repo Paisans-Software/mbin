@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\EventListener;
 
+use App\Entity\Contracts\ContentInterface;
 use App\Entity\Contracts\VisibilityInterface;
 use App\Entity\Magazine;
 use App\Enum\MagazineAccess;
@@ -28,6 +29,15 @@ class MagazineVisibilityListener
 
     public function onKernelControllerArguments(ControllerArgumentsEvent $event): void
     {
+        // Content resolved by id carries its own magazine, which may differ from any magazine in the URL.
+        foreach ($event->getArguments() as $argument) {
+            if ($argument instanceof ContentInterface
+                && $argument->getMagazine()
+                && !$this->security->isGranted(MagazineVoter::VIEW, $argument->getMagazine())) {
+                throw new NotFoundHttpException();
+            }
+        }
+
         $magazine = array_filter($event->getArguments(), fn ($argument) => $argument instanceof Magazine);
 
         if (!$magazine) {

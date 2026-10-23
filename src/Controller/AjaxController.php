@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Controller\Traits\PrivateContentTrait;
 use App\DTO\UserNoteDto;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
@@ -23,6 +24,7 @@ use App\Repository\EntryRepository;
 use App\Repository\PostCommentRepository;
 use App\Repository\UserPushSubscriptionRepository;
 use App\Repository\UserRepository;
+use App\Security\Voter\MagazineVoter;
 use App\Service\Notification\UserPushSubscriptionManager;
 use App\Service\SettingsManager;
 use App\Service\UserNoteManager;
@@ -45,6 +47,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class AjaxController extends AbstractController
 {
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    use PrivateContentTrait;
+
     public function __construct(
         private readonly UserPushSubscriptionRepository $repository,
         private readonly EntityManagerInterface $entityManager,
@@ -74,6 +79,11 @@ class AjaxController extends AbstractController
     {
         $url = json_decode($request->getContent())->url;
         $entries = $repository->findBy(['url' => $url]);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $entries = array_values(array_filter(
+            $entries,
+            fn (Entry $entry) => $this->isGranted(MagazineVoter::VIEW, $entry->magazine)
+        ));
 
         return new JsonResponse(
             [
@@ -109,6 +119,9 @@ class AjaxController extends AbstractController
 
     public function fetchEntry(#[MapEntity(id: 'id')] Entry $entry, Request $request): JsonResponse
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($entry->magazine);
+
         return new JsonResponse(
             [
                 'html' => $this->renderView(
@@ -126,6 +139,9 @@ class AjaxController extends AbstractController
 
     public function fetchEntryComment(#[MapEntity(id: 'id')] EntryComment $comment): JsonResponse
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($comment->magazine);
+
         return new JsonResponse(
             [
                 'html' => $this->renderView(
@@ -145,6 +161,9 @@ class AjaxController extends AbstractController
 
     public function fetchPost(#[MapEntity(id: 'id')] Post $post): JsonResponse
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($post->magazine);
+
         return new JsonResponse(
             [
                 'html' => $this->renderView(
@@ -162,6 +181,9 @@ class AjaxController extends AbstractController
 
     public function fetchPostComment(#[MapEntity(id: 'id')] PostComment $comment): JsonResponse
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($comment->magazine);
+
         return new JsonResponse(
             [
                 'html' => $this->renderView(
@@ -179,6 +201,9 @@ class AjaxController extends AbstractController
 
     public function fetchPostComments(#[MapEntity(id: 'id')] Post $post, PostCommentRepository $repository): JsonResponse
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($post->magazine);
+
         $criteria = new PostCommentPageView(1, $this->security);
         $criteria->post = $post;
         $criteria->sortOption = Criteria::SORT_OLD;

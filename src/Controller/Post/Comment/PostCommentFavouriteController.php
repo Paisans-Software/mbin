@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Post\Comment;
 
 use App\Controller\AbstractController;
+use App\Controller\Traits\PrivateContentTrait;
 use App\Entity\Magazine;
 use App\Entity\Post;
 use App\Entity\PostComment;
@@ -14,6 +15,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class PostCommentFavouriteController extends AbstractController
 {
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    use PrivateContentTrait;
+
     public function __invoke(
         #[MapEntity(mapping: ['magazine_name' => 'name'])]
         Magazine $magazine,
@@ -23,6 +27,9 @@ class PostCommentFavouriteController extends AbstractController
         PostComment $comment,
         Request $request,
     ): Response {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($comment->magazine);
+
         return $this->render('post/comment/favourites.html.twig', [
             'magazine' => $magazine,
             'post' => $post,
