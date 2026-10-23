@@ -10,11 +10,13 @@ use App\Entity\MagazineAccessRequest;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\Event\Magazine\MagazineAccessRequestedEvent;
+use App\Repository\MagazineAccessRequestRepository;
 use App\Service\MagazineAccessRequestManager;
 use App\Service\MagazineManager;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
@@ -43,9 +45,7 @@ class MagazineAccessRequestControllerTest extends WebTestCase
 
     private function pendingCount(): int
     {
-        $this->entityManager->clear();
-
-        return \count($this->entityManager->getRepository(MagazineAccessRequest::class)->findAll());
+        return $this->entityManager->getRepository(MagazineAccessRequest::class)->count([]);
     }
 
     /** Submits the stub's own form, as a browser would. */
@@ -211,5 +211,130 @@ class MagazineAccessRequestControllerTest extends WebTestCase
 
         self::assertResponseRedirects('/m/circle');
         self::assertSame(1, $this->pendingCount());
+    }
+
+    public function testHiddenMagazineWithValidTokenIs404LikeMissing(): void
+    {
+        $this->client->loginUser($this->bob);
+        $crawler = $this->client->request('GET', '/m/circle');
+        $token = $crawler->filter('[data-magazine-stub] input[name=token]')->attr('value');
+
+        $this->client->request('POST', '/m/vault/request-access', ['token' => $token]);
+        $hidden = $this->production404();
+        $this->client->request('POST', '/m/nonexistent/request-access', ['token' => $token]);
+        $missing = $this->production404();
+
+        self::assertSame(404, $hidden['status']);
+        self::assertSame($missing, $hidden);
+        self::assertSame(0, $this->pendingCount());
+    }
+
+    public function testAnonymousPostToHiddenIsIdenticalToMissing(): void
+    {
+        $hidden = $this->post('vault');
+        $missing = $this->post('nonexistent');
+
+        self::assertSame($missing, $hidden);
+        self::assertSame(0, $this->pendingCount());
+    }
+
+    public function testAnonymousPostToPrivateCreatesNothing(): void
+    {
+        $this->client->request('POST', '/m/circle/request-access', ['token' => 'whatever']);
+
+        self::assertTrue($this->client->getResponse()->isRedirect() || 404 === $this->client->getResponse()->getStatusCode() || 401 === $this->client->getResponse()->getStatusCode());
+        self::assertSame(0, $this->pendingCount());
+    }
+
+    public function testBadTokenOnPrivateIs400(): void
+    {
+        $this->client->loginUser($this->bob);
+        $this->client->request('GET', '/m/circle');
+        $this->client->request('POST', '/m/circle/request-access', ['token' => 'not-the-token']);
+
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame(0, $this->pendingCount());
+    }
+
+    public function testStubOffersNoButtonToBannedUsers(): void
+    {
+        $admin = $this->getUserByUsername('admin');
+        $magazineBanned = $this->getUserByUsername('mbanned');
+        $instanceBanned = $this->getUserByUsername('ibanned');
+        $instanceBanned->isBanned = true;
+        $this->entityManager->flush();
+        static::getContainer()->get(MagazineManager::class)->ban(
+            $this->circle,
+            $magazineBanned,
+            $admin,
+            MagazineBanDto::create('test ban', new \DateTimeImmutable('+1 day'))
+        );
+
+        foreach ([$magazineBanned, $instanceBanned] as $user) {
+            $this->client->loginUser($user);
+            $this->client->request('GET', '/m/circle');
+            self::assertSelectorExists('[data-magazine-stub]');
+            self::assertSelectorNotExists('[data-magazine-stub] button');
+            self::assertSelectorNotExists('[data-magazine-stub] form');
+        }
+    }
+
+    public function testConcurrentDoubleSubmitIsIdempotent(): void
+    {
+        $container = static::getContainer();
+        $manager = $container->get(MagazineAccessRequestManager::class);
+        $manager->request($this->circle, $this->bob);
+
+        // A repository that misses the existing row models the race: both submits passed the existence check.
+        $blind = $this->createMock(MagazineAccessRequestRepository::class);
+        $blind->method('findOneByMagazineAndUser')->willReturn(null);
+        $racing = new MagazineAccessRequestManager(
+            $blind,
+            $container->get('doctrine.orm.entity_manager'),
+            $container->get(EventDispatcherInterface::class),
+            $container->get(MagazineMemberManager::class),
+            $container->get(MessageBusInterface::class),
+            $container->get('doctrine'),
+        );
+
+        $racing->request($this->circle, $this->bob);
+
+        $em = $container->get('doctrine')->getManager();
+        self::assertCount(1, $em->getRepository(MagazineAccessRequest::class)->findAll());
+    }
+
+    public function testDirectAddDropsPendingRequest(): void
+    {
+        $admin = $this->getUserByUsername('admin');
+        $members = static::getContainer()->get(MagazineMemberManager::class);
+        static::getContainer()->get(MagazineAccessRequestManager::class)->request($this->circle, $this->bob);
+        self::assertSame(1, $this->pendingCount());
+
+        $members->add($this->circle, $this->bob, $admin);
+        self::assertSame(0, $this->pendingCount());
+
+        $members->remove($this->circle, $this->bob);
+        $this->client->loginUser($this->bob);
+        $crawler = $this->client->request('GET', '/m/circle');
+        self::assertSelectorNotExists('[data-magazine-stub] button[disabled]');
+        $this->client->submit($crawler->filter('[data-magazine-stub] form')->form());
+
+        self::assertResponseRedirects('/m/circle');
+        self::assertSame(1, $this->pendingCount());
+    }
+
+    public function testMagazineBanDropsPendingRequest(): void
+    {
+        static::getContainer()->get(MagazineAccessRequestManager::class)->request($this->circle, $this->bob);
+        self::assertSame(1, $this->pendingCount());
+
+        static::getContainer()->get(MagazineManager::class)->ban(
+            $this->circle,
+            $this->bob,
+            $this->getUserByUsername('admin'),
+            MagazineBanDto::create('test ban', new \DateTimeImmutable('+1 day'))
+        );
+
+        self::assertSame(0, $this->pendingCount());
     }
 }

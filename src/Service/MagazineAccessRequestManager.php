@@ -11,7 +11,9 @@ use App\Enum\MagazineAccess;
 use App\Event\Magazine\MagazineAccessRequestedEvent;
 use App\Message\Notification\MagazineAccessGrantedNotificationMessage;
 use App\Repository\MagazineAccessRequestRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -26,6 +28,7 @@ class MagazineAccessRequestManager
         private readonly EventDispatcherInterface $dispatcher,
         private readonly MagazineMemberManager $memberManager,
         private readonly MessageBusInterface $bus,
+        private readonly ManagerRegistry $registry,
     ) {
     }
 
@@ -55,7 +58,15 @@ class MagazineAccessRequestManager
 
         $request = new MagazineAccessRequest($magazine, $user);
         $this->entityManager->persist($request);
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->flush();
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent submit won the race: the request is pending, which is what was asked for.
+            // The failed flush closed the entity manager, so start a fresh one.
+            $this->registry->resetManager();
+
+            return;
+        }
 
         $this->dispatcher->dispatch(new MagazineAccessRequestedEvent($request));
     }
@@ -71,10 +82,12 @@ class MagazineAccessRequestManager
 
         $admitted = false;
         if (!$magazine->isBanned($user)) {
+            $alreadyViewer = $magazine->userCanView($user);
             try {
                 $this->memberManager->add($magazine, $user, $moderator);
-                $admitted = true;
+                $admitted = !$alreadyViewer;
             } catch (\InvalidArgumentException) {
+                // Refused on purpose: the requester cannot be admitted, so the request is dropped below and nobody is added.
             }
         }
 

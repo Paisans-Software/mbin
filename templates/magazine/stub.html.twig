@@ -36,7 +36,7 @@
         {% if stubMagazine.description %}
             <div class="magazine-stub__description">{{ stubMagazine.description|markdown|raw }}</div>
         {% endif %}
-        {% if app.user and not app.user.apId %}
+        {% if app.user and not app.user.apId and not app.user.isBanned and not app.user.isDeleted and not stubMagazine.isBanned(app.user) %}
             {% if stubMagazine.access.value is same as('private') %}
                 {% if accessRequested|default(false) %}
                     <button type="button" class="btn btn__secondary" disabled>{{ 'access_requested'|trans }}</button>
