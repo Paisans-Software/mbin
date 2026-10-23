@@ -30,6 +30,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class ShadowThreadManager
 {
+    /**
+     * Mbin's `:::` details block, from its opening fence to a closing fence at least as long,
+     * or to the end of the text when it is never closed (see DetailsBlockParser).
+     */
+    private const DETAILS_BLOCK = '/^ {0,3}(:{3,}).*?(?:^ {0,3}\1:* *$|\z)/msu';
+
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly MagazineFollowRepository $magazineFollowRepository,
@@ -63,7 +69,8 @@ class ShadowThreadManager
         );
 
         foreach ($magazines as $magazine) {
-            if ($this->hasShadow($original, $magazine)) {
+            // a magazine that banned the author takes nothing of theirs, as for a post in it
+            if ($magazine->isBanned($original->user) || $this->hasShadow($original, $magazine)) {
                 continue;
             }
 
@@ -73,7 +80,7 @@ class ShadowThreadManager
                 $original->body,
                 $magazine,
                 $original->user,
-                $original->isAdult,
+                $original->isAdult || $magazine->isAdult,
                 false,
                 $original->lang,
             );
@@ -119,7 +126,7 @@ class ShadowThreadManager
                 $shadow->slug = $this->slugger->slug($title);
             }
             $shadow->body = $original->body;
-            $shadow->isAdult = $original->isAdult;
+            $shadow->isAdult = $original->isAdult || $shadow->magazine->isAdult;
             $shadow->lang = $original->lang;
             if (!$shadow->isTrashed() && !$original->isTrashed()) {
                 $shadow->visibility = $original->visibility;
@@ -192,12 +199,15 @@ class ShadowThreadManager
 
     /**
      * A thread title for a microblog post, which has none: the first line of its text,
-     * cut on a word boundary to fit.
+     * cut on a word boundary to fit. A `:::` block (a spoiler or other details block) is
+     * left out whole, so hidden text never becomes a title. When nothing is left, the
+     * title is shadow_untitled, translated in the locale of the worker that stores it.
      */
     public function titleForPost(Post $post): string
     {
+        $markdown = preg_replace(self::DETAILS_BLOCK, '', $post->body ?? '') ?? '';
         $html = (new CommonMarkConverter(['html_input' => 'strip', 'allow_unsafe_links' => false]))
-            ->convert($post->body ?? '')
+            ->convert($markdown)
             ->getContent();
         $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 

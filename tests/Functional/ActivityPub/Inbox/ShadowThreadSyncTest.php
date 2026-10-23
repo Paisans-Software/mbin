@@ -85,6 +85,19 @@ class ShadowThreadSyncTest extends ActivityPubFunctionalTestCase
         self::assertSame($post->body, $shadow->body);
     }
 
+    public function testShadowInAnAdultMagazineStaysAdultOnEdit(): void
+    {
+        $this->circle->isAdult = true;
+        $this->entityManager->flush();
+        [, $shadow] = $this->createPage();
+
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->updateOf($this->pageToNobody, ['name' => 'Edited', 'sensitive' => false]))));
+
+        $this->entityManager->refresh($shadow);
+        self::assertSame('Edited', $shadow->title);
+        self::assertTrue($shadow->isAdult);
+    }
+
     public function testRemoteDeleteSoftDeletesShadow(): void
     {
         [$original, $shadow] = $this->createPage();

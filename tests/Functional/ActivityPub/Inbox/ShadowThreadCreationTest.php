@@ -277,6 +277,57 @@ class ShadowThreadCreationTest extends ActivityPubFunctionalTestCase
         self::assertSame($original->getId(), $shadows[0]->shadowOfEntry?->getId());
     }
 
+    public function testMagazineThatBannedTheAuthorGetsNoShadow(): void
+    {
+        $this->follow($this->ring, MagazineFollowKind::Both);
+        $this->circle->addBan($this->remoteUser, $this->userRepository->findOneByUsername('admin'), 'not welcome', null);
+        $this->entityManager->flush();
+
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToNobody)));
+
+        self::assertNotNull($this->entryRepository->findOneBy(['apId' => $this->pageToNobody['object']['id']]));
+        self::assertSame(0, $this->entryRepository->count(['magazine' => $this->circle]));
+        self::assertSame(1, $this->entryRepository->count(['magazine' => $this->ring]), 'control: a magazine that did not ban the author gets its shadow');
+    }
+
+    public function testShadowInAnAdultMagazineIsAdult(): void
+    {
+        $this->circle->isAdult = true;
+        $this->entityManager->flush();
+
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToNobody)));
+
+        $original = $this->entryRepository->findOneBy(['apId' => $this->pageToNobody['object']['id']]);
+        self::assertFalse($original->isAdult);
+        self::assertTrue($this->entryRepository->findOneBy(['magazine' => $this->circle])->isAdult);
+    }
+
+    public function testPostTitleLeavesOutSpoilers(): void
+    {
+        $manager = self::getContainer()->get(ShadowThreadManager::class);
+        $user = $this->userRepository->findOneByUsername('admin');
+
+        self::assertSame('The visible line', $manager->titleForPost(new Post("::: spoiler The ending\nthe hidden twist\n:::\n\nThe visible line", $this->random, $user, false)));
+        self::assertSame('Untitled post', $manager->titleForPost(new Post("::: spoiler\nonly hidden text\n:::", $this->random, $user, false)));
+    }
+
+    public function testObjectWithoutAnHttpIdGetsNoShadow(): void
+    {
+        $this->unfollowAll();
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToNobody)));
+        $original = $this->entryRepository->findOneBy(['apId' => $this->pageToNobody['object']['id']]);
+        self::assertNotNull($original);
+        $this->follow($this->circle, MagazineFollowKind::Both);
+        $manager = self::getContainer()->get(ShadowThreadManager::class);
+
+        $manager->shadow($original, ['id' => 'urn:uuid:5e4b0b4e-0000-4000-8000-000000000000'], null, 'Create');
+        self::assertSame(0, $this->entryRepository->count(['magazine' => $this->circle]));
+
+        // control: the same post with its http(s) id is shadowed
+        $manager->shadow($original, $this->pageToNobody['object'], null, 'Create');
+        self::assertSame(1, $this->entryRepository->count(['magazine' => $this->circle]));
+    }
+
     public function testFollowKindIsRespected(): void
     {
         $follow = $this->entityManager->getRepository(MagazineFollow::class)->findOneBy(['magazine' => $this->circle]);
