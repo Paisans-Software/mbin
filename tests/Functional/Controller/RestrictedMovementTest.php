@@ -21,17 +21,38 @@ class RestrictedMovementTest extends WebTestCase
         $this->createRestrictedFixture();
     }
 
-    private function moderateToken(string $kind, string $magazine, int $id): string
+    /**
+     * The change_magazine CSRF token is the same for every subject, and the form is only
+     * offered for public content, so it is read from a public entry's panel.
+     */
+    private function moderateToken(): string
     {
-        $crawler = $this->client->request('GET', "/m/$magazine/$kind/$id/-/moderate");
+        $public = $this->createEntry('Token source', $this->open, $this->getUserByUsername('admin'), 'https://public.example/token');
+        $crawler = $this->client->request('GET', "/m/open/t/{$public->getId()}/-/moderate");
         self::assertResponseIsSuccessful();
 
         return $crawler->filter('form[name=change_magazine] input[name=token]')->attr('value');
     }
 
+    public function testMoveFormIsNotOfferedForRestrictedContent(): void
+    {
+        $public = $this->createPost('Public post', $this->open, $this->getUserByUsername('admin'));
+        $this->client->loginUser($this->getUserByUsername('admin'));
+
+        $this->client->request('GET', "/m/circle/t/{$this->entry->getId()}/-/moderate");
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('form[name=change_magazine]');
+        $this->client->request('GET', "/m/circle/p/{$this->post->getId()}/-/moderate");
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('form[name=change_magazine]');
+
+        $this->client->request('GET', "/m/open/p/{$public->getId()}/-/moderate");
+        self::assertSelectorExists('form[name=change_magazine]', 'positive control: public content keeps the form');
+    }
+
     private function moveEntry(Entry $entry, string $target): void
     {
-        $token = $this->moderateToken('t', $entry->magazine->name, $entry->getId());
+        $token = $this->moderateToken();
         $this->client->request(
             'POST',
             \sprintf('/m/%s/e/%d/-/change_magazine', $entry->magazine->name, $entry->getId()),
@@ -91,7 +112,7 @@ class RestrictedMovementTest extends WebTestCase
     public function testMovePostRestrictedToPublicRefused(): void
     {
         $this->client->loginUser($this->getUserByUsername('admin'));
-        $token = $this->moderateToken('p', 'circle', $this->post->getId());
+        $token = $this->moderateToken();
         $this->client->request(
             'POST',
             \sprintf('/m/circle/p/%d/-/change_magazine', $this->post->getId()),

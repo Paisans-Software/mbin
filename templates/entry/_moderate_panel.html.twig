@@ -64,7 +64,9 @@
                 </form>
             </li>
         {% endif %}
-        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_MODERATOR') %}
+        {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+        {# content in a private or hidden magazine never moves, so the form is not offered #}
+        {% if (is_granted('ROLE_ADMIN') or is_granted('ROLE_MODERATOR')) and not entry.magazine.restricted %}
             <li class="actions">
                 <form name="change_magazine"
                       action="{{ path('entry_change_magazine', {magazine_name: entry.magazine.name, entry_id: entry.id}) }}"
