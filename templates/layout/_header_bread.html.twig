@@ -3,6 +3,8 @@
 {% if magazine is defined and magazine %}
     <div class="head-title">
         <span>/m/</span><a href="{{ path('front_magazine', {name: magazine.name}) }}">{{ magazine.name }}</a>
+        {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+        {{ include('components/_magazine_access_icon.html.twig', {access: magazine.access.value}, with_context: false) }}
     </div>
 {% elseif is_route_name_starts_with('domain_') %}
     <div class="head-title">

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Controller\Magazine;
 
 use App\Entity\Magazine;
+use App\Entity\MagazineMember;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
+use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
 
 /**
@@ -76,9 +78,49 @@ class MagazineAccessIconTest extends WebTestCase
         $this->client->loginUser($this->admin);
         $crawler = $this->client->request('GET', '/m/open');
         self::assertResponseIsSuccessful();
-        self::assertCount(0, $crawler->filter('[data-magazine-access]'));
+        self::assertCount(0, $crawler->filter('.head-title [data-magazine-access], section.magazine [data-magazine-access]'));
 
         $crawler = $this->client->request('GET', '/magazines');
         self::assertCount(0, $crawler->filterXPath('//a[contains(@href, "/m/open")]//i[@data-magazine-access]'));
+    }
+
+    public function testPageHeaderShowsIcon(): void
+    {
+        $alice = $this->getUserByUsername('alice');
+        (new MagazineMemberManager(
+            $this->entityManager->getRepository(MagazineMember::class),
+            $this->magazineManager,
+            $this->entityManager,
+        ))->add($this->circle, $alice, $this->admin);
+
+        $this->client->loginUser($alice);
+        $crawler = $this->client->request('GET', '/m/circle');
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $crawler->filter('.head-title [data-magazine-access="private"]')->count());
+
+        $this->client->loginUser($this->admin);
+        $crawler = $this->client->request('GET', '/m/vault');
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $crawler->filter('.head-title [data-magazine-access="hidden"]')->count());
+    }
+
+    public function testSubscriptionsSidebarShowsIcon(): void
+    {
+        $alice = $this->getUserByUsername('alice');
+        (new MagazineMemberManager(
+            $this->entityManager->getRepository(MagazineMember::class),
+            $this->magazineManager,
+            $this->entityManager,
+        ))->add($this->circle, $alice, $this->admin);
+        $this->magazineManager->subscribe($this->circle, $alice);
+
+        $this->client->loginUser($alice);
+        $crawler = $this->client->request('GET', '/magazines');
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $crawler->filter('.subscription-list [data-magazine-access="private"]')->count());
+
+        $crawler = $this->client->request('GET', '/u/alice/subscriptions');
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $crawler->filter('.magazines [data-magazine-access="private"]')->count());
     }
 }
