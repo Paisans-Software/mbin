@@ -72,6 +72,81 @@ class MagazineFollowRepository extends ServiceEntityRepository
     }
 
     /**
+     * Every restricted local magazine that follows one of these actors with a follow
+     * carrying this activity kind. Such a magazine files nothing itself and gets a
+     * shadow of the object instead.
+     *
+     * FORK DIVERGENCE — do not offer this upstream: private magazines
+     *
+     * @param array<?string> $actorUrls
+     *
+     * @return Magazine[]
+     */
+    public function findRestrictedMagazinesFollowing(array $actorUrls, string $activityType): array
+    {
+        $actorUrls = array_values(array_unique(array_filter($actorUrls, fn (?string $url) => null !== $url && '' !== $url)));
+        $kinds = array_values(array_filter(
+            MagazineFollowKind::cases(),
+            fn (MagazineFollowKind $kind) => $kind->carries($activityType)
+        ));
+        if ([] === $actorUrls || [] === $kinds) {
+            return [];
+        }
+
+        $restricted = array_values(array_filter(
+            MagazineAccess::cases(),
+            fn (MagazineAccess $access) => $access->isRestricted()
+        ));
+
+        // most instances have no restricted magazine that follows anybody, and this runs for
+        // every inbound post, so a cheap probe settles that case before the real query
+        $anyRestrictedFollow = $this->createQueryBuilder('mf')
+            ->select('mf.id')
+            ->join('mf.magazine', 'fm')
+            ->where('fm.apId IS NULL')
+            ->andWhere('fm.access IN (:restricted)')
+            ->setParameter('restricted', $restricted)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+        if (null === $anyRestrictedFollow) {
+            return [];
+        }
+
+        // one indexed IN per actor table rather than an OR across two left joins
+        $em = $this->getEntityManager();
+        $userIds = $em->createQueryBuilder()
+            ->select('u.id')
+            ->from(User::class, 'u')
+            ->where('u.apProfileId IN (:urls)');
+        $magazineIds = $em->createQueryBuilder()
+            ->select('m.id')
+            ->from(Magazine::class, 'm')
+            ->where('m.apProfileId IN (:urls)');
+
+        $follows = $this->createQueryBuilder('mf')
+            ->join('mf.magazine', 'fm')
+            ->addSelect('fm')
+            ->where('IDENTITY(mf.followingUser) IN ('.$userIds->getDQL().') OR IDENTITY(mf.followingMagazine) IN ('.$magazineIds->getDQL().')')
+            ->andWhere('fm.apId IS NULL')
+            ->andWhere('fm.access IN (:restricted)')
+            ->andWhere('mf.kind IN (:kinds)')
+            ->setParameter('urls', $actorUrls)
+            ->setParameter('restricted', $restricted)
+            ->setParameter('kinds', $kinds)
+            ->orderBy('fm.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $magazines = [];
+        foreach ($follows as $follow) {
+            $magazines[$follow->magazine->getId()] = $follow->magazine;
+        }
+
+        return array_values($magazines);
+    }
+
+    /**
      * @return MagazineFollow[]
      */
     public function findByMagazine(Magazine $magazine): array
