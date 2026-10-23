@@ -15,6 +15,7 @@ use App\PageView\PostPageView;
 use App\Pagination\Pagerfanta as MbinPagerfanta;
 use App\Repository\ContentRepository;
 use App\Repository\Criteria;
+use App\Repository\MagazineAccessRequestRepository;
 use App\Repository\MagazineRepository;
 use App\Utils\SqlHelpers;
 use Pagerfanta\PagerfantaInterface;
@@ -32,6 +33,8 @@ class EntryFrontController extends AbstractController
         private readonly MagazineRepository $magazineRepository,
         private readonly Security $security,
         private readonly SqlHelpers $sqlHelpers,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly MagazineAccessRequestRepository $accessRequestRepository,
     ) {
     }
 
@@ -118,7 +121,12 @@ class EntryFrontController extends AbstractController
     ): Response {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
         if ($request->attributes->getBoolean(MagazineVisibilityListener::STUB_ATTRIBUTE)) {
-            return $this->render('magazine/stub.html.twig', ['stubMagazine' => $magazine]);
+            $stubUser = $this->getUser();
+
+            return $this->render('magazine/stub.html.twig', [
+                'stubMagazine' => $magazine,
+                'accessRequested' => $stubUser instanceof User && null !== $this->accessRequestRepository->findOneByMagazineAndUser($magazine, $stubUser),
+            ]);
         }
 
         $user = $this->getUser();
