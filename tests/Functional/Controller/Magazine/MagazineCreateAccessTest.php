@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Controller\Magazine;
 
+use App\DTO\MagazineDto;
 use App\Enum\MagazineAccess;
 use App\Tests\WebTestCase;
 
@@ -76,12 +77,53 @@ class MagazineCreateAccessTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame(0, $crawler->filter('[name="magazine[access]"]')->count());
 
+        // a legitimate edit saves, so the refusal below is about access and nothing else
         $form = $crawler->filter('#main form[name=magazine]')->selectButton('Done')->form();
         $values = $form->getPhpValues();
+        $values['magazine']['title'] = 'Renamed club';
+        $this->client->request('POST', '/m/secretclub/panel/general', $values);
+        $this->entityManager->clear();
+        $magazine = $this->magazineRepository->findOneByName('secretclub');
+        self::assertSame('Renamed club', $magazine->title);
+        self::assertSame(MagazineAccess::Private, $magazine->access);
+
+        $crawler = $this->client->request('GET', '/m/secretclub/panel/general');
+        $form = $crawler->filter('#main form[name=magazine]')->selectButton('Done')->form();
+        $values = $form->getPhpValues();
+        $values['magazine']['title'] = 'Renamed again';
         $values['magazine']['access'] = 'public';
         $this->client->request('POST', '/m/secretclub/panel/general', $values);
 
         $this->entityManager->clear();
-        self::assertSame(MagazineAccess::Private, $this->magazineRepository->findOneByName('secretclub')->access);
+        $magazine = $this->magazineRepository->findOneByName('secretclub');
+        self::assertSame(MagazineAccess::Private, $magazine->access);
+        self::assertSame('Renamed club', $magazine->title, 'the crafted edit is refused as a whole');
+    }
+
+    public function testNonAdminCraftingAccessOnCreateGetsNoRestrictedMagazine(): void
+    {
+        $this->client->loginUser($this->getUserByUsername('JohnDoe'));
+        $crawler = $this->client->request('GET', '/newMagazine');
+        $form = $crawler->filter('form[name=magazine]')->selectButton('Create new magazine')->form([
+            'magazine[name]' => 'craftedclub',
+            'magazine[title]' => 'Crafted club',
+        ]);
+        $values = $form->getPhpValues();
+        $values['magazine']['access'] = 'private';
+        $this->client->request('POST', '/newMagazine', $values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertNull($this->magazineRepository->findOneByName('craftedclub'));
+    }
+
+    public function testManagerRefusesRestrictedMagazineForNonAdmin(): void
+    {
+        $dto = new MagazineDto();
+        $dto->name = 'managerclub';
+        $dto->title = 'Manager club';
+        $dto->access = MagazineAccess::Hidden;
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->magazineManager->create($dto, $this->getUserByUsername('globalmod', isModerator: true), rateLimit: false);
     }
 }
