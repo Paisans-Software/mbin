@@ -9,6 +9,7 @@ use App\Repository\MagazineRepository;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class MagazineResolver implements ValueResolverInterface
 {
@@ -24,6 +25,14 @@ class MagazineResolver implements ValueResolverInterface
 
         $magazineName = $request->attributes->get('magazine_name') ?? $request->attributes->get('name');
 
-        yield $this->repository->findOneByName($magazineName);
+        $magazine = $this->repository->findOneByName($magazineName);
+
+        // A missing name is a 404, not the TypeError (a 500) that a non-nullable
+        // controller argument throws on null.
+        if (null === $magazine && !$argument->isNullable()) {
+            throw new NotFoundHttpException();
+        }
+
+        yield $magazine;
     }
 }
