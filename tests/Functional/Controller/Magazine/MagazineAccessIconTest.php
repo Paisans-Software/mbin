@@ -8,6 +8,7 @@ use App\Entity\Magazine;
 use App\Entity\MagazineMember;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
+use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
 
@@ -87,8 +88,11 @@ class MagazineAccessIconTest extends WebTestCase
     public function testPageHeaderShowsIcon(): void
     {
         $alice = $this->getUserByUsername('alice');
+        /** @var MagazineMemberRepository $memberRepository */
+        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
+
         (new MagazineMemberManager(
-            $this->entityManager->getRepository(MagazineMember::class),
+            $memberRepository,
             $this->magazineManager,
             $this->entityManager,
         ))->add($this->circle, $alice, $this->admin);
@@ -107,8 +111,11 @@ class MagazineAccessIconTest extends WebTestCase
     public function testSubscriptionsSidebarShowsIcon(): void
     {
         $alice = $this->getUserByUsername('alice');
+        /** @var MagazineMemberRepository $memberRepository */
+        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
+
         (new MagazineMemberManager(
-            $this->entityManager->getRepository(MagazineMember::class),
+            $memberRepository,
             $this->magazineManager,
             $this->entityManager,
         ))->add($this->circle, $alice, $this->admin);

@@ -9,7 +9,9 @@ use App\Entity\Entry;
 use App\Entity\Magazine;
 use App\Entity\MagazineMember;
 use App\Entity\Post;
+use App\Entity\User;
 use App\Enum\MagazineAccess;
+use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineManager;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
@@ -43,15 +45,18 @@ class MagazineGateTest extends WebTestCase
         $this->member($this->getUserByUsername('alice'));
     }
 
-    private function member($user): void
+    private function member(User $user): void
     {
         $this->memberManager()->add($this->circle, $user, $this->getUserByUsername('admin'));
     }
 
     private function memberManager(): MagazineMemberManager
     {
+        /** @var MagazineMemberRepository $memberRepository */
+        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
+
         return new MagazineMemberManager(
-            $this->entityManager->getRepository(MagazineMember::class),
+            $memberRepository,
             $this->magazineManager,
             $this->entityManager,
         );

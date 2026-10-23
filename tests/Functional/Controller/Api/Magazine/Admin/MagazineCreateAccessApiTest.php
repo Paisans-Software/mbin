@@ -11,7 +11,7 @@ use App\Tests\WebTestCase;
  */
 class MagazineCreateAccessApiTest extends WebTestCase
 {
-    private function createWithAccess(bool $admin, bool $moderator, string $access): array
+    private function createWithAccess(bool $admin, bool $moderator, string $access): void
     {
         $user = $this->getUserByUsername($admin ? 'admin' : 'globalmod', isAdmin: $admin, isModerator: $moderator);
         $this->client->loginUser($user);
@@ -25,8 +25,6 @@ class MagazineCreateAccessApiTest extends WebTestCase
             parameters: ['name' => 'accessmag', 'title' => 'Access magazine', 'access' => $access],
             server: ['HTTP_AUTHORIZATION' => $token]
         );
-
-        return [];
     }
 
     public function testAdminCreatesHiddenMagazineViaApi(): void

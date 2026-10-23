@@ -10,14 +10,13 @@ use App\Security\Voter\MagazineVoter;
 
 /**
  * @method createAccessDeniedException()
- * @method createNotFoundException()
  */
 trait PrivateContentTrait
 {
     private function handlePrivateContent(ContentInterface $entry): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        $this->assertMagazineViewable($entry->magazine);
+        $this->assertMagazineViewable($entry->getMagazine());
 
         if (true === $entry->isPrivate()) {
             if (null === $this->getUser()) {
@@ -44,7 +43,7 @@ trait PrivateContentTrait
         if ($target instanceof Magazine) {
             $this->assertMagazineViewable($target);
         } elseif ($target instanceof ContentInterface) {
-            $this->assertMagazineViewable($target->magazine);
+            $this->assertMagazineViewable($target->getMagazine());
         }
     }
 }

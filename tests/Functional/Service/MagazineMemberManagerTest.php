@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Service;
 use App\Entity\Magazine;
 use App\Entity\MagazineMember;
 use App\Enum\MagazineAccess;
+use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
 
@@ -17,8 +18,11 @@ class MagazineMemberManagerTest extends WebTestCase
 {
     private function manager(): MagazineMemberManager
     {
+        /** @var MagazineMemberRepository $memberRepository */
+        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
+
         return new MagazineMemberManager(
-            $this->entityManager->getRepository(MagazineMember::class),
+            $memberRepository,
             $this->magazineManager,
             $this->entityManager,
         );
