@@ -180,6 +180,24 @@ class ShadowThreadCreationTest extends ActivityPubFunctionalTestCase
         );
     }
 
+    public function testOriginalFiledInLocalPublicMagazineThatAlsoFollows(): void
+    {
+        // garden is public, so its follow files the original there and CreateHandler goes on
+        // to record the Create and announce it; circle still gets its shadow
+        $this->follow($this->garden, MagazineFollowKind::Both);
+
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToNobody)));
+
+        $original = $this->entryRepository->findOneBy(['apId' => $this->pageToNobody['object']['id']]);
+        self::assertNotNull($original);
+        self::assertSame($this->garden->getId(), $original->magazine->getId());
+        self::assertNotNull($this->activityRepository->findFirstActivitiesByTypeAndObject('Create', $original), 'the Create was recorded');
+
+        $shadows = $this->entryRepository->findBy(['magazine' => $this->circle]);
+        self::assertCount(1, $shadows);
+        self::assertSame($original->getId(), $shadows[0]->shadowOfEntry?->getId());
+    }
+
     public function testOriginalAddressedToRemoteCommunityStillShadowed(): void
     {
         $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToRemoteGroup)));
