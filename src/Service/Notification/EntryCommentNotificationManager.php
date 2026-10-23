@@ -116,6 +116,8 @@ class EntryCommentNotificationManager implements ContentNotificationManagerInter
     private function notifyUser(EntryCommentReplyNotification $notification): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // checked before the KBIN_MERCURE_ENABLED switch, so the privacy rule does not hang on
+        // how realtime updates happen to be configured
         if ($notification->getComment()->magazine->isRestricted()) {
             return;
         }
@@ -177,6 +179,8 @@ class EntryCommentNotificationManager implements ContentNotificationManagerInter
     private function notifyMagazine(Notification $notification): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // checked before the KBIN_MERCURE_ENABLED switch, so the privacy rule does not hang on
+        // how realtime updates happen to be configured
         $comment = method_exists($notification, 'getComment') ? $notification->getComment() : null;
         if (!$comment instanceof EntryComment || $comment->magazine->isRestricted()) {
             return;

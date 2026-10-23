@@ -50,6 +50,8 @@ class SentVoteNotificationHandler extends MbinMessageHandler
     private function notifyMagazine(VotableInterface $votable): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // checked before the KBIN_MERCURE_ENABLED switch, so the privacy rule does not hang on
+        // how realtime updates happen to be configured
         // every votable is content; anything else is not announced at all
         if (!$votable instanceof ContentInterface || false !== $votable->getMagazine()?->isRestricted()) {
             return;

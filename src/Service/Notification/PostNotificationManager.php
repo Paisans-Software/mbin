@@ -99,6 +99,8 @@ class PostNotificationManager implements ContentNotificationManagerInterface
     private function notifyMagazine(Notification $notification): void
     {
         // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // checked before the KBIN_MERCURE_ENABLED switch, so the privacy rule does not hang on
+        // how realtime updates happen to be configured
         $post = property_exists($notification, 'post') ? $notification->post : null;
         if (!$post instanceof Post || $post->magazine->isRestricted()) {
             return;
