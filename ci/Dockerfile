@@ -1,4 +1,4 @@
-FROM php:8.5.12-fpm-trixie
+FROM php:8.5-fpm-trixie
 
 COPY --from=composer/composer:latest-bin /composer /usr/bin/composer
 
