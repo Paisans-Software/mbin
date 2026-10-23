@@ -93,20 +93,46 @@ class MagazineFollowRepository extends ServiceEntityRepository
             return [];
         }
 
+        $restricted = array_values(array_filter(
+            MagazineAccess::cases(),
+            fn (MagazineAccess $access) => $access->isRestricted()
+        ));
+
+        // most instances have no restricted magazine that follows anybody, and this runs for
+        // every inbound post, so a cheap probe settles that case before the real query
+        $anyRestrictedFollow = $this->createQueryBuilder('mf')
+            ->select('mf.id')
+            ->join('mf.magazine', 'fm')
+            ->where('fm.apId IS NULL')
+            ->andWhere('fm.access IN (:restricted)')
+            ->setParameter('restricted', $restricted)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+        if (null === $anyRestrictedFollow) {
+            return [];
+        }
+
+        // one indexed IN per actor table rather than an OR across two left joins
+        $em = $this->getEntityManager();
+        $userIds = $em->createQueryBuilder()
+            ->select('u.id')
+            ->from(User::class, 'u')
+            ->where('u.apProfileId IN (:urls)');
+        $magazineIds = $em->createQueryBuilder()
+            ->select('m.id')
+            ->from(Magazine::class, 'm')
+            ->where('m.apProfileId IN (:urls)');
+
         $follows = $this->createQueryBuilder('mf')
-            ->leftJoin('mf.followingUser', 'u')
-            ->leftJoin('mf.followingMagazine', 'm')
             ->join('mf.magazine', 'fm')
             ->addSelect('fm')
-            ->where('u.apProfileId IN (:urls) OR m.apProfileId IN (:urls)')
+            ->where('IDENTITY(mf.followingUser) IN ('.$userIds->getDQL().') OR IDENTITY(mf.followingMagazine) IN ('.$magazineIds->getDQL().')')
             ->andWhere('fm.apId IS NULL')
             ->andWhere('fm.access IN (:restricted)')
             ->andWhere('mf.kind IN (:kinds)')
             ->setParameter('urls', $actorUrls)
-            ->setParameter('restricted', array_values(array_filter(
-                MagazineAccess::cases(),
-                fn (MagazineAccess $access) => $access->isRestricted()
-            )))
+            ->setParameter('restricted', $restricted)
             ->setParameter('kinds', $kinds)
             ->orderBy('fm.id', 'ASC')
             ->getQuery()
