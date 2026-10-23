@@ -6,7 +6,11 @@ namespace App\Service\ActivityPub\Wrapper;
 
 use App\Entity\Activity;
 use App\Entity\Contracts\ActivityPubActivityInterface;
+use App\Entity\Entry;
+use App\Entity\EntryComment;
 use App\Entity\Magazine;
+use App\Entity\Post;
+use App\Entity\PostComment;
 use App\Entity\User;
 use App\Factory\ActivityPub\ActivityFactory;
 use Doctrine\ORM\EntityManagerInterface;
@@ -49,9 +53,31 @@ class AnnounceWrapper
             $activity->innerActivityUrl = $url;
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // A user boost stores only the object's id, so record which magazine the announced
+        // content is in: the public user outbox filters on it. The Announce JSON does not
+        // read the audience, so the federated payload is unchanged.
+        $activity->audience = self::magazineOf($object);
+
         $this->entityManager->persist($activity);
         $this->entityManager->flush();
 
         return $activity;
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    private static function magazineOf(ActivityPubActivityInterface|Activity|string $object): ?Magazine
+    {
+        if ($object instanceof Activity) {
+            $object = $object->audience ?? $object->getObject();
+        }
+        if ($object instanceof Magazine) {
+            return $object;
+        }
+        if ($object instanceof Entry || $object instanceof EntryComment || $object instanceof Post || $object instanceof PostComment) {
+            return $object->magazine;
+        }
+
+        return null;
     }
 }

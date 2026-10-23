@@ -159,7 +159,7 @@ class RestrictedListingTest extends WebTestCase
         $this->client->loginUser($this->alice);
         $this->client->request('GET', '/u/alice/outbox?page=1', server: ['HTTP_ACCEPT' => 'application/activity+json']);
         self::assertResponseIsSuccessful();
-        $json = $this->client->getResponse()->getContent();
+        $json = json_encode(json_decode($this->client->getResponse()->getContent(), true), JSON_UNESCAPED_SLASHES);
 
         self::assertSeen('Alice open entry', $json);
         self::assertNotSeen('Alice circle entry', $json);
@@ -191,18 +191,41 @@ class RestrictedListingTest extends WebTestCase
         self::assertSeen('Secret entry title', $body);
         self::assertSeen('Secret tagged entry', $body);
 
-        /** @var MagazineMemberRepository $members */
-        $members = $this->entityManager->getRepository(MagazineMember::class);
-        (new MagazineMemberManager(
-            $members,
-            $this->magazineManager,
-            $this->entityManager,
-        ))->remove($this->circle, $this->alice);
+        $this->memberManager()->remove($this->circle, $this->alice);
 
         self::assertNotSeen('Secret entry title', $this->get('/all'));
         $body = $this->get($crossPage);
         self::assertNotSeen('Secret entry title', $body);
         self::assertNotSeen('Secret tagged entry', $body);
+    }
+
+    public function testUserOutboxExcludesBoostsOfRestrictedContent(): void
+    {
+        $this->memberManager()->add($this->vault, $this->alice, $this->admin);
+        $vaultEntry = $this->createEntry('Vault boosted entry', $this->vault, $this->admin);
+
+        $this->voteManager->vote(1, $this->entry, $this->alice);
+        $this->voteManager->vote(1, $vaultEntry, $this->alice);
+        $this->voteManager->vote(1, $this->publicEntry, $this->alice);
+
+        $this->client->request('GET', '/u/alice/outbox?page=1', server: ['HTTP_ACCEPT' => 'application/activity+json']);
+        self::assertResponseIsSuccessful();
+        $json = json_encode(json_decode($this->client->getResponse()->getContent(), true), JSON_UNESCAPED_SLASHES);
+        $items = json_decode($json, true)['orderedItems'];
+
+        self::assertNotSeen('/m/circle', $json);
+        self::assertNotSeen('/m/vault', $json);
+        $boosts = array_filter($items, fn (array $item) => 'Announce' === $item['type']);
+        self::assertCount(1, $boosts);
+        self::assertSeen('/m/open/t/'.$this->publicEntry->getId(), json_encode(array_values($boosts)[0], JSON_UNESCAPED_SLASHES));
+    }
+
+    private function memberManager(): MagazineMemberManager
+    {
+        /** @var MagazineMemberRepository $members */
+        $members = $this->entityManager->getRepository(MagazineMember::class);
+
+        return new MagazineMemberManager($members, $this->magazineManager, $this->entityManager);
     }
 
     private function get(string $path): string
