@@ -6,7 +6,6 @@ namespace App\Tests\Functional;
 
 use App\DTO\ModeratorDto;
 use App\Entity\Entry;
-use App\Entity\Magazine;
 use App\Entity\MagazineMember;
 use App\Entity\Post;
 use App\Entity\User;
