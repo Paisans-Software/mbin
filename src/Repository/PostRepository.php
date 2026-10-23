@@ -99,6 +99,10 @@ class PostRepository extends ServiceEntityRepository
             $qb->orWhere('p.user IS NULL');
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // after the orWhere above, so followers-only posts are filtered too
+        MagazineAccessClause::apply($qb, 'm', $user instanceof User ? $user : null);
+
         $qb->setParameter('visibility', $criteria->visibility)
             ->setParameter('visible', VisibilityInterface::VISIBILITY_VISIBLE);
 
@@ -337,6 +341,9 @@ class PostRepository extends ServiceEntityRepository
             ->setParameter('name', $tag)
             ->setMaxResults($limit);
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::apply($qb, 'm', $user);
+
         if (null !== $user) {
             $qb->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedMagazinesDql($user))))
                 ->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedUsersDql($user))));
@@ -365,6 +372,9 @@ class PostRepository extends ServiceEntityRepository
             ->setParameter('title', "%{$name}%")
             ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
             ->setMaxResults($limit);
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::apply($qb, 'm', $user);
 
         if (null !== $user) {
             $qb->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedMagazinesDql($user))))

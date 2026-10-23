@@ -110,6 +110,10 @@ class EntryRepository extends ServiceEntityRepository
             $qb->orWhere('e.user IS NULL');
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // after the orWhere above, so followers-only entries are filtered too
+        MagazineAccessClause::apply($qb, 'm', $user instanceof User ? $user : null);
+
         $qb->setParameter('visibility', $criteria->visibility)
             ->setParameter('visible', VisibilityInterface::VISIBILITY_VISIBLE);
 
@@ -375,6 +379,9 @@ class EntryRepository extends ServiceEntityRepository
             ->setParameter('tag', $tag)
             ->setMaxResults($limit);
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::apply($qb, 'm', $user);
+
         if (null !== $user) {
             $qb->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedMagazinesDql($user))))
                 ->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedUsersDql($user))));
@@ -405,6 +412,9 @@ class EntryRepository extends ServiceEntityRepository
             ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
             ->setMaxResults($limit);
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::apply($qb, 'm', $user);
+
         if (null !== $user) {
             $qb->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedMagazinesDql($user))))
                 ->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedUsersDql($user))));
@@ -430,6 +440,8 @@ class EntryRepository extends ServiceEntityRepository
         if ($this->settingsManager->get('MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY')) {
             $qb = $qb->andWhere('m.apId IS NULL');
         }
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::apply($qb, 'm', $user);
 
         if (null !== $user) {
             $magazineBlocks = $this->sqlHelpers->getCachedUserMagazineBlocks($user);
@@ -528,6 +540,10 @@ class EntryRepository extends ServiceEntityRepository
             ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
             ->orderBy('e.createdAt', 'DESC')
             ->setMaxResults(5);
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $viewer = $this->security->getUser();
+        MagazineAccessClause::apply($qb, 'm', $viewer instanceof User ? $viewer : null);
 
         return $qb->getQuery()->getResult();
     }

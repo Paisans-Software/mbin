@@ -185,6 +185,9 @@ class SearchRepository
         $createdWhereMagazine = null !== $sinceDate ? 'AND m.created_at >= :since' : '';
         $createdWhereUser = null !== $sinceDate ? 'AND u.created_at >= :since' : '';
         $blockMagazineAndUserResult = null !== $authorId || null !== $magazineId ? 'AND false' : '';
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // content in magazines the searching user cannot see is left out of the four content queries
+        [$accessClause, $accessParameters] = MagazineAccessClause::sql('m', $searchingUser);
         $conn = $this->entityManager->getConnection();
         $sqlEntry = "SELECT e.id, e.created_at, e.visibility, 2 * ts_rank_cd(e.title_ts, plainto_tsquery(:tsLang, :query)) + ts_rank_cd(e.body_ts, plainto_tsquery(:tsLang, :query)) as rank, 'entry' AS type FROM entry e
             INNER JOIN public.user u ON u.id = user_id
@@ -197,6 +200,7 @@ class SearchRepository
                 AND NOT EXISTS (SELECT id FROM user_block ub WHERE ub.blocked_id = u.id AND ub.blocker_id = :queryingUser)
                 AND NOT EXISTS (SELECT id FROM magazine_block mb WHERE mb.magazine_id = m.id AND mb.user_id = :queryingUser)
                 AND NOT EXISTS (SELECT hl.id FROM hashtag_link hl INNER JOIN hashtag h ON h.id = hl.hashtag_id AND h.banned = true WHERE hl.entry_id = e.id)
+                AND $accessClause
                 $authorWhere $magazineWhere $createdWhere
         UNION ALL
         SELECT e.id, e.created_at, e.visibility, 3 * ts_rank_cd(e.body_ts, plainto_tsquery(:tsLang, :query)) as rank, 'entry_comment' AS type FROM entry_comment e
@@ -210,6 +214,7 @@ class SearchRepository
                 AND NOT EXISTS (SELECT id FROM user_block ub WHERE ub.blocked_id = u.id AND ub.blocker_id = :queryingUser)
                 AND NOT EXISTS (SELECT id FROM magazine_block mb WHERE mb.magazine_id = m.id AND mb.user_id = :queryingUser)
                 AND NOT EXISTS (SELECT hl.id FROM hashtag_link hl INNER JOIN hashtag h ON h.id = hl.hashtag_id AND h.banned = true WHERE hl.entry_comment_id = e.id)
+                AND $accessClause
                 $authorWhere $magazineWhere $createdWhere
         ";
         $sqlPost = "SELECT e.id, e.created_at, e.visibility, 3 * ts_rank_cd(e.body_ts, plainto_tsquery(:tsLang, :query)) as rank, 'post' AS type FROM post e
@@ -223,6 +228,7 @@ class SearchRepository
                 AND NOT EXISTS (SELECT id FROM user_block ub WHERE ub.blocked_id = u.id AND ub.blocker_id = :queryingUser)
                 AND NOT EXISTS (SELECT id FROM magazine_block mb WHERE mb.magazine_id = m.id AND mb.user_id = :queryingUser)
                 AND NOT EXISTS (SELECT hl.id FROM hashtag_link hl INNER JOIN hashtag h ON h.id = hl.hashtag_id AND h.banned = true WHERE hl.post_id = e.id)
+                AND $accessClause
                 $authorWhere $magazineWhere $createdWhere
         UNION ALL
         SELECT e.id, e.created_at, e.visibility, 3 * ts_rank_cd(e.body_ts, plainto_tsquery(:tsLang, :query)) as rank, 'post_comment' AS type FROM post_comment e
@@ -236,6 +242,7 @@ class SearchRepository
                 AND NOT EXISTS (SELECT id FROM user_block ub WHERE ub.blocked_id = u.id AND ub.blocker_id = :queryingUser)
                 AND NOT EXISTS (SELECT id FROM magazine_block mb WHERE mb.magazine_id = m.id AND mb.user_id = :queryingUser)
                 AND NOT EXISTS (SELECT hl.id FROM hashtag_link hl INNER JOIN hashtag h ON h.id = hl.hashtag_id AND h.banned = true WHERE hl.post_comment_id = e.id)
+                AND $accessClause
                 $authorWhere $magazineWhere $createdWhere
         ";
 
@@ -281,6 +288,13 @@ class SearchRepository
             'queryingUser' => $searchingUser?->getId() ?? -1,
             'tsLang' => $this->settingsManager->getSearchLang(),
         ];
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // only when a content query is part of $sql: the magazine and user queries do not use them
+        foreach ($accessParameters as $name => $value) {
+            if (str_contains($sql, ":$name")) {
+                $parameters[$name] = $value;
+            }
+        }
 
         $this->logger->debug('Search query: {sql}', ['sql' => $sql]);
 
