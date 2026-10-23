@@ -6,6 +6,12 @@
     {{- stubMagazine.title }} - {{ parent() -}}
 {%- endblock -%}
 
+{# base.html.twig only sets robots from `magazine`, which the stub does not define. A private magazine's stub is never indexed. #}
+{% block stylesheets %}
+    <meta name="robots" content="noindex">
+    {{ parent() }}
+{% endblock %}
+
 {% block mainClass %}page-magazine-stub{% endblock %}
 
 {% block header_nav %}

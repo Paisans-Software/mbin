@@ -88,10 +88,14 @@ class MagazineGateTest extends WebTestCase
 
     public function testNonMemberSeesStubForPrivate(): void
     {
+        $this->circle->apIndexable = true;
+        $this->entityManager->flush();
+
         $this->client->loginUser($this->getUserByUsername('bob'));
         $this->client->request('GET', '/m/circle');
 
         $this->assertStub();
+        self::assertSelectorExists('meta[name="robots"][content="noindex"]');
     }
 
     public function testAnonymousSeesStubForPrivate(): void
