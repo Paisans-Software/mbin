@@ -81,7 +81,7 @@ class MagazineAccessRequestPanelController extends AbstractController
 
     private function assertPrivate(Magazine $magazine): void
     {
-        if (!$magazine->isRestricted() || MagazineAccess::Private !== $magazine->access) {
+        if (MagazineAccess::Private !== $magazine->access) {
             throw new NotFoundHttpException();
         }
     }

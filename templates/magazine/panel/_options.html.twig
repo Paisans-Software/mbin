@@ -56,7 +56,7 @@
             </li>
         {% endif %}
         {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
-        {% if magazine.isRestricted() and magazine.access.value is same as 'private' %}
+        {% if magazine.access.value is same as 'private' %}
             <li>
                 <a href="{{ path('magazine_panel_access_requests', {name: magazine.name}) }}"
                    class="{{ html_classes({'active': is_route_name('magazine_panel_access_requests')}) }}">
