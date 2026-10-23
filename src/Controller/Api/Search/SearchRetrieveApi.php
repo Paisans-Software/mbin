@@ -203,8 +203,20 @@ class SearchRetrieveApi extends BaseApi
         }
 
         foreach ($objects as $object) {
-            \assert($object instanceof ContentInterface);
-            $response['apObjects'][] = $this->serializeContentInterface($object);
+            if ($object instanceof User) {
+                $response['apActors'][] = [
+                    'type' => 'user',
+                    'object' => $this->serializeUser($userFactory->createDto($object)),
+                ];
+            } elseif ($object instanceof Magazine) {
+                $response['apActors'][] = [
+                    'type' => 'magazine',
+                    'object' => $this->serializeMagazine($magazineFactory->createDto($object)),
+                ];
+            } else {
+                \assert($object instanceof ContentInterface);
+                $response['apObjects'][] = $this->serializeContentInterface($object);
+            }
         }
 
         return new JsonResponse(
