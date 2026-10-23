@@ -33,6 +33,7 @@ use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\OneToMany;
 use Doctrine\ORM\Mapping\OrderBy;
+// FORK DIVERGENCE — do not offer this upstream: private magazines
 use Doctrine\ORM\Mapping\UniqueConstraint;
 use Webmozart\Assert\Assert;
 
