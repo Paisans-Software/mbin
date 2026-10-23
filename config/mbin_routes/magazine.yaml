@@ -83,3 +83,9 @@ magazine_ownership_request:
     controller: App\Controller\Magazine\MagazineOwnershipRequestController::toggle
     path: /m/{name}/ownership_request
     methods: [POST]
+
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+magazine_access_request:
+    controller: App\Controller\Magazine\MagazineAccessRequestController::request
+    path: /m/{name}/request-access
+    methods: [POST]

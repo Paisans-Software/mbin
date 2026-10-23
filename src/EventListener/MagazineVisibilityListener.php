@@ -21,6 +21,7 @@ class MagazineVisibilityListener
 {
     public const STUB_ROUTES = ['front_magazine', 'front_magazine_short', 'api_magazine_retrieve', 'api_magazine_retrieve_by_name'];
     public const AP_ACTOR_ROUTE = 'ap_magazine';
+    public const REQUEST_ACCESS_ROUTE = 'magazine_access_request';
     public const STUB_ATTRIBUTE = '_magazine_stub';
 
     public function __construct(private readonly Security $security)
@@ -68,6 +69,12 @@ class MagazineVisibilityListener
             if (MagazineAccess::Private === $magazine->access && $this->isStubRoute($request, $route)) {
                 $request->attributes->set(self::STUB_ATTRIBUTE, true);
 
+                return;
+            }
+
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // The controller refuses everyone who may not ask; hidden magazines fall through to the 404 below.
+            if (MagazineAccess::Private === $magazine->access && self::REQUEST_ACCESS_ROUTE === $route) {
                 return;
             }
 
