@@ -127,6 +127,21 @@ class NotificationBaseApi extends BaseApi
                 $toReturn['subject'] = $this->createResponseDtoForReport($n->report->getSubject());
                 $toReturn['reportId'] = $n->report->getId();
                 break;
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            case 'magazine_access_requested':
+                /** @var \App\Entity\MagazineAccessRequestedNotification $n */
+                $n = $dto;
+                $toReturn['subject'] = [
+                    'magazine' => $this->magazineFactory->createSmallDto($n->magazine),
+                    'user' => $this->userFactory->createSmallDto($n->requester),
+                ];
+                break;
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            case 'magazine_access_granted':
+                /** @var \App\Entity\MagazineAccessGrantedNotification $n */
+                $n = $dto;
+                $toReturn['subject'] = $this->magazineFactory->createSmallDto($n->magazine);
+                break;
             case 'new_signup':
                 /** @var NewSignupNotification $n */
                 $n = $dto;

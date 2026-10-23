@@ -1292,3 +1292,12 @@ remove_member: Remove
 member_must_be_local_user: Only people with an account on this instance can be added.
 member_cannot_be_added: This account is banned or deleted and cannot be added.
 oauth2.grant.moderate.magazine.members: Manage the members of magazines you moderate
+request_access: Request access
+access_requested: Requested
+access_requests: Requests
+notification_access_requested: '%user% asked to join %magazine%'
+notification_access_granted: You can now see %magazine%
+notification_title_access_requested: Access requested
+notification_title_access_granted: Access granted
+no_access_requests: There are no pending requests.
+deny: Deny

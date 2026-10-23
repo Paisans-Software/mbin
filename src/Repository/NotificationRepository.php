@@ -7,6 +7,8 @@ namespace App\Repository;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
 use App\Entity\Magazine;
+use App\Entity\MagazineAccessRequestedNotification;
+use App\Entity\Moderator;
 use App\Entity\Notification;
 use App\Entity\Post;
 use App\Entity\PostComment;
@@ -59,6 +61,7 @@ class NotificationRepository extends ServiceEntityRepository
 
         // FORK DIVERGENCE — do not offer this upstream: private magazines
         $this->excludeUnviewableContent($qb, $user);
+        $this->excludeStaleAccessRequests($qb, $user);
 
         $pagerfanta = new Pagerfanta(
             new QueryAdapter(
@@ -120,6 +123,27 @@ class NotificationRepository extends ServiceEntityRepository
                 ++$i;
             }
         }
+    }
+
+    /**
+     * Drop the user's access-request notifications for a magazine they no longer moderate:
+     * the requester's name is for moderators only. Correlated on the notification id, like
+     * excludeUnviewableContent(); admins and global moderators keep everything.
+     *
+     * FORK DIVERGENCE — do not offer this upstream: private magazines
+     */
+    private function excludeStaleAccessRequests(QueryBuilder $qb, User $user): void
+    {
+        if ($user->isAdmin() || $user->isModerator()) {
+            return;
+        }
+
+        $qb->andWhere(\sprintf(
+            'NOT EXISTS (SELECT nar.id FROM %s nar WHERE nar.id = n.id AND NOT EXISTS (SELECT nmd.id FROM %s nmd WHERE nmd.magazine = nar.magazine AND nmd.user = :nar_viewer AND (nmd.isConfirmed = true OR nmd.isOwner = true)))',
+            MagazineAccessRequestedNotification::class,
+            Moderator::class,
+        ));
+        $qb->setParameter('nar_viewer', $user->getId());
     }
 
     public function findUnreadEntryNotifications(User $user, Entry $entry): iterable

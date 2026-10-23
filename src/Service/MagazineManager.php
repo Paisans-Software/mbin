@@ -9,6 +9,7 @@ use App\DTO\MagazineDto;
 use App\DTO\MagazineThemeDto;
 use App\DTO\ModeratorDto;
 use App\Entity\Magazine;
+use App\Entity\MagazineAccessRequest;
 use App\Entity\MagazineBan;
 use App\Entity\MagazineOwnershipRequest;
 use App\Entity\Moderator;
@@ -240,6 +241,16 @@ class MagazineManager
         if (!$ban) {
             return null;
         }
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // A banned user's pending access request is dropped.
+        $this->entityManager->createQueryBuilder()
+            ->delete(MagazineAccessRequest::class, 'r')
+            ->where('r.magazine = :magazine AND r.user = :user')
+            ->setParameter('magazine', $magazine)
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->execute();
 
         $this->entityManager->flush();
 

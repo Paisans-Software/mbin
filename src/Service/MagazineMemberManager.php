@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Magazine;
+use App\Entity\MagazineAccessRequest;
 use App\Entity\MagazineMember;
 use App\Entity\User;
 use App\Repository\MagazineMemberRepository;
@@ -42,6 +43,15 @@ class MagazineMemberManager
         $member = new MagazineMember($magazine, $user, $addedBy);
         $magazine->members->add($member);
         $this->entityManager->persist($member);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // Every admission path ends here, so a pending request never outlives membership.
+        $this->entityManager->createQueryBuilder()
+            ->delete(MagazineAccessRequest::class, 'r')
+            ->where('r.magazine = :magazine AND r.user = :user')
+            ->setParameter('magazine', $magazine)
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->execute();
         $this->entityManager->flush();
 
         return $member;
