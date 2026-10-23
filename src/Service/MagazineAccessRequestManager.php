@@ -9,9 +9,11 @@ use App\Entity\MagazineAccessRequest;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\Event\Magazine\MagazineAccessRequestedEvent;
+use App\Message\Notification\MagazineAccessGrantedNotificationMessage;
 use App\Repository\MagazineAccessRequestRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
@@ -22,6 +24,8 @@ class MagazineAccessRequestManager
         private readonly MagazineAccessRequestRepository $repository,
         private readonly EntityManagerInterface $entityManager,
         private readonly EventDispatcherInterface $dispatcher,
+        private readonly MagazineMemberManager $memberManager,
+        private readonly MessageBusInterface $bus,
     ) {
     }
 
@@ -54,5 +58,37 @@ class MagazineAccessRequestManager
         $this->entityManager->flush();
 
         $this->dispatcher->dispatch(new MagazineAccessRequestedEvent($request));
+    }
+
+    /**
+     * Admits the requester and tells them. A requester who can no longer be admitted (banned, deleted,
+     * remote, or the magazine is no longer restricted) has the request dropped and nobody is added.
+     */
+    public function approve(MagazineAccessRequest $request, User $moderator): void
+    {
+        $magazine = $request->magazine;
+        $user = $request->user;
+
+        $admitted = false;
+        if (!$magazine->isBanned($user)) {
+            try {
+                $this->memberManager->add($magazine, $user, $moderator);
+                $admitted = true;
+            } catch (\InvalidArgumentException) {
+            }
+        }
+
+        $this->entityManager->remove($request);
+        $this->entityManager->flush();
+
+        if ($admitted) {
+            $this->bus->dispatch(new MagazineAccessGrantedNotificationMessage($magazine->getId(), $user->getId()));
+        }
+    }
+
+    public function deny(MagazineAccessRequest $request): void
+    {
+        $this->entityManager->remove($request);
+        $this->entityManager->flush();
     }
 }
