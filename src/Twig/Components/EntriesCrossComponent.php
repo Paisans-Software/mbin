@@ -36,15 +36,15 @@ final class EntriesCrossComponent
         // FORK DIVERGENCE — do not offer this upstream: private magazines
         // HTML naming an entry in a restricted magazine is not kept: a member removed from that
         // magazine must stop seeing it on their next request, not when the cache expires.
-        $key = "entries_cross_{$entryId}_{$userId}_{$locale}";
-        $restricted = false;
-        $html = $this->cache->get(
-            $key,
-            function (ItemInterface $item) use ($entryId, &$restricted) {
+        return $this->cache->get(
+            "entries_cross_{$entryId}_{$userId}_{$locale}",
+            function (ItemInterface $item) use ($entryId) {
                 $item->expiresAfter(60);
                 $entries = $this->repository->findCross($this->entry);
                 foreach ($entries as $entry) {
-                    $restricted = $restricted || $entry->magazine->isRestricted();
+                    if ($entry->magazine->isRestricted()) {
+                        $item->expiresAfter(0);
+                    }
                 }
 
                 $item->tag(['entry_'.$entryId]);
@@ -60,10 +60,5 @@ final class EntriesCrossComponent
                 );
             }
         );
-        if ($restricted) {
-            $this->cache->delete($key);
-        }
-
-        return $html;
     }
 }
