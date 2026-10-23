@@ -25,7 +25,6 @@ class MagazineAccessRequestControllerTest extends WebTestCase
 {
     private Magazine $circle;
     private Magazine $vault;
-    private Magazine $garden;
     private User $bob;
 
     public function setUp(): void
@@ -37,7 +36,7 @@ class MagazineAccessRequestControllerTest extends WebTestCase
         $this->circle->access = MagazineAccess::Private;
         $this->vault = $this->getMagazineByName('vault', $admin);
         $this->vault->access = MagazineAccess::Hidden;
-        $this->garden = $this->getMagazineByName('garden', $admin);
+        $this->getMagazineByName('garden', $admin);
         $this->entityManager->flush();
 
         $this->bob = $this->getUserByUsername('bob');
