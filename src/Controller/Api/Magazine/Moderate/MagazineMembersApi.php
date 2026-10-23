@@ -198,6 +198,7 @@ class MagazineMembersApi extends MagazineBaseApi
         RateLimiterFactoryInterface $apiModerateLimiter,
     ): JsonResponse {
         $headers = $this->rateLimit($apiModerateLimiter);
+        $this->assertRestricted($magazine);
 
         try {
             $member = $manager->add($magazine, $user, $this->getUserOrThrow());

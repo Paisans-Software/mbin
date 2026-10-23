@@ -102,6 +102,53 @@ class MagazineMembersApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    public function testPublicMagazineIs404OnListAddAndRemove(): void
+    {
+        $open = $this->getMagazineByName('open', $this->getUserByUsername('owner'));
+        $alice = $this->getUserByUsername('alice');
+        $token = $this->token('owner');
+        $base = "/api/moderate/magazine/{$open->getId()}/members";
+
+        $this->client->request('GET', $base, server: ['HTTP_AUTHORIZATION' => $token]);
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('PUT', "$base/{$alice->getId()}", server: ['HTTP_AUTHORIZATION' => $token]);
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('DELETE', "$base/{$alice->getId()}", server: ['HTTP_AUTHORIZATION' => $token]);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testStrangerIs404LikeAMissingMagazine(): void
+    {
+        $alice = $this->getUserByUsername('alice');
+        $token = $this->token('stranger');
+        $base = "/api/moderate/magazine/{$this->circle->getId()}/members";
+        $missing = '/api/moderate/magazine/999999/members';
+
+        foreach ([['GET', ''], ['PUT', "/{$alice->getId()}"], ['DELETE', "/{$alice->getId()}"]] as [$method, $suffix]) {
+            $this->client->request($method, $missing.$suffix, server: ['HTTP_AUTHORIZATION' => $token]);
+            self::assertResponseStatusCodeSame(404, "missing $method");
+            $missingProblem = $this->productionProblem();
+
+            $this->client->request($method, $base.$suffix, server: ['HTTP_AUTHORIZATION' => $token]);
+            self::assertResponseStatusCodeSame(404, "restricted $method");
+            self::assertSame($missingProblem, $this->productionProblem(), $method);
+        }
+    }
+
+    /**
+     * The problem document without what only debug mode adds (the exception message and
+     * trace); the exception class is kept so the two causes are compared too.
+     *
+     * @return array<string, mixed>
+     */
+    private function productionProblem(): array
+    {
+        $problem = self::getJsonResponse($this->client);
+        unset($problem['detail'], $problem['trace']);
+
+        return $problem;
+    }
+
     private function memberManager(): \App\Service\MagazineMemberManager
     {
         /** @var \App\Repository\MagazineMemberRepository $memberRepository */
