@@ -8,6 +8,7 @@ use App\Entity\EntryComment;
 use App\Entity\Favourite;
 use App\Entity\Magazine;
 use App\Entity\Report;
+use App\Exception\MoveRefusedException;
 use App\Repository\EntryRepository;
 use App\Repository\MagazineRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -65,6 +66,15 @@ class MoveEntriesByTagCommand extends Command
             /*
              * @var Entry $entry
              */
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            try {
+                MoveRefusedException::assertAllowed($entry->magazine, $magazine);
+            } catch (MoveRefusedException) {
+                $output->writeln(\sprintf('Entry %d skipped, a restricted magazine is involved.', $entry->getId()));
+
+                continue;
+            }
+
             $entry->magazine = $magazine;
 
             $this->moveComments($entry->comments, $magazine);

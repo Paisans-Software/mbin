@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\ActivityPub\Inbox;
 
+use App\Entity\Contracts\ContentInterface;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
 use App\Entity\Post;
@@ -64,6 +65,12 @@ class LikeHandler extends MbinMessageHandler
             if (!$entity) {
                 return;
             }
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a remote actor is never a viewer of a restricted magazine, so it may not vote on,
+            // favourite or boost its content either; dropped before anything is stored
+            if (self::isRestrictedContent($entity)) {
+                return;
+            }
 
             $actor = $this->activityPubManager->findActorOrCreate($message->payload['actor']);
             // Check if actor and entity aren't empty
@@ -74,6 +81,10 @@ class LikeHandler extends MbinMessageHandler
             if ('Like' === $message->payload['object']['type']) {
                 $entity = $this->activityPubManager->getEntityObject($message->payload['object']['object'], $message->payload, $chainDispatchCallback);
                 if (!$entity) {
+                    return;
+                }
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                if (self::isRestrictedContent($entity)) {
                     return;
                 }
 
@@ -92,5 +103,13 @@ class LikeHandler extends MbinMessageHandler
                 $this->bus->dispatch(new AnnounceLikeMessage($actor->getId(), $entity->getId(), \get_class($entity), 'Undo' === $message->payload['type'], $message->payload['id']));
             }
         }
+    }
+
+    /**
+     * FORK DIVERGENCE — do not offer this upstream: private magazines.
+     */
+    private static function isRestrictedContent(mixed $entity): bool
+    {
+        return $entity instanceof ContentInterface && true === $entity->getMagazine()?->isRestricted();
     }
 }

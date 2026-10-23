@@ -14,6 +14,18 @@ magazine_panel_unban:
   path: /m/{name}/panel/unban/{username}
   methods: [ POST ]
 
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+magazine_panel_members:
+  controller: App\Controller\Magazine\Panel\MagazineMemberController::members
+  path: /m/{name}/panel/members
+  methods: [ GET, POST ]
+
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+magazine_panel_member_remove:
+  controller: App\Controller\Magazine\Panel\MagazineMemberController::remove
+  path: /m/{name}/panel/members/{username}/remove
+  methods: [ POST ]
+
 magazine_panel_general:
   controller: App\Controller\Magazine\Panel\MagazineEditController
   path: /m/{name}/panel/general

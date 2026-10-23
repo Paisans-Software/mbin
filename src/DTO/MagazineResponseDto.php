@@ -42,6 +42,8 @@ class MagazineResponseDto implements \JsonSerializable
     public ?ENotificationStatus $notificationStatus = null;
     public ?bool $discoverable = null;
     public ?bool $indexable = null;
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public string $access = 'public';
 
     public static function create(
         ?ModeratorResponseDto $owner = null,
@@ -71,6 +73,8 @@ class MagazineResponseDto implements \JsonSerializable
         ?int $localSubscribers = null,
         ?bool $discoverable = null,
         ?bool $indexable = null,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        string $access = 'public',
     ): self {
         $dto = new MagazineResponseDto();
         $dto->owner = $owner;
@@ -100,6 +104,7 @@ class MagazineResponseDto implements \JsonSerializable
         $dto->localSubscribers = $localSubscribers;
         $dto->discoverable = $discoverable;
         $dto->indexable = $indexable;
+        $dto->access = $access;
 
         return $dto;
     }
@@ -135,6 +140,7 @@ class MagazineResponseDto implements \JsonSerializable
             'notificationStatus' => $this->notificationStatus,
             'discoverable' => $this->discoverable,
             'indexable' => $this->indexable,
+            'access' => $this->access,
         ];
     }
 }

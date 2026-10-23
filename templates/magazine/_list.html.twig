@@ -31,6 +31,8 @@
                                         @{{- magazine.name|apDomain -}}
                                     {%- endif -%}
                                     {% if magazine.isAdult %}<small class="badge danger">18+</small>{% endif %}
+                                    {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+                                    {{ include('components/_magazine_access_icon.html.twig', {access: magazine.access.value}, with_context: false) }}
                                 </a>
                                 <small>{{ component('date', {date: magazine.createdAt}) }}</small>
                             </div>

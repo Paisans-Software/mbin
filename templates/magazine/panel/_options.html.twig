@@ -46,6 +46,15 @@
                 {{ 'bans'|trans }}
             </a>
         </li>
+        {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+        {% if magazine.isRestricted() %}
+            <li>
+                <a href="{{ path('magazine_panel_members', {name: magazine.name}) }}"
+                   class="{{ html_classes({'active': is_route_name_contains('_member')}) }}">
+                    {{ 'members'|trans }}
+                </a>
+            </li>
+        {% endif %}
         <li>
             <a href="{{ path('magazine_panel_trash', {name: magazine.name}) }}"
                class="{{ html_classes({'active': is_route_name('magazine_panel_trash')}) }}">

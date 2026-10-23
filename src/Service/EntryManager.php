@@ -22,6 +22,7 @@ use App\Event\Entry\EntryLockEvent;
 use App\Event\Entry\EntryPinEvent;
 use App\Event\Entry\EntryRestoredEvent;
 use App\Exception\InstanceBannedException;
+use App\Exception\MoveRefusedException;
 use App\Exception\PostingRestrictedException;
 use App\Exception\TagBannedException;
 use App\Exception\UserBannedException;
@@ -381,8 +382,14 @@ class EntryManager implements ContentManagerInterface
         return strtolower($this->translator->trans($sortBy));
     }
 
+    /**
+     * @throws MoveRefusedException
+     */
     public function changeMagazine(Entry $entry, Magazine $magazine): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MoveRefusedException::assertAllowed($entry->magazine, $magazine);
+
         $this->entityManager->beginTransaction();
 
         try {

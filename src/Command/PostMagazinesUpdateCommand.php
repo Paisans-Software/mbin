@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Entity\Post;
+use App\Exception\MoveRefusedException;
 use App\Repository\MagazineRepository;
 use App\Repository\PostRepository;
 use App\Repository\TagLinkRepository;
@@ -47,13 +48,23 @@ class PostMagazinesUpdateCommand extends Command
         foreach ($tags as $tag) {
             if ($magazine = $this->magazineRepository->findOneByName($tag)) {
                 $output->writeln($magazine->name);
-                $this->postManager->changeMagazine($post, $magazine);
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                try {
+                    $this->postManager->changeMagazine($post, $magazine);
+                } catch (MoveRefusedException) {
+                    continue;
+                }
                 break;
             }
 
             if ($magazine = $this->magazineRepository->findByTag($tag)) {
                 $output->writeln($magazine->name);
-                $this->postManager->changeMagazine($post, $magazine);
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                try {
+                    $this->postManager->changeMagazine($post, $magazine);
+                } catch (MoveRefusedException) {
+                    continue;
+                }
                 break;
             }
         }

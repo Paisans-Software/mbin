@@ -26,6 +26,7 @@ use Pagerfanta\Doctrine\ORM\QueryAdapter;
 use Pagerfanta\Exception\NotValidCurrentPageException;
 use Pagerfanta\Pagerfanta;
 use Pagerfanta\PagerfantaInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Contracts\Cache\CacheInterface;
 
@@ -54,6 +55,8 @@ class MagazineRepository extends ServiceEntityRepository
         private readonly SqlHelpers $sqlHelpers,
         private readonly ContentPopulationTransformer $contentPopulationTransformer,
         private readonly CacheInterface $cache,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly Security $security,
     ) {
         parent::__construct($registry, Magazine::class);
     }
@@ -110,6 +113,9 @@ class MagazineRepository extends ServiceEntityRepository
                 ->setParameter('abandonedThreshold', new \DateTime('-1 month'));
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::applyDiscovery($qb, 'm', $this->viewer());
+
         match ($criteria->adult) {
             $criteria::ADULT_HIDE => $qb->andWhere('m.isAdult = false'),
             $criteria::ADULT_ONLY => $qb->andWhere('m.isAdult = true'),
@@ -140,13 +146,32 @@ class MagazineRepository extends ServiceEntityRepository
         return $pagerfanta;
     }
 
-    public function findSubscribedMagazines(int $page, User $user, int $perPage = self::PER_PAGE): PagerfantaInterface
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    /**
+     * @param bool $asSeenByViewer when true and the signed-in user is not $user, leave out
+     *                             magazines the signed-in user cannot view. A user's own list
+     *                             is never filtered: it is what they belong to, not discovery.
+     */
+    public function findSubscribedMagazines(int $page, User $user, int $perPage = self::PER_PAGE, bool $asSeenByViewer = false): PagerfantaInterface
     {
-        $pagerfanta = new Pagerfanta(
-            new CollectionAdapter(
-                $user->subscriptions
-            )
-        );
+        $viewer = $this->viewer();
+        if ($asSeenByViewer && $viewer?->getId() !== $user->getId()) {
+            $qb = $this->getEntityManager()->createQueryBuilder()
+                ->select('ms')
+                ->from(MagazineSubscription::class, 'ms')
+                ->join('ms.magazine', 'm')
+                ->where('ms.user = :user')
+                ->setParameter('user', $user)
+                ->orderBy('ms.id', 'ASC');
+            MagazineAccessClause::apply($qb, 'm', $viewer);
+            $pagerfanta = new Pagerfanta(new QueryAdapter($qb));
+        } else {
+            $pagerfanta = new Pagerfanta(
+                new CollectionAdapter(
+                    $user->subscriptions
+                )
+            );
+        }
 
         try {
             $pagerfanta->setMaxPerPage($perPage);
@@ -293,17 +318,28 @@ class MagazineRepository extends ServiceEntityRepository
         return $magazine->badges;
     }
 
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    /**
+     * @param bool $asSeenByViewer when true and the signed-in user is not $user, leave out
+     *                             magazines the signed-in user cannot view. A user's own list
+     *                             is never filtered: it is what they belong to, not discovery.
+     */
     public function findModeratedMagazines(
         User $user,
         ?int $page = 1,
         int $perPage = self::PER_PAGE,
+        bool $asSeenByViewer = false,
     ): PagerfantaInterface {
-        $dql =
-            'SELECT m FROM '.Magazine::class.' m WHERE m IN ('.
-            'SELECT IDENTITY(md.magazine) FROM '.Moderator::class.' md WHERE md.user = :user) ORDER BY m.apId DESC, m.lastActive DESC';
-
-        $query = $this->getEntityManager()->createQuery($dql)
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $viewer = $this->viewer();
+        $query = $this->createQueryBuilder('m')
+            ->where('m IN (SELECT IDENTITY(md.magazine) FROM '.Moderator::class.' md WHERE md.user = :user)')
+            ->orderBy('m.apId', 'DESC')
+            ->addOrderBy('m.lastActive', 'DESC')
             ->setParameter('user', $user);
+        if ($asSeenByViewer && $viewer?->getId() !== $user->getId()) {
+            MagazineAccessClause::apply($query, 'm', $viewer);
+        }
 
         $pagerfanta = new Pagerfanta(
             new QueryAdapter(
@@ -381,18 +417,24 @@ class MagazineRepository extends ServiceEntityRepository
 
     public function findByTag($tag): ?Magazine
     {
-        return $this->createQueryBuilder('m')
+        $qb = $this->createQueryBuilder('m')
             ->andWhere('m.tags IS NOT NULL AND JSONB_CONTAINS(m.tags, :tag) = true')
             ->orderBy('m.lastActive', 'DESC')
             ->setMaxResults(1)
-            ->setParameter('tag', "\"$tag\"")
-            ->getQuery()
+            ->setParameter('tag', "\"$tag\"");
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // This moves a tagged post into the magazine, so only a public magazine qualifies:
+        // a post must not become readable only to members, its own author possibly not among them.
+        MagazineAccessClause::apply($qb, 'm', null);
+
+        return $qb->getQuery()
             ->getOneOrNullResult();
     }
 
     public function findByActivity()
     {
-        return $this->createQueryBuilder('m')
+        $qb = $this->createQueryBuilder('m')
             ->andWhere('m.postCount > 0')
             ->orWhere('m.entryCount > 0')
             ->andWhere('m.lastActive >= :date')
@@ -401,8 +443,12 @@ class MagazineRepository extends ServiceEntityRepository
             ->setMaxResults(50)
             ->setParameter('date', new \DateTime('-5 months'))
             ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
-            ->orderBy('m.entryCount', 'DESC')
-            ->getQuery()
+            ->orderBy('m.entryCount', 'DESC');
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::applyDiscovery($qb, 'm', $this->viewer());
+
+        return $qb->getQuery()
             ->getResult();
     }
 
@@ -427,6 +473,8 @@ class MagazineRepository extends ServiceEntityRepository
             ->orderBy('m.subscriptionsCount', 'DESC')
             ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
             ->setParameter('q', '%'.$magazine.'%');
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::applyDiscovery($qb, 'm', $this->viewer());
 
         $pagerfanta = new Pagerfanta(
             new QueryAdapter(
@@ -457,6 +505,8 @@ class MagazineRepository extends ServiceEntityRepository
         if ($this->settingsManager->get('MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY')) {
             $whereClauses[] = 'm.ap_id IS NULL';
         }
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $whereClauses[] = MagazineAccessClause::sqlDiscovery('m', $user);
         if (null !== $user) {
             $whereClauses[] = 'm.id NOT IN(:blockedMagazines)';
             $parameters['blockedMagazines'] = $this->sqlHelpers->getCachedUserMagazineBlocks($user);
@@ -487,6 +537,8 @@ class MagazineRepository extends ServiceEntityRepository
             ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
             ->setParameter('magazine', "%{$magazine}%")
             ->setMaxResults(5);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::applyDiscovery($qb, 'm', $user);
 
         if (null !== $user) {
             $qb->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedMagazinesDql($user))));
@@ -537,7 +589,7 @@ class MagazineRepository extends ServiceEntityRepository
 
     public function findAbandoned(int $page = 1): PagerfantaInterface
     {
-        $query = $this->createQueryBuilder('m')
+        $qb = $this->createQueryBuilder('m')
             ->where('mod.magazine IS NOT NULL')
             ->andWhere('mod.isOwner = true')
             ->andWhere('u.lastActive < :date')
@@ -545,8 +597,10 @@ class MagazineRepository extends ServiceEntityRepository
             ->join('m.moderators', 'mod')
             ->join('mod.user', 'u')
             ->setParameter('date', new \DateTime('-1 month'))
-            ->orderBy('u.lastActive', 'ASC')
-            ->getQuery();
+            ->orderBy('u.lastActive', 'ASC');
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::applyDiscovery($qb, 'm', $this->viewer());
+        $query = $qb->getQuery();
 
         $pagerfanta = new Pagerfanta(
             new QueryAdapter(
@@ -594,5 +648,13 @@ class MagazineRepository extends ServiceEntityRepository
         }
 
         return null;
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    private function viewer(): ?User
+    {
+        $viewer = $this->security->getUser();
+
+        return $viewer instanceof User ? $viewer : null;
     }
 }

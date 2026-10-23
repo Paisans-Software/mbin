@@ -13,6 +13,7 @@ use App\Message\Contracts\MessageInterface;
 use App\MessageHandler\MbinMessageHandler;
 use App\Repository\InstanceRepository;
 use App\Service\ActivityPub\ApHttpClientInterface;
+use App\Service\ActivityPub\RestrictedMagazineFederationGuard;
 use App\Service\ActivityPubManager;
 use App\Service\OutboundFederationPolicy;
 use App\Service\SettingsManager;
@@ -39,6 +40,8 @@ class DeliverHandler extends MbinMessageHandler
         private readonly OutboundFederationPolicy $policy,
         private readonly LoggerInterface $logger,
         private readonly InstanceRepository $instanceRepository,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly RestrictedMagazineFederationGuard $restrictedGuard,
     ) {
         parent::__construct($this->entityManager, $this->kernel);
     }
@@ -109,6 +112,18 @@ class DeliverHandler extends MbinMessageHandler
             // the backstop for the call sites that dispatch a DeliverMessage without going
             // through DeliverManager, and for messages already queued when the instance was
             // marked read only. Checked before the instance row is touched at all.
+            return;
+        }
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // the backstop for the call sites that dispatch a DeliverMessage without going
+        // through DeliverManager
+        if ($this->restrictedGuard->touchesRestrictedMagazine($message->payload) && !$this->restrictedGuard->isAllowedHandshake($message->payload)) {
+            $this->logger->debug('not delivering a {type} to {url}, it is about a restricted magazine', [
+                'type' => \is_string($message->payload['type'] ?? null) ? $message->payload['type'] : 'activity without a type',
+                'url' => $message->apInboxUrl,
+            ]);
+
             return;
         }
 

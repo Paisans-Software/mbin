@@ -1,0 +1,9 @@
+{# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+{# Expects `access`: the value of Magazine::$access. Renders nothing for a public magazine. #}
+{%- if access is same as 'private' or access is same as 'hidden' -%}
+    <i class="fa-solid {{ access is same as 'private' ? 'fa-user-lock' : 'fa-eye-slash' }}"
+       data-magazine-access="{{ access }}"
+       role="img"
+       aria-label="{{ ('magazine_access.' ~ access)|trans }}"
+       title="{{ ('magazine_access.' ~ access)|trans }}"></i>
+{%- endif -%}

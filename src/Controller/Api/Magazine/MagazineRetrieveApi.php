@@ -414,10 +414,12 @@ class MagazineRetrieveApi extends MagazineBaseApi
         }
 
         $request = $this->request->getCurrentRequest();
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
         $magazines = $repository->findSubscribedMagazines(
             $this->getPageNb($request),
             $user,
-            self::constrainPerPage($request->get('perPage', MagazineRepository::PER_PAGE))
+            self::constrainPerPage($request->get('perPage', MagazineRepository::PER_PAGE)),
+            asSeenByViewer: true,
         );
 
         $dtos = [];

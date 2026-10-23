@@ -50,18 +50,23 @@ class SearchRepository
     public function countBoosts(User $user): int
     {
         $conn = $this->entityManager->getConnection();
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $parameters = ['userId' => $user->getId()];
+        [$entryAccess, $entryCommentAccess, $postAccess, $postCommentAccess] = $this->boostAccessConditions($parameters);
         $sql = "SELECT COUNT(*) as cnt FROM (
-        SELECT entry_id as id, created_at, 'entry' AS type FROM entry_vote WHERE user_id = :userId AND choice = 1
+        SELECT entry_id as id, created_at, 'entry' AS type FROM entry_vote WHERE user_id = :userId AND choice = 1 $entryAccess
         UNION ALL
-        SELECT comment_id as id, created_at, 'entry_comment' AS type FROM entry_comment_vote WHERE user_id = :userId AND choice = 1
+        SELECT comment_id as id, created_at, 'entry_comment' AS type FROM entry_comment_vote WHERE user_id = :userId AND choice = 1 $entryCommentAccess
         UNION ALL
-        SELECT post_id as id, created_at, 'post' AS type FROM post_vote WHERE user_id = :userId AND choice = 1
+        SELECT post_id as id, created_at, 'post' AS type FROM post_vote WHERE user_id = :userId AND choice = 1 $postAccess
         UNION ALL
-        SELECT comment_id as id, created_at, 'post_comment' AS type FROM post_comment_vote WHERE user_id = :userId AND choice = 1
+        SELECT comment_id as id, created_at, 'post_comment' AS type FROM post_comment_vote WHERE user_id = :userId AND choice = 1 $postCommentAccess
         ) sub";
 
         $stmt = $conn->prepare($sql);
-        $stmt->bindValue('userId', $user->getId());
+        foreach ($parameters as $name => $value) {
+            $stmt->bindValue($name, $value);
+        }
         $stmt = $stmt->executeQuery();
 
         return $stmt->fetchAllAssociative()[0]['cnt'];
@@ -70,19 +75,20 @@ class SearchRepository
     public function findBoosts(int $page, User $user): PagerfantaInterface
     {
         $conn = $this->entityManager->getConnection();
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $parameters = ['userId' => $user->getId()];
+        [$entryAccess, $entryCommentAccess, $postAccess, $postCommentAccess] = $this->boostAccessConditions($parameters);
         $sql = "
-        SELECT entry_id as id, created_at, 'entry' AS type FROM entry_vote WHERE user_id = :userId AND choice = 1
+        SELECT entry_id as id, created_at, 'entry' AS type FROM entry_vote WHERE user_id = :userId AND choice = 1 $entryAccess
         UNION ALL
-        SELECT comment_id as id, created_at, 'entry_comment' AS type FROM entry_comment_vote WHERE user_id = :userId AND choice = 1
+        SELECT comment_id as id, created_at, 'entry_comment' AS type FROM entry_comment_vote WHERE user_id = :userId AND choice = 1 $entryCommentAccess
         UNION ALL
-        SELECT post_id as id, created_at, 'post' AS type FROM post_vote WHERE user_id = :userId AND choice = 1
+        SELECT post_id as id, created_at, 'post' AS type FROM post_vote WHERE user_id = :userId AND choice = 1 $postAccess
         UNION ALL
-        SELECT comment_id as id, created_at, 'post_comment' AS type FROM post_comment_vote WHERE user_id = :userId AND choice = 1
+        SELECT comment_id as id, created_at, 'post_comment' AS type FROM post_comment_vote WHERE user_id = :userId AND choice = 1 $postCommentAccess
         ORDER BY created_at DESC";
 
-        $pagerfanta = new Pagerfanta(new NativeQueryAdapter($conn, $sql, [
-            'userId' => $user->getId(),
-        ], transformer: $this->transformer));
+        $pagerfanta = new Pagerfanta(new NativeQueryAdapter($conn, $sql, $parameters, transformer: $this->transformer));
 
         $pagerfanta->setCurrentPage($page);
 
@@ -92,7 +98,7 @@ class SearchRepository
     /**
      * @throws Exception
      */
-    private function getUserPublicActivityQueryAdapter(User $user, bool $hideAdult): AdapterInterface
+    private function getUserPublicActivityQueryAdapter(User $user, bool $hideAdult, bool $onlyVisibleToViewer): AdapterInterface
     {
         $parameters = [
             'userId' => $user->getId(),
@@ -132,17 +138,21 @@ class SearchRepository
 
         $falseCond = $user->isDeleted ? ' AND FALSE ' : '';
         $hideAdultCond = $hideAdult ? ' AND is_adult = false ' : '';
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        [$entryAccess, $entryCommentAccess, $postAccess, $postCommentAccess] = $onlyVisibleToViewer
+            ? $this->contentAccessConditions($parameters)
+            : ['', '', '', ''];
         $sql = "SELECT id, created_at, 'entry' AS type FROM entry
-            WHERE user_id = :userId AND visibility = :visibility $falseCond $hideAdultCond $titleWordsCond $bodyWordsCond
+            WHERE user_id = :userId AND visibility = :visibility $falseCond $hideAdultCond $titleWordsCond $bodyWordsCond $entryAccess
         UNION ALL
         SELECT id, created_at, 'entry_comment' AS type FROM entry_comment
-            WHERE user_id = :userId AND visibility = :visibility $falseCond $hideAdultCond $bodyWordsCond
+            WHERE user_id = :userId AND visibility = :visibility $falseCond $hideAdultCond $bodyWordsCond $entryCommentAccess
         UNION ALL
         SELECT id, created_at, 'post' AS type FROM post
-            WHERE user_id = :userId AND visibility = :visibility $falseCond $hideAdultCond $bodyWordsCond
+            WHERE user_id = :userId AND visibility = :visibility $falseCond $hideAdultCond $bodyWordsCond $postAccess
         UNION ALL
         SELECT id, created_at, 'post_comment' AS type FROM post_comment
-            WHERE user_id = :userId AND visibility = :visibility $falseCond $hideAdultCond $bodyWordsCond
+            WHERE user_id = :userId AND visibility = :visibility $falseCond $hideAdultCond $bodyWordsCond $postCommentAccess
         ORDER BY created_at DESC";
 
         return new NativeQueryAdapter(
@@ -157,9 +167,11 @@ class SearchRepository
     /**
      * @throws Exception
      */
-    public function findUserPublicActivity(int $page, User $user, bool $hideAdult): PagerfantaInterface
+    public function findUserPublicActivity(int $page, User $user, bool $hideAdult, bool $onlyVisibleToViewer = true): PagerfantaInterface
     {
-        $pagerfanta = new Pagerfanta($this->getUserPublicActivityQueryAdapter($user, $hideAdult));
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // $onlyVisibleToViewer leaves out content in magazines the signed-in user cannot view
+        $pagerfanta = new Pagerfanta($this->getUserPublicActivityQueryAdapter($user, $hideAdult, $onlyVisibleToViewer));
         $pagerfanta->setMaxPerPage(self::PER_PAGE);
         $pagerfanta->setCurrentPage($page);
 
@@ -185,6 +197,11 @@ class SearchRepository
         $createdWhereMagazine = null !== $sinceDate ? 'AND m.created_at >= :since' : '';
         $createdWhereUser = null !== $sinceDate ? 'AND u.created_at >= :since' : '';
         $blockMagazineAndUserResult = null !== $authorId || null !== $magazineId ? 'AND false' : '';
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // content in magazines the searching user cannot see is left out of the four content queries
+        [$accessClause, $accessParameters] = MagazineAccessClause::sql('m', $searchingUser);
+        // and hidden magazines are left out of the magazine query
+        $magazineDiscoveryClause = MagazineAccessClause::sqlDiscovery('m', $searchingUser);
         $conn = $this->entityManager->getConnection();
         $sqlEntry = "SELECT e.id, e.created_at, e.visibility, 2 * ts_rank_cd(e.title_ts, plainto_tsquery(:tsLang, :query)) + ts_rank_cd(e.body_ts, plainto_tsquery(:tsLang, :query)) as rank, 'entry' AS type FROM entry e
             INNER JOIN public.user u ON u.id = user_id
@@ -197,6 +214,7 @@ class SearchRepository
                 AND NOT EXISTS (SELECT id FROM user_block ub WHERE ub.blocked_id = u.id AND ub.blocker_id = :queryingUser)
                 AND NOT EXISTS (SELECT id FROM magazine_block mb WHERE mb.magazine_id = m.id AND mb.user_id = :queryingUser)
                 AND NOT EXISTS (SELECT hl.id FROM hashtag_link hl INNER JOIN hashtag h ON h.id = hl.hashtag_id AND h.banned = true WHERE hl.entry_id = e.id)
+                AND $accessClause
                 $authorWhere $magazineWhere $createdWhere
         UNION ALL
         SELECT e.id, e.created_at, e.visibility, 3 * ts_rank_cd(e.body_ts, plainto_tsquery(:tsLang, :query)) as rank, 'entry_comment' AS type FROM entry_comment e
@@ -210,6 +228,7 @@ class SearchRepository
                 AND NOT EXISTS (SELECT id FROM user_block ub WHERE ub.blocked_id = u.id AND ub.blocker_id = :queryingUser)
                 AND NOT EXISTS (SELECT id FROM magazine_block mb WHERE mb.magazine_id = m.id AND mb.user_id = :queryingUser)
                 AND NOT EXISTS (SELECT hl.id FROM hashtag_link hl INNER JOIN hashtag h ON h.id = hl.hashtag_id AND h.banned = true WHERE hl.entry_comment_id = e.id)
+                AND $accessClause
                 $authorWhere $magazineWhere $createdWhere
         ";
         $sqlPost = "SELECT e.id, e.created_at, e.visibility, 3 * ts_rank_cd(e.body_ts, plainto_tsquery(:tsLang, :query)) as rank, 'post' AS type FROM post e
@@ -223,6 +242,7 @@ class SearchRepository
                 AND NOT EXISTS (SELECT id FROM user_block ub WHERE ub.blocked_id = u.id AND ub.blocker_id = :queryingUser)
                 AND NOT EXISTS (SELECT id FROM magazine_block mb WHERE mb.magazine_id = m.id AND mb.user_id = :queryingUser)
                 AND NOT EXISTS (SELECT hl.id FROM hashtag_link hl INNER JOIN hashtag h ON h.id = hl.hashtag_id AND h.banned = true WHERE hl.post_id = e.id)
+                AND $accessClause
                 $authorWhere $magazineWhere $createdWhere
         UNION ALL
         SELECT e.id, e.created_at, e.visibility, 3 * ts_rank_cd(e.body_ts, plainto_tsquery(:tsLang, :query)) as rank, 'post_comment' AS type FROM post_comment e
@@ -236,6 +256,7 @@ class SearchRepository
                 AND NOT EXISTS (SELECT id FROM user_block ub WHERE ub.blocked_id = u.id AND ub.blocker_id = :queryingUser)
                 AND NOT EXISTS (SELECT id FROM magazine_block mb WHERE mb.magazine_id = m.id AND mb.user_id = :queryingUser)
                 AND NOT EXISTS (SELECT hl.id FROM hashtag_link hl INNER JOIN hashtag h ON h.id = hl.hashtag_id AND h.banned = true WHERE hl.post_comment_id = e.id)
+                AND $accessClause
                 $authorWhere $magazineWhere $createdWhere
         ";
 
@@ -246,6 +267,7 @@ class SearchRepository
                 AND m.marked_for_deletion_at IS NULL
                 AND (m.ap_discoverable = true OR m.ap_discoverable IS NULL)
                 AND NOT EXISTS (SELECT id FROM magazine_block mb WHERE mb.magazine_id = m.id AND mb.user_id = :queryingUser)
+                AND $magazineDiscoveryClause
                 $createdWhereMagazine $blockMagazineAndUserResult
         ";
 
@@ -281,6 +303,13 @@ class SearchRepository
             'queryingUser' => $searchingUser?->getId() ?? -1,
             'tsLang' => $this->settingsManager->getSearchLang(),
         ];
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // only when a content query is part of $sql: the magazine and user queries do not use them
+        foreach ($accessParameters as $name => $value) {
+            if (str_contains($sql, ":$name")) {
+                $parameters[$name] = $value;
+            }
+        }
 
         $this->logger->debug('Search query: {sql}', ['sql' => $sql]);
 
@@ -308,25 +337,87 @@ class SearchRepository
     public function findByApId($url): array
     {
         $conn = $this->entityManager->getConnection();
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // content in magazines the signed-in user cannot view, and hidden magazines, are not found
+        $parameters = ['url' => "$url"];
+        [$entryAccess, $entryCommentAccess, $postAccess, $postCommentAccess] = $this->contentAccessConditions($parameters);
+        $viewer = $this->security->getUser();
+        $magazineDiscovery = MagazineAccessClause::sqlDiscovery('magazine', $viewer instanceof User ? $viewer : null);
         $sql = "
-        SELECT id, created_at, 'entry' AS type FROM entry WHERE ap_id = :url
+        SELECT id, created_at, 'entry' AS type FROM entry WHERE ap_id = :url $entryAccess
         UNION ALL
-        SELECT id, created_at, 'entry_comment' AS type FROM entry_comment WHERE ap_id = :url
+        SELECT id, created_at, 'entry_comment' AS type FROM entry_comment WHERE ap_id = :url $entryCommentAccess
         UNION ALL
-        SELECT id, created_at, 'post' AS type FROM post WHERE ap_id = :url
+        SELECT id, created_at, 'post' AS type FROM post WHERE ap_id = :url $postAccess
         UNION ALL
-        SELECT id, created_at, 'post_comment' AS type FROM post_comment WHERE ap_id = :url
+        SELECT id, created_at, 'post_comment' AS type FROM post_comment WHERE ap_id = :url $postCommentAccess
         UNION ALL
         SELECT id, created_at, 'user' AS type FROM \"user\" WHERE ap_profile_id = :url OR ap_public_url = :url
         UNION ALL
-        SELECT id, created_at, 'magazine' AS type FROM magazine WHERE ap_profile_id = :url OR ap_public_url = :url
+        SELECT id, created_at, 'magazine' AS type FROM magazine WHERE (ap_profile_id = :url OR ap_public_url = :url) AND $magazineDiscovery
         ORDER BY created_at DESC
         ";
 
-        $pagerfanta = new Pagerfanta(new NativeQueryAdapter($conn, $sql, [
-            'url' => "$url",
-        ], transformer: $this->transformer));
+        $pagerfanta = new Pagerfanta(new NativeQueryAdapter($conn, $sql, $parameters, transformer: $this->transformer));
 
         return $pagerfanta->getCurrentPageResults();
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    /**
+     * A native SQL condition, starting with AND, that keeps a row only when the signed-in user
+     * may view the magazine whose id is $magazineIdColumn. Empty when they may view every
+     * magazine. Adds the parameters it uses to $parameters.
+     *
+     * @param array<string, mixed> $parameters
+     */
+    private function viewerAccessCondition(string $magazineIdColumn, array &$parameters): string
+    {
+        $viewer = $this->security->getUser();
+        [$clause, $clauseParameters] = MagazineAccessClause::sql('vam', $viewer instanceof User ? $viewer : null);
+        if ('TRUE' === $clause) {
+            return '';
+        }
+        $parameters = array_merge($parameters, $clauseParameters);
+
+        return "AND EXISTS (SELECT 1 FROM magazine vam WHERE vam.id = $magazineIdColumn AND $clause)";
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    /**
+     * viewerAccessCondition() for the four unaliased content tables, in the order entry,
+     * entry comment, post, post comment.
+     *
+     * @param array<string, mixed> $parameters
+     *
+     * @return string[]
+     */
+    private function contentAccessConditions(array &$parameters): array
+    {
+        return [
+            $this->viewerAccessCondition('entry.magazine_id', $parameters),
+            $this->viewerAccessCondition('entry_comment.magazine_id', $parameters),
+            $this->viewerAccessCondition('post.magazine_id', $parameters),
+            $this->viewerAccessCondition('post_comment.magazine_id', $parameters),
+        ];
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    /**
+     * viewerAccessCondition() for the four vote tables a user's boosts are read from, in the
+     * order entry, entry comment, post, post comment.
+     *
+     * @param array<string, mixed> $parameters
+     *
+     * @return string[]
+     */
+    private function boostAccessConditions(array &$parameters): array
+    {
+        return [
+            $this->viewerAccessCondition('(SELECT bt.magazine_id FROM entry bt WHERE bt.id = entry_vote.entry_id)', $parameters),
+            $this->viewerAccessCondition('(SELECT bt.magazine_id FROM entry_comment bt WHERE bt.id = entry_comment_vote.comment_id)', $parameters),
+            $this->viewerAccessCondition('(SELECT bt.magazine_id FROM post bt WHERE bt.id = post_vote.post_id)', $parameters),
+            $this->viewerAccessCondition('(SELECT bt.magazine_id FROM post_comment bt WHERE bt.id = post_comment_vote.comment_id)', $parameters),
+        ];
     }
 }

@@ -41,6 +41,12 @@ class CommunityLinkParser implements InlineParserInterface
         $fullHandle = $handle.'@'.$domain;
         $isRemote = $this->isRemoteCommunity($domain);
         $magazine = $this->magazineRepository->findOneByName($isRemote ? $fullHandle : $handle);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // Rendered markdown is cached for every viewer, so a hidden magazine renders
+        // exactly like a name that does not exist.
+        if ($magazine?->isHidden()) {
+            $magazine = null;
+        }
 
         $this->removeSurroundingLink($ctx, $handle, $domain);
 

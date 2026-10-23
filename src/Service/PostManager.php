@@ -19,6 +19,7 @@ use App\Event\Post\PostDeletedEvent;
 use App\Event\Post\PostEditedEvent;
 use App\Event\Post\PostRestoredEvent;
 use App\Exception\InstanceBannedException;
+use App\Exception\MoveRefusedException;
 use App\Exception\TagBannedException;
 use App\Exception\UserBannedException;
 use App\Factory\PostFactory;
@@ -312,8 +313,14 @@ class PostManager implements ContentManagerInterface
         return strtolower($this->translator->trans($sortBy));
     }
 
+    /**
+     * @throws MoveRefusedException
+     */
     public function changeMagazine(Post $post, Magazine $magazine): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MoveRefusedException::assertAllowed($post->magazine, $magazine);
+
         $this->entityManager->beginTransaction();
 
         try {

@@ -69,7 +69,7 @@ class PostNotificationManager implements ContentNotificationManagerInterface
         // Notify mentioned
         $mentions = $this->mentionManager->clearLocal($this->mentionManager->extract($subject->body));
         foreach ($this->mentionManager->getUsersFromArray($mentions) as $user) {
-            if (!$user->isBlocked($subject->user)) {
+            if (!$user->isBlocked($subject->user) && $subject->magazine->userCanView($user)) {
                 $notification = new PostMentionedNotification($user, $subject);
                 $this->entityManager->persist($notification);
                 $this->eventDispatcher->dispatch(new NotificationCreatedEvent($notification));
@@ -84,6 +84,9 @@ class PostNotificationManager implements ContentNotificationManagerInterface
             $subscribers = array_filter($subscribers, fn ($s) => !\in_array($s->username, $mentions));
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $subscribers = array_filter($subscribers, fn ($s) => $subject->magazine->userCanView($s));
+
         foreach ($subscribers as $subscriber) {
             $notification2 = new PostCreatedNotification($subscriber, $subject);
             $this->entityManager->persist($notification2);
@@ -95,6 +98,14 @@ class PostNotificationManager implements ContentNotificationManagerInterface
 
     private function notifyMagazine(Notification $notification): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // checked before the KBIN_MERCURE_ENABLED switch, so the privacy rule does not hang on
+        // how realtime updates happen to be configured
+        $post = property_exists($notification, 'post') ? $notification->post : null;
+        if (!$post instanceof Post || $post->magazine->isRestricted()) {
+            return;
+        }
+
         if (false === $this->settingsManager->get('KBIN_MERCURE_ENABLED')) {
             return;
         }

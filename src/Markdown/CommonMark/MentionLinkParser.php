@@ -114,7 +114,10 @@ class MentionLinkParser implements InlineParserInterface
             return [MentionType::User, null];
         }
 
-        if (null !== $this->magazineRepository->findOneByName($handle)) {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // A hidden magazine resolves like a name that does not exist (markdown is cached for every viewer).
+        $magazine = $this->magazineRepository->findOneByName($handle);
+        if (null !== $magazine && !$magazine->isHidden()) {
             return [MentionType::Magazine, null];
         }
 

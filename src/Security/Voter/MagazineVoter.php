@@ -18,6 +18,8 @@ class MagazineVoter extends Voter
     public const MODERATE = 'moderate';
     public const SUBSCRIBE = 'subscribe';
     public const BLOCK = 'block';
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public const VIEW = 'view';
 
     protected function supports(string $attribute, $subject): bool
     {
@@ -32,6 +34,7 @@ class MagazineVoter extends Voter
                     self::MODERATE,
                     self::SUBSCRIBE,
                     self::BLOCK,
+                    self::VIEW,
                 ],
                 true
             );
@@ -40,6 +43,11 @@ class MagazineVoter extends Voter
     protected function voteOnAttribute(string $attribute, $subject, TokenInterface $token): bool
     {
         $user = $token->getUser();
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (self::VIEW === $attribute) {
+            return $subject->userCanView($user instanceof User ? $user : null);
+        }
 
         if (!$user instanceof User) {
             return false;
@@ -59,7 +67,8 @@ class MagazineVoter extends Voter
 
     private function canCreateContent(Magazine $magazine, User $user): bool
     {
-        return !$magazine->isBanned($user) && !$user->isBanned();
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        return $magazine->userCanView($user) && !$magazine->isBanned($user) && !$user->isBanned();
     }
 
     private function canEdit(Magazine $magazine, User $user): bool
@@ -84,11 +93,17 @@ class MagazineVoter extends Voter
 
     public function canSubscribe(Magazine $magazine, User $user): bool
     {
-        return !$magazine->isBanned($user) && !$user->isBanned();
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        return $magazine->userCanView($user) && !$magazine->isBanned($user) && !$user->isBanned();
     }
 
     public function canBlock(Magazine $magazine, User $user): bool
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (!$magazine->userCanView($user)) {
+            return false;
+        }
+
         if ($magazine->userIsOwner($user)) {
             return false;
         }

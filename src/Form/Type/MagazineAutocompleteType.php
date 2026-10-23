@@ -7,6 +7,10 @@ namespace App\Form\Type;
 use App\Entity\Contracts\VisibilityInterface;
 use App\Entity\Magazine;
 use App\Entity\MagazineBlock;
+use App\Entity\User;
+use App\Enum\MagazineAccess;
+use App\Repository\MagazineAccessClause;
+use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\AbstractType;
@@ -27,6 +31,20 @@ class MagazineAutocompleteType extends AbstractType
             'class' => Magazine::class,
             'choice_label' => 'name',
             'placeholder' => 'select_magazine',
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // the choices a submitted id is checked against, and the base of the autocomplete
+            // search: an id of a hidden magazine the viewer cannot see fails validation exactly
+            // like an id that does not exist; private magazines stay discoverable
+            'query_builder' => function (EntityRepository $repository): QueryBuilder {
+                $qb = $repository->createQueryBuilder('entity');
+                $viewer = $this->security->getUser();
+                $canView = MagazineAccessClause::dql($qb, 'entity', $viewer instanceof User ? $viewer : null);
+                if (null !== $canView) {
+                    $qb->andWhere("entity.access <> '".MagazineAccess::Hidden->value."' OR $canView");
+                }
+
+                return $qb;
+            },
             'filter_query' => function (QueryBuilder $qb, string $query) {
                 if ($currentUser = $this->security->getUser()) {
                     $qb
@@ -38,6 +56,11 @@ class MagazineAutocompleteType extends AbstractType
                         )
                         ->setParameter('user', $currentUser);
                 }
+
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                // before the early return: an empty query still lists magazines, page by page
+                $viewer = $this->security->getUser();
+                MagazineAccessClause::applyDiscovery($qb, 'entity', $viewer instanceof User ? $viewer : null);
 
                 if (!$query) {
                     return;

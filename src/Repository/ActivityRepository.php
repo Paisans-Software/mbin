@@ -169,6 +169,17 @@ class ActivityRepository extends ServiceEntityRepository
             ->orderBy('a.createdAt', 'DESC')
             ->addOrderBy('a.uuid', 'DESC');
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // The outbox is public, so it only lists activities in public magazines. The audience
+        // is rarely set on local activities, so the magazine of the object is checked as well.
+        $qb->leftJoin('e.magazine', 'em')
+            ->leftJoin('ec.magazine', 'ecm')
+            ->leftJoin('p.magazine', 'pm')
+            ->leftJoin('pc.magazine', 'pcm');
+        foreach (['m', 'em', 'ecm', 'pm', 'pcm'] as $alias) {
+            $qb->andWhere("$alias IS NULL OR ".MagazineAccessClause::dql($qb, $alias, null));
+        }
+
         return new Pagerfanta(new QueryAdapter($qb));
     }
 

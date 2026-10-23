@@ -36,7 +36,8 @@ class FeedManager
         private readonly Security $security,
         private readonly MediaExtensionRuntime $mediaExtensionRuntime,
         private readonly MentionManager $mentionManager,
-        private readonly ImageManager $imageManager,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines (the test image manager is an interface implementation)
+        private readonly ImageManagerInterface $imageManager,
         private readonly MarkdownConverter $markdownConverter,
     ) {
     }
@@ -139,6 +140,9 @@ class FeedManager
     {
         $criteria = new ContentPageView(1, $this->security);
         $criteria->sortOption = Criteria::SORT_NEW;
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // Feeds are public documents: the query never sees what a session could see.
+        $criteria->publicAccessOnly = true;
 
         $content = $request->get('content');
         if ($content && \in_array($content, Criteria::CONTENT_OPTIONS, true)) {
@@ -149,7 +153,9 @@ class FeedManager
 
         if ($magazineName = $request->get('magazine')) {
             $magazine = $this->magazineRepository->findOneBy(['name' => $magazineName]);
-            if (!$magazine) {
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // A restricted magazine has no feed and looks exactly like a missing one.
+            if (!$magazine || $magazine->isRestricted()) {
                 throw new NotFoundHttpException("The magazine $magazineName does not exist");
             }
             $criteria->magazine = $magazine;

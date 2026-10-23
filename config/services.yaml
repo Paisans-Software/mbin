@@ -22,7 +22,7 @@ parameters:
     # our nodeinfo or our request log needs to know. software.name stays
     # 'mbin' on purpose: peers record and branch on it, so a novel name would
     # make us unrecognised software rather than honest software.
-    mbin_version: '1.16.4+paisans'
+    mbin_version: '1.17.0+paisans'
     kbin_domain: '%env(KBIN_DOMAIN)%'
     kbin_title: '%env(KBIN_TITLE)%'
     kbin_meta_title: '%env(KBIN_META_TITLE)%'
@@ -329,6 +329,9 @@ services:
             - {
                   name: kernel.event_listener,
                   event: kernel.controller_arguments,
+                  # FORK DIVERGENCE — do not offer this upstream: private magazines
+                  # Must run before IsGrantedAttributeListener (20) so a non-viewer gets 404, never 403.
+                  priority: 30,
               }
 
     # Monolog handlers

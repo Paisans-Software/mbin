@@ -11,8 +11,14 @@ use App\Entity\Contracts\ContentInterface;
  */
 trait PrivateContentTrait
 {
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    use MagazineViewTrait;
+
     private function handlePrivateContent(ContentInterface $entry): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($entry->getMagazine());
+
         if (true === $entry->isPrivate()) {
             if (null === $this->getUser()) {
                 throw $this->createAccessDeniedException();

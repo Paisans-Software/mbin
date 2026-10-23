@@ -1279,3 +1279,16 @@ filter_lists_comments_help: Filter words while viewing a thread or microblog in 
 filter_lists_profile_help: Filter words while viewing a users' profile in their content.
 expired: Expired
 setting_locked_by_configuration: This server's configuration sets this, so it cannot be changed here.
+magazine_access: Access
+magazine_access.public: Public
+magazine_access.private: Private
+magazine_access.hidden: Hidden
+crosspost_unavailable: This thread cannot be cross-posted.
+move_unavailable: This content cannot be moved to that magazine.
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+members: Members
+add_member: Add member
+remove_member: Remove
+member_must_be_local_user: Only people with an account on this instance can be added.
+member_cannot_be_added: This account is banned or deleted and cannot be added.
+oauth2.grant.moderate.magazine.members: Manage the members of magazines you moderate

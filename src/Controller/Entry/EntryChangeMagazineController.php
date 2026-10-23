@@ -7,6 +7,7 @@ namespace App\Controller\Entry;
 use App\Controller\AbstractController;
 use App\Entity\Entry;
 use App\Entity\Magazine;
+use App\Exception\MoveRefusedException;
 use App\Repository\MagazineRepository;
 use App\Service\EntryManager;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -34,7 +35,12 @@ class EntryChangeMagazineController extends AbstractController
 
         $newMagazine = $this->repository->findOneByName($request->get('change_magazine')['new_magazine']);
 
-        $this->manager->changeMagazine($entry, $newMagazine);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        try {
+            $this->manager->changeMagazine($entry, $newMagazine);
+        } catch (MoveRefusedException) {
+            $this->addFlash('error', 'move_unavailable');
+        }
 
         return $this->redirectToRefererOrHome($request);
     }

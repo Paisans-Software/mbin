@@ -128,6 +128,8 @@ class OAuth2UserConsent
         'moderate:magazine:ban:create' => 'oauth2.grant.moderate.magazine.ban.create',
         'moderate:magazine:ban:delete' => 'oauth2.grant.moderate.magazine.ban.delete',
         'moderate:magazine:list' => 'oauth2.grant.moderate.magazine.list',
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        'moderate:magazine:members' => 'oauth2.grant.moderate.magazine.members',
         'moderate:magazine:reports' => 'oauth2.grant.moderate.magazine.reports.all',
         'moderate:magazine:reports:read' => 'oauth2.grant.moderate.magazine.reports.read',
         'moderate:magazine:reports:action' => 'oauth2.grant.moderate.magazine.reports.action',

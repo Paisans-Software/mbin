@@ -10,12 +10,14 @@ use App\Entity\Magazine;
 use App\Entity\MagazineLog;
 use App\Entity\Post;
 use App\Entity\PostComment;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Pagerfanta\Doctrine\ORM\QueryAdapter;
 use Pagerfanta\Exception\NotValidCurrentPageException;
 use Pagerfanta\Pagerfanta;
 use Pagerfanta\PagerfantaInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -28,8 +30,11 @@ class MagazineLogRepository extends ServiceEntityRepository
 {
     public const PER_PAGE = 25;
 
-    public function __construct(ManagerRegistry $registry)
-    {
+    public function __construct(
+        ManagerRegistry $registry,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly Security $security,
+    ) {
         parent::__construct($registry, MagazineLog::class);
     }
 
@@ -51,6 +56,12 @@ class MagazineLogRepository extends ServiceEntityRepository
             $qb = $qb->where('ml.magazine = :magazine')
                 ->setParameter('magazine', $magazine);
         }
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // after the OR of the types above, which where() and andWhere() keep in parentheses
+        $viewer = $this->security->getUser();
+        $qb->join('ml.magazine', 'mlm');
+        MagazineAccessClause::apply($qb, 'mlm', $viewer instanceof User ? $viewer : null);
 
         $qb->orderBy('ml.createdAt', 'DESC');
 

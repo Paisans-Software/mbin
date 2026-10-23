@@ -81,6 +81,11 @@ final class RelatedPostsComponent
             }
         );
 
-        $this->posts = $this->repository->findBy(['id' => $postIds]);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // the ids are cached for minutes, so check again: a member removed since then must not see them
+        $this->posts = array_values(array_filter(
+            $this->repository->findBy(['id' => $postIds]),
+            fn (Post $post) => $post->magazine->userCanView($user),
+        ));
     }
 }

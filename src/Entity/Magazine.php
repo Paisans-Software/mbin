@@ -10,11 +10,13 @@ use App\Entity\Contracts\VisibilityInterface;
 use App\Entity\Traits\ActivityPubActorTrait;
 use App\Entity\Traits\CreatedAtTrait;
 use App\Entity\Traits\VisibilityTrait;
+use App\Enum\MagazineAccess;
 use App\Repository\MagazineRepository;
 use App\Service\MagazineManager;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\Criteria;
+use Doctrine\Common\Collections\Selectable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
@@ -102,6 +104,10 @@ class Magazine implements VisibilityInterface, ActivityPubActorInterface, ApiRes
     public Collection $subscriptions;
     #[OneToMany(mappedBy: 'magazine', targetEntity: MagazineBan::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     public Collection $bans;
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    /** @var Collection<int, MagazineMember>&Selectable<int, MagazineMember> */
+    #[OneToMany(mappedBy: 'magazine', targetEntity: MagazineMember::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    public Collection $members;
     #[OneToMany(mappedBy: 'magazine', targetEntity: Report::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY', orphanRemoval: true)]
     #[OrderBy(['createdAt' => 'DESC'])]
     public Collection $reports;
@@ -118,6 +124,11 @@ class Magazine implements VisibilityInterface, ActivityPubActorInterface, ApiRes
     private ?string $titleTs;
     #[Column(type: 'text', nullable: true, insertable: false, updatable: false, options: ['default' => null])]
     private ?string $descriptionTs;
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    // Fixed when the magazine is created and never edited afterwards.
+    #[Column(type: 'string', nullable: false, options: ['default' => 'public'], enumType: MagazineAccess::class)]
+    public MagazineAccess $access = MagazineAccess::Public;
 
     #[Id]
     #[GeneratedValue]
@@ -148,6 +159,8 @@ class Magazine implements VisibilityInterface, ActivityPubActorInterface, ApiRes
         $this->posts = new ArrayCollection();
         $this->subscriptions = new ArrayCollection();
         $this->bans = new ArrayCollection();
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->members = new ArrayCollection();
         $this->reports = new ArrayCollection();
         $this->badges = new ArrayCollection();
         $this->logs = new ArrayCollection();
@@ -185,6 +198,47 @@ class Magazine implements VisibilityInterface, ActivityPubActorInterface, ApiRes
     public function getApId(): ?string
     {
         return $this->apId;
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public function isRestricted(): bool
+    {
+        // a remote magazine is never restricted here: the access level is a local decision
+        return null === $this->apId && $this->access->isRestricted();
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public function isHidden(): bool
+    {
+        return $this->isRestricted() && MagazineAccess::Hidden === $this->access;
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public function isMember(User $user): bool
+    {
+        $criteria = Criteria::create()
+            ->where(Criteria::expr()->eq('user', $user));
+
+        return $this->members->matching($criteria)->count() > 0;
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public function userCanView(?User $user): bool
+    {
+        if (!$this->isRestricted()) {
+            return true;
+        }
+        if (null === $user) {
+            return false;
+        }
+        if ($user->isAdmin() || $user->isModerator()) {
+            return true;
+        }
+        if ($this->userIsOwner($user) || $this->userIsModerator($user)) {
+            return true;
+        }
+
+        return $this->isMember($user) && !$this->isBanned($user);
     }
 
     public function userIsModerator(User $user): bool

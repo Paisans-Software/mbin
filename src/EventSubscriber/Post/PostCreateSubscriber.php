@@ -6,6 +6,7 @@ namespace App\EventSubscriber\Post;
 
 use App\Entity\Post;
 use App\Event\Post\PostCreatedEvent;
+use App\Exception\MoveRefusedException;
 use App\Message\ActivityPub\Outbox\CreateMessage;
 use App\Message\LinkEmbedMessage;
 use App\Message\Notification\PostCreatedNotificationMessage;
@@ -68,7 +69,12 @@ class PostCreateSubscriber implements EventSubscriberInterface
 
         foreach ($tags as $tag) {
             if ($magazine = $this->magazineRepository->findByTag($tag)) {
-                $this->postManager->changeMagazine($post, $magazine);
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                try {
+                    $this->postManager->changeMagazine($post, $magazine);
+                } catch (MoveRefusedException) {
+                    continue;
+                }
                 break;
             }
         }

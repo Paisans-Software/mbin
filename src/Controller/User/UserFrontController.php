@@ -297,7 +297,8 @@ class UserFrontController extends AbstractController
             [
                 'view' => 'list',
                 'user' => $user,
-                'magazines' => $repository->findModeratedMagazines($user, (int) $request->get('p', 1)),
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                'magazines' => $repository->findModeratedMagazines($user, (int) $request->get('p', 1), asSeenByViewer: true),
                 'criteria' => $criteria,
             ],
             $response
@@ -330,7 +331,8 @@ class UserFrontController extends AbstractController
             'user/subscriptions.html.twig',
             [
                 'user' => $user,
-                'magazines' => $repository->findSubscribedMagazines($this->getPageNb($request), $user),
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                'magazines' => $repository->findSubscribedMagazines($this->getPageNb($request), $user, asSeenByViewer: true),
             ],
             $response
         );

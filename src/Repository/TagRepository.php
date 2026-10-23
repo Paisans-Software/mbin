@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Contracts\VisibilityInterface;
 use App\Entity\Hashtag;
+use App\Entity\User;
 use App\Pagination\NativeQueryAdapter;
 use App\Pagination\Transformation\ContentPopulationTransformer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -14,6 +15,7 @@ use JetBrains\PhpStorm\ArrayShape;
 use Pagerfanta\Exception\NotValidCurrentPageException;
 use Pagerfanta\Pagerfanta;
 use Pagerfanta\PagerfantaInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -30,6 +32,8 @@ class TagRepository extends ServiceEntityRepository
         ManagerRegistry $registry,
         private readonly TagLinkRepository $tagLinkRepository,
         private readonly ContentPopulationTransformer $populationTransformer,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly Security $security,
     ) {
         parent::__construct($registry, Hashtag::class);
     }
@@ -44,31 +48,38 @@ class TagRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // content in magazines the viewer cannot see is left out, and so is not counted from the links
+        $viewer = $this->security->getUser();
+        [$access, $accessParameters] = MagazineAccessClause::sql('tam', $viewer instanceof User ? $viewer : null);
+        $restricted = 'TRUE' !== $access;
+        $accessCond = fn (string $alias) => $restricted ? "AND EXISTS (SELECT 1 FROM magazine tam WHERE tam.id = $alias.magazine_id AND $access)" : '';
+
         $conn = $this->getEntityManager()->getConnection();
         $sql = "SELECT e.id, e.created_at, 'entry' AS type FROM entry e
                 INNER JOIN hashtag_link l ON e.id = l.entry_id
                 INNER JOIN hashtag h ON l.hashtag_id = h.id AND h.tag = :tag
-            WHERE visibility = :visibility
+            WHERE visibility = :visibility {$accessCond('e')}
         UNION ALL
         SELECT ec.id, ec.created_at, 'entry_comment' AS type FROM entry_comment ec
                 INNER JOIN hashtag_link l ON ec.id = l.entry_comment_id
                 INNER JOIN hashtag h ON l.hashtag_id = h.id AND h.tag = :tag
-            WHERE visibility = :visibility
+            WHERE visibility = :visibility {$accessCond('ec')}
         UNION ALL
         SELECT p.id, p.created_at, 'post' AS type FROM post p
                 INNER JOIN hashtag_link l ON p.id = l.post_id
                 INNER JOIN hashtag h ON l.hashtag_id = h.id AND h.tag = :tag
-            WHERE visibility = :visibility
+            WHERE visibility = :visibility {$accessCond('p')}
         UNION ALL
         SELECT pc.id, created_at, 'post_comment' AS type FROM post_comment pc
                 INNER JOIN hashtag_link l ON pc.id = l.post_comment_id
-                INNER JOIN hashtag h ON l.hashtag_id = h.id AND h.tag = :tag WHERE visibility = :visibility
+                INNER JOIN hashtag h ON l.hashtag_id = h.id AND h.tag = :tag WHERE visibility = :visibility {$accessCond('pc')}
         ORDER BY created_at DESC";
 
-        $adapter = new NativeQueryAdapter($conn, $sql, [
+        $adapter = new NativeQueryAdapter($conn, $sql, array_merge([
             'tag' => $tag,
             'visibility' => VisibilityInterface::VISIBILITY_VISIBLE,
-        ], $countAll, $this->populationTransformer);
+        ], $accessParameters), $restricted ? null : $countAll, $this->populationTransformer);
 
         $pagerfanta = new Pagerfanta($adapter);
 
