@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Controller\Magazine;
 use App\Controller\User\ThemeSettingsController;
 use App\Entity\Entry;
 use App\Entity\Magazine;
+use App\Entity\MagazineFollow;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\Repository\MagazineRepository;
@@ -19,7 +20,7 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
  *
  * Magazine discovery lists a private magazine and leaves a hidden one out, except for
- * admins and global moderators. WebFinger resolves neither.
+ * admins and global moderators. WebFinger resolves neither while it follows nothing.
  */
 class HiddenDiscoveryTest extends WebTestCase
 {
@@ -227,6 +228,28 @@ class HiddenDiscoveryTest extends WebTestCase
             self::assertResponseStatusCodeSame(404, $name);
             self::assertSame($missing, $this->client->getResponse()->getContent(), $name);
         }
+    }
+
+    public function testWebFingerResolvesRestrictedOnceItFollowsSomething(): void
+    {
+        // a server verifying the magazine's Follow confirms the actor through WebFinger,
+        // so it resolves under the same rule as the actor document
+        $domain = $this->settingsManager->get('KBIN_DOMAIN');
+        $remote = $this->getUserByUsername('remotefriend');
+        $remote->apId = 'remotefriend@remote.example';
+        $remote->apProfileId = 'https://remote.example/u/remotefriend';
+        $this->entityManager->persist(new MagazineFollow($this->circle, $remote));
+        $this->entityManager->flush();
+
+        $this->client->request('GET', "https://$domain/.well-known/webfinger?resource=".urlencode("acct:circle@$domain"));
+        self::assertResponseIsSuccessful();
+        self::assertSame(["https://$domain/m/circle"], json_decode($this->client->getResponse()->getContent(), true)['aliases']);
+
+        $this->client->request('GET', "https://$domain/.well-known/webfinger?resource=".urlencode("acct:nosuchmagazine@$domain"));
+        $missing = $this->client->getResponse()->getContent();
+        $this->client->request('GET', "https://$domain/.well-known/webfinger?resource=".urlencode("acct:vault@$domain"));
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame($missing, $this->client->getResponse()->getContent());
     }
 
     /**

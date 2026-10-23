@@ -7,6 +7,7 @@ namespace App\EventSubscriber\ActivityPub;
 use App\ActivityPub\JsonRdLink;
 use App\Entity\Magazine;
 use App\Event\ActivityPub\WebfingerResponseEvent;
+use App\Repository\MagazineFollowRepository;
 use App\Repository\MagazineRepository;
 use App\Service\ActivityPub\Webfinger\WebFingerParameters;
 use JetBrains\PhpStorm\ArrayShape;
@@ -18,6 +19,8 @@ class GroupWebFingerProfileSubscriber implements EventSubscriberInterface
     public function __construct(
         private readonly MagazineRepository $magazineRepository,
         private readonly UrlGeneratorInterface $urlGenerator,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly MagazineFollowRepository $magazineFollowRepository,
     ) {
     }
 
@@ -59,9 +62,14 @@ class GroupWebFingerProfileSubscriber implements EventSubscriberInterface
         }
 
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        // WebFinger lookups are anonymous, so a restricted magazine is not resolvable
+        // WebFinger lookups are anonymous, so a restricted magazine resolves only under
+        // the rule its actor document follows: while it follows somebody, because the
+        // followed server confirms the actor through WebFinger
         $magazine = $this->magazineRepository->findOneByName($name);
+        if (null === $magazine) {
+            return null;
+        }
 
-        return $magazine?->userCanView(null) ? $magazine : null;
+        return $magazine->userCanView(null) || $this->magazineFollowRepository->magazineHasFollows($magazine) ? $magazine : null;
     }
 }
