@@ -78,6 +78,8 @@ class ShadowThreadManager
                 $original->lang,
             );
             $shadow->type = Entry::ENTRY_TYPE_LINK;
+            // a followers-only original stays followers-only: a magazine follow never widens it
+            $shadow->visibility = $original->visibility;
             $shadow->slug = $this->slugger->slug($shadow->title);
             if ($original instanceof Entry) {
                 $shadow->shadowOfEntry = $original;

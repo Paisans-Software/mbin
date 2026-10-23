@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Controller;
 
+use App\Entity\Contracts\VisibilityInterface;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
 use App\Entity\User;
@@ -33,6 +34,8 @@ class ShadowThreadVisibilityTest extends ActivityPubFunctionalTestCase
     private array $secondPage;
     /** @var array<string, mixed> */
     private array $replyToFirstPage;
+    /** @var array<string, mixed> */
+    private array $followersOnlyNote;
     private User $alice;
     private User $bob;
     private Entry $original;
@@ -55,6 +58,7 @@ class ShadowThreadVisibilityTest extends ActivityPubFunctionalTestCase
         $this->entitiesToRemoveAfterSetup[] = $reply;
 
         $this->secondPage = $this->addressedToNobody($this->remotePageCreate('a later page for the circle'));
+        $this->followersOnlyNote = $this->remoteNoteCreate('a note for my followers only');
     }
 
     public function setUp(): void
@@ -140,6 +144,42 @@ class ShadowThreadVisibilityTest extends ActivityPubFunctionalTestCase
         self::assertSame(0, $this->entryCommentRepository->count(['entry' => $this->shadow]));
         $this->entityManager->refresh($this->shadow);
         self::assertSame(0, $this->shadow->commentCount);
+    }
+
+    public function testFollowersOnlyPostIsShadowedForTheAuthorsFollowersOnly(): void
+    {
+        self::assertNotNull($this->remoteUser->apFollowersUrl);
+        $create = $this->followersOnlyNote;
+        foreach ([&$create, &$create['object']] as &$activity) {
+            unset($activity['audience']);
+            $activity['to'] = [$this->remoteUser->apFollowersUrl];
+            $activity['cc'] = [];
+        }
+        unset($activity);
+        $this->bus->dispatch(new ActivityMessage(json_encode($create)));
+
+        $post = $this->postRepository->findOneBy(['apId' => $create['object']['id']]);
+        self::assertNotNull($post);
+        self::assertSame(VisibilityInterface::VISIBILITY_PRIVATE, $post->visibility);
+        $shadow = $this->entryRepository->findOneBy(['shadowOfPost' => $post]);
+        self::assertNotNull($shadow);
+        self::assertSame(VisibilityInterface::VISIBILITY_PRIVATE, $shadow->visibility);
+
+        // alice is a member but does not follow the author: as if the shadow did not exist
+        $this->client->loginUser($this->alice);
+        self::assertStringNotContainsString($this->entryPath($shadow), $this->get('/m/circle'));
+        $this->client->request('GET', $this->entryPath($shadow));
+        self::assertResponseStatusCodeSame(404);
+
+        // once she follows the author she sees it, as she would the original
+        $alice = $this->userRepository->find($this->alice->getId());
+        $author = $this->userRepository->find($this->remoteUser->getId());
+        $this->userManager->follow($alice, $author, createRequest: false);
+        self::assertTrue($alice->isFollowing($author));
+        $this->client->loginUser($alice);
+        self::assertStringContainsString($this->entryPath($shadow), $this->get('/m/circle'));
+        $this->get($this->entryPath($shadow));
+        self::assertResponseIsSuccessful();
     }
 
     private function entryPath(Entry $entry): string

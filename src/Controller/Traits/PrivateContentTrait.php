@@ -8,6 +8,7 @@ use App\Entity\Contracts\ContentInterface;
 
 /**
  * @method createAccessDeniedException()
+ * @method createNotFoundException()
  */
 trait PrivateContentTrait
 {
@@ -20,12 +21,18 @@ trait PrivateContentTrait
         $this->assertMagazineViewable($entry->getMagazine());
 
         if (true === $entry->isPrivate()) {
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // in a restricted magazine whoever may not see it gets what a nonexistent thread gets
+            $deny = true === $entry->getMagazine()?->isRestricted()
+                ? fn () => $this->createNotFoundException()
+                : fn () => $this->createAccessDeniedException();
+
             if (null === $this->getUser()) {
-                throw $this->createAccessDeniedException();
+                throw $deny();
             }
 
             if (false === $this->getUser()->isFollowing($entry->user)) {
-                throw $this->createAccessDeniedException();
+                throw $deny();
             }
         }
     }
