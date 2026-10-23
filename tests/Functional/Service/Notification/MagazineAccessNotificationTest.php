@@ -96,4 +96,21 @@ class MagazineAccessNotificationTest extends WebTestCase
         self::assertSame('magazine_access_granted', $items[0]['type']);
         self::assertSame('circle', $items[0]['subject']['name']);
     }
+
+    public function testDemotedModeratorNoLongerSeesRequestNotifications(): void
+    {
+        $this->manager()->request($this->circle, $this->bob);
+        $page = fn () => iterator_to_array($this->notificationRepository->findByUser($this->second, 1));
+
+        self::assertCount(1, $page());
+
+        $moderator = $this->entityManager->getRepository(Moderator::class)->findOneBy(['user' => $this->second]);
+        $this->entityManager->remove($moderator);
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        self::assertCount(0, iterator_to_array($this->notificationRepository->findByUser($this->entityManager->find(User::class, $this->second->getId()), 1)));
+        // The owner still moderates the magazine and still sees it.
+        self::assertCount(1, iterator_to_array($this->notificationRepository->findByUser($this->entityManager->find(User::class, $this->owner->getId()), 1)));
+    }
 }
