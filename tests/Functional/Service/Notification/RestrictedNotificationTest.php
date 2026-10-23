@@ -130,13 +130,6 @@ class RestrictedNotificationTest extends WebTestCase
 
     private function addMember(User $user): void
     {
-        /** @var \App\Repository\MagazineMemberRepository $memberRepository */
-        $memberRepository = $this->entityManager->getRepository(\App\Entity\MagazineMember::class);
-
-        (new \App\Service\MagazineMemberManager(
-            $memberRepository,
-            $this->magazineManager,
-            $this->entityManager,
-        ))->add($this->circle, $user, $this->getUserByUsername('admin'));
+        static::getContainer()->get(\App\Service\MagazineMemberManager::class)->add($this->circle, $user, $this->getUserByUsername('admin'));
     }
 }

@@ -7,10 +7,8 @@ namespace App\Tests\Functional\Repository;
 use App\DTO\MagazineBanDto;
 use App\Entity\Entry;
 use App\Entity\Magazine;
-use App\Entity\MagazineMember;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
-use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineMemberManager;
 use App\Tests\Functional\Controller\RestrictedContentFixtureTrait;
 use App\Tests\WebTestCase;
@@ -222,10 +220,7 @@ class RestrictedListingTest extends WebTestCase
 
     private function memberManager(): MagazineMemberManager
     {
-        /** @var MagazineMemberRepository $members */
-        $members = $this->entityManager->getRepository(MagazineMember::class);
-
-        return new MagazineMemberManager($members, $this->magazineManager, $this->entityManager);
+        return static::getContainer()->get(MagazineMemberManager::class);
     }
 
     private function get(string $path): string

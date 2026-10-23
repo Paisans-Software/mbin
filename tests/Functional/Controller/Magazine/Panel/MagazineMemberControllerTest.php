@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Controller\Magazine\Panel;
 
 use App\Entity\Magazine;
-use App\Entity\MagazineMember;
 use App\Enum\MagazineAccess;
-use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
 
@@ -33,14 +31,7 @@ class MagazineMemberControllerTest extends WebTestCase
 
     private function memberManager(): MagazineMemberManager
     {
-        /** @var MagazineMemberRepository $memberRepository */
-        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
-
-        return new MagazineMemberManager(
-            $memberRepository,
-            $this->magazineManager,
-            $this->entityManager,
-        );
+        return static::getContainer()->get(MagazineMemberManager::class);
     }
 
     public function testModeratorAddsMemberByUsername(): void

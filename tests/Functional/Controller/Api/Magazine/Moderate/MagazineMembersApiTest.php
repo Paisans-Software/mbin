@@ -162,13 +162,6 @@ class MagazineMembersApiTest extends WebTestCase
 
     private function memberManager(): \App\Service\MagazineMemberManager
     {
-        /** @var \App\Repository\MagazineMemberRepository $memberRepository */
-        $memberRepository = $this->entityManager->getRepository(\App\Entity\MagazineMember::class);
-
-        return new \App\Service\MagazineMemberManager(
-            $memberRepository,
-            $this->magazineManager,
-            $this->entityManager,
-        );
+        return static::getContainer()->get(\App\Service\MagazineMemberManager::class);
     }
 }

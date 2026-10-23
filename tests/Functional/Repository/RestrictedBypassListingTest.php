@@ -9,14 +9,12 @@ use App\Entity\Domain;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
 use App\Entity\Magazine;
-use App\Entity\MagazineMember;
 use App\Entity\Post;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\PageView\EntryCommentPageView;
 use App\Repository\EntryCommentRepository;
 use App\Repository\EntryRepository;
-use App\Repository\MagazineMemberRepository;
 use App\Repository\SearchRepository;
 use App\Service\MagazineMemberManager;
 use App\Tests\Functional\Controller\RestrictedContentFixtureTrait;
@@ -347,10 +345,7 @@ class RestrictedBypassListingTest extends WebTestCase
 
     private function memberManager(): MagazineMemberManager
     {
-        /** @var MagazineMemberRepository $members */
-        $members = $this->entityManager->getRepository(MagazineMember::class);
-
-        return new MagazineMemberManager($members, $this->magazineManager, $this->entityManager);
+        return static::getContainer()->get(MagazineMemberManager::class);
     }
 
     /** @var array<string, string> */

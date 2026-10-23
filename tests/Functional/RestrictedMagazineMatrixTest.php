@@ -6,11 +6,9 @@ namespace App\Tests\Functional;
 
 use App\DTO\ModeratorDto;
 use App\Entity\Entry;
-use App\Entity\MagazineMember;
 use App\Entity\Post;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
-use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineManager;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
@@ -76,9 +74,7 @@ class RestrictedMagazineMatrixTest extends WebTestCase
         $mmod = $this->getUserByUsername('mmod');
         $this->getUserByUsername('gmod', isModerator: true);
 
-        /** @var MagazineMemberRepository $memberRepository */
-        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
-        $members = new MagazineMemberManager($memberRepository, $this->magazineManager, $this->entityManager);
+        $members = static::getContainer()->get(MagazineMemberManager::class);
 
         foreach (self::LEVELS as $level => $name) {
             $magazine = $this->getMagazineByName($name, $admin);

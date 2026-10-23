@@ -7,12 +7,10 @@ namespace App\Tests\Functional\Controller;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
 use App\Entity\Magazine;
-use App\Entity\MagazineMember;
 use App\Entity\Post;
 use App\Entity\PostComment;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
-use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineMemberManager;
 
 /**
@@ -47,13 +45,6 @@ trait RestrictedContentFixtureTrait
 
         $this->bob = $this->getUserByUsername('bob');
         $this->alice = $this->getUserByUsername('alice');
-        /** @var MagazineMemberRepository $memberRepository */
-        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
-
-        (new MagazineMemberManager(
-            $memberRepository,
-            $this->magazineManager,
-            $this->entityManager,
-        ))->add($this->circle, $this->alice, $admin);
+        static::getContainer()->get(MagazineMemberManager::class)->add($this->circle, $this->alice, $admin);
     }
 }

@@ -6,10 +6,8 @@ namespace App\Tests\Functional\Controller\Magazine;
 
 use App\Controller\User\ThemeSettingsController;
 use App\Entity\Magazine;
-use App\Entity\MagazineMember;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
-use App\Repository\MagazineMemberRepository;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
@@ -92,14 +90,7 @@ class MagazineAccessIconTest extends WebTestCase
     public function testPageHeaderShowsIcon(): void
     {
         $alice = $this->getUserByUsername('alice');
-        /** @var MagazineMemberRepository $memberRepository */
-        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
-
-        (new MagazineMemberManager(
-            $memberRepository,
-            $this->magazineManager,
-            $this->entityManager,
-        ))->add($this->circle, $alice, $this->admin);
+        static::getContainer()->get(MagazineMemberManager::class)->add($this->circle, $alice, $this->admin);
 
         $this->client->loginUser($alice);
         $crawler = $this->client->request('GET', '/m/circle');
@@ -115,14 +106,7 @@ class MagazineAccessIconTest extends WebTestCase
     public function testSubscriptionsSidebarShowsIcon(): void
     {
         $alice = $this->getUserByUsername('alice');
-        /** @var MagazineMemberRepository $memberRepository */
-        $memberRepository = $this->entityManager->getRepository(MagazineMember::class);
-
-        (new MagazineMemberManager(
-            $memberRepository,
-            $this->magazineManager,
-            $this->entityManager,
-        ))->add($this->circle, $alice, $this->admin);
+        static::getContainer()->get(MagazineMemberManager::class)->add($this->circle, $alice, $this->admin);
         $this->magazineManager->subscribe($this->circle, $alice);
 
         $this->client->loginUser($alice);
