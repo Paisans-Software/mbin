@@ -32,7 +32,7 @@ class MagazineVisibilitySweepTest extends TestCase
         $missing = [];
         $found = [];
         foreach ($this->repositoryMethods() as $name => $body) {
-            if (!$this->filtersOnMagazineVisibility($body)) {
+            if (!$this->filtersOnMagazineVisibility($body, self::isMagazineRepository($name))) {
                 continue;
             }
             $found[] = $name;
@@ -56,7 +56,7 @@ class MagazineVisibilitySweepTest extends TestCase
         $methods = $this->repositoryMethods();
         foreach (array_keys(self::EXCEPTIONS) as $name) {
             self::assertArrayHasKey($name, $methods, "stale exception $name");
-            self::assertTrue($this->filtersOnMagazineVisibility($methods[$name]), "exception $name no longer filters on magazine visibility");
+            self::assertTrue($this->filtersOnMagazineVisibility($methods[$name], self::isMagazineRepository($name)), "exception $name no longer filters on magazine visibility");
         }
     }
 
@@ -67,12 +67,40 @@ class MagazineVisibilitySweepTest extends TestCase
         self::assertTrue($this->filtersOnMagazineVisibility('SELECT * FROM entry e JOIN magazine mg ON mg.id = e.magazine_id WHERE mg.visibility = :visible'));
         self::assertTrue($this->filtersOnMagazineVisibility('WHERE m.visibility IN (:visibility)'));
         self::assertFalse($this->filtersOnMagazineVisibility("->andWhere('e.visibility = :visible')->andWhere('u.visibility = :visible')"));
+        self::assertTrue($this->filtersOnMagazineVisibility("->select('mg')->from(Magazine::class, 'mg')->where('mg.visibility = :v')"));
+        // in MagazineRepository the query builder's own alias is a magazine
+        self::assertTrue($this->filtersOnMagazineVisibility("\$this->createQueryBuilder('mag')->andWhere('mag.visibility = :v')", true));
+        self::assertFalse($this->filtersOnMagazineVisibility("\$this->createQueryBuilder('mag')->andWhere('mag.visibility = :v')"));
     }
 
-    private function filtersOnMagazineVisibility(string $body): bool
+    public function testCommentsAreNotCode(): void
+    {
+        $methods = $this->methodsOf(<<<'PHP'
+            <?php
+            class R {
+                public function listing() {
+                    // MagazineAccessClause::apply() is not called here
+                    /* nor here: MagazineAccessClause::sql() */
+                    return $this->qb->andWhere('m.visibility = :visible');
+                }
+            }
+            PHP);
+
+        self::assertTrue($this->filtersOnMagazineVisibility($methods['listing']));
+        self::assertStringNotContainsString('MagazineAccessClause::', $methods['listing']);
+    }
+
+    private static function isMagazineRepository(string $name): bool
+    {
+        return str_starts_with($name, 'MagazineRepository::');
+    }
+
+    private function filtersOnMagazineVisibility(string $body, bool $queryBuilderIsMagazine = false): bool
     {
         $aliases = ['m' => true];
         $patterns = [
+            // DQL from: ->from(Magazine::class, 'mg')
+            "/from\\(\\s*Magazine::class\\s*,\\s*'(\\w+)'/",
             // DQL joins: ->join('e.magazine', 'm'), ->leftJoin('x.magazine', 'mag')
             "/[jJ]oin\\(\\s*'\\w+\\.magazine'\\s*,\\s*'(\\w+)'/",
             // DQL by class: Magazine::class.' m', FROM App\Entity\Magazine m
@@ -81,6 +109,10 @@ class MagazineVisibilitySweepTest extends TestCase
             // native SQL: FROM magazine m, JOIN magazine m
             '/(?:FROM|JOIN)\\s+"?magazine"?\\s+(?:AS\\s+)?(?!ON\\b|WHERE\\b)(\\w+)/i',
         ];
+        if ($queryBuilderIsMagazine) {
+            // MagazineRepository::createQueryBuilder('x') selects magazines as x
+            $patterns[] = "/createQueryBuilder\\(\\s*'(\\w+)'/";
+        }
         foreach ($patterns as $pattern) {
             if (preg_match_all($pattern, $body, $matches)) {
                 foreach ($matches[1] as $alias) {
@@ -118,6 +150,9 @@ class MagazineVisibilitySweepTest extends TestCase
     }
 
     /**
+     * Comments are left out of each body, so a comment naming MagazineAccessClause or a
+     * visibility filter is not taken for code.
+     *
      * @return array<string, string> method name to its source, signature to closing brace
      */
     private function methodsOf(string $source): array
@@ -152,7 +187,7 @@ class MagazineVisibilitySweepTest extends TestCase
             $body = '';
             for ($m = $k; $m < $count; ++$m) {
                 $text = $tokens[$m]->text;
-                $body .= $text;
+                $body .= $tokens[$m]->is([T_COMMENT, T_DOC_COMMENT]) ? ' ' : $text;
                 // "{$x}" and "${x}" inside strings open a brace that a plain } closes
                 if ('{' === $text || $tokens[$m]->is([T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES])) {
                     ++$depth;
