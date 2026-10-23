@@ -34,6 +34,7 @@ class TagCommentFrontController extends AbstractController
             'comments' => $this->repository->findByCriteria($criteria),
             'tag' => $name,
             'counts' => $this->tagRepository->getCounts($name),
+            'criteria' => $criteria,
         ];
 
         return $this->render(
