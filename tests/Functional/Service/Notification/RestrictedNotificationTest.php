@@ -92,6 +92,60 @@ class RestrictedNotificationTest extends WebTestCase
         self::assertSame(1, $this->notificationRepository->countUnreadNotifications($carol));
     }
 
+    public function testMentionOfNonMemberInACommentCreatesNoNotification(): void
+    {
+        $this->createEntryComment('hello @bob', $this->entry, $this->alice);
+        $this->createPostComment('hello @bob', $this->post, $this->alice);
+
+        self::assertSame(0, $this->notificationRepository->countUnreadNotifications($this->bob));
+    }
+
+    public function testFormerMemberGetsNoReplyNotification(): void
+    {
+        $carol = $this->getUserByUsername('carol');
+        $this->addMember($carol);
+        $this->addMember($this->bob);
+        $carolsComment = $this->createEntryComment('carol speaks', $this->entry, $carol);
+        $bobsComment = $this->createEntryComment('bob speaks', $this->entry, $this->bob);
+        $carolsReply = $this->createPostComment('carol replies', $this->post, $carol);
+        $bobsReply = $this->createPostComment('bob replies', $this->post, $this->bob);
+        static::getContainer()->get(\App\Service\MagazineMemberManager::class)->remove($this->circle, $this->bob);
+        $before = [$this->unread($carol), $this->unread($this->bob)];
+
+        $this->createEntryComment('reply to carol', $this->entry, $this->alice, parent: $carolsComment);
+        $this->createEntryComment('reply to bob', $this->entry, $this->alice, parent: $bobsComment);
+        $this->createPostComment('reply to carol', $this->post, $this->alice, parent: $carolsReply);
+        $this->createPostComment('reply to bob', $this->post, $this->alice, parent: $bobsReply);
+
+        self::assertSame($before[0] + 2, $this->unread($carol), 'positive control: a member is told of both replies');
+        self::assertSame($before[1], $this->unread($this->bob), 'a former member is told of neither');
+    }
+
+    public function testSiteStaffSubscribersAreStillNotified(): void
+    {
+        $staff = [
+            $this->getUserByUsername('admin', isAdmin: true),
+            $this->getUserByUsername('gmod', isModerator: true),
+        ];
+        foreach ($staff as $user) {
+            $user->notifyOnNewEntry = true;
+            $this->magazineManager->subscribe($this->circle, $user);
+        }
+        $this->entityManager->flush();
+        $before = array_map(fn (User $user) => $this->unread($user), $staff);
+
+        $this->createEntry('Circle entry for staff', $this->circle, $this->alice);
+
+        foreach ($staff as $i => $user) {
+            self::assertSame($before[$i] + 1, $this->unread($user), $user->username);
+        }
+    }
+
+    private function unread(User $user): int
+    {
+        return $this->notificationRepository->countUnreadNotifications($user);
+    }
+
     public function testNoMercureUpdateForRestrictedContent(): void
     {
         $this->enableMercure();
