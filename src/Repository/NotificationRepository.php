@@ -12,6 +12,7 @@ use App\Entity\Post;
 use App\Entity\PostComment;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Pagerfanta\Doctrine\ORM\QueryAdapter;
 use Pagerfanta\Exception\NotValidCurrentPageException;
@@ -57,11 +58,7 @@ class NotificationRepository extends ServiceEntityRepository
         }
 
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        $hidden = $this->findIdsOfUnviewableContent($user);
-        if ([] !== $hidden) {
-            $qb->andWhere('n.id NOT IN (:hiddenNotifications)')
-                ->setParameter('hiddenNotifications', $hidden);
-        }
+        $this->excludeUnviewableContent($qb, $user);
 
         $pagerfanta = new Pagerfanta(
             new QueryAdapter(
@@ -80,37 +77,48 @@ class NotificationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Ids of the user's notifications about content (or a report on content) in a magazine
+     * Drop the user's notifications about content (or a report on content) in a magazine
      * the user cannot see now, for example after being removed from a private magazine.
-     * Native SQL because the content columns belong to the notification subclasses, which
-     * DQL on the root class cannot reach.
+     * The content columns belong to the notification subclasses, which DQL on the root
+     * class cannot reach, so each subclass that carries one gets its own subquery. The
+     * exclusion stays inside the paginated query: no id list is fetched or bound.
      *
      * FORK DIVERGENCE — do not offer this upstream: private magazines
-     *
-     * @return int[]
      */
-    private function findIdsOfUnviewableContent(User $user): array
+    private function excludeUnviewableContent(QueryBuilder $qb, User $user): void
     {
-        [$access, $parameters] = MagazineAccessClause::sql('nam', $user);
-        if ('TRUE' === $access) {
-            return [];
+        $em = $this->getEntityManager();
+        $subclasses = $em->getClassMetadata(Notification::class)->subClasses;
+        sort($subclasses);
+
+        $i = 0;
+        foreach ($subclasses as $subclass) {
+            $metadata = $em->getClassMetadata($subclass);
+            foreach (['entry', 'entryComment', 'post', 'postComment', 'report'] as $field) {
+                if (!$metadata->hasAssociation($field)) {
+                    continue;
+                }
+
+                $magazine = 'nam_m'.$i;
+                $condition = MagazineAccessClause::dql($qb, $magazine, $user);
+                if (null === $condition) {
+                    return;
+                }
+
+                $content = 'nam_c'.$i;
+                $notification = 'nam_n'.$i;
+                $qb->andWhere(\sprintf(
+                    'n.id NOT IN (SELECT %1$s.id FROM %2$s %1$s JOIN %1$s.%3$s %4$s JOIN %4$s.magazine %5$s WHERE NOT %6$s)',
+                    $notification,
+                    $subclass,
+                    $field,
+                    $content,
+                    $magazine,
+                    $condition,
+                ));
+                ++$i;
+            }
         }
-
-        $sql = "SELECT n.id FROM notification n
-            LEFT JOIN entry e ON e.id = n.entry_id
-            LEFT JOIN entry_comment ec ON ec.id = n.entry_comment_id
-            LEFT JOIN post p ON p.id = n.post_id
-            LEFT JOIN post_comment pc ON pc.id = n.post_comment_id
-            LEFT JOIN report r ON r.id = n.report_id
-            INNER JOIN magazine nam ON nam.id = COALESCE(e.magazine_id, ec.magazine_id, p.magazine_id, pc.magazine_id, r.magazine_id)
-            WHERE n.user_id = :nam_user AND NOT $access";
-
-        return array_map(
-            'intval',
-            $this->getEntityManager()->getConnection()
-                ->executeQuery($sql, ['nam_user' => $user->getId()] + $parameters)
-                ->fetchFirstColumn(),
-        );
     }
 
     public function findUnreadEntryNotifications(User $user, Entry $entry): iterable
