@@ -7,12 +7,12 @@ namespace App\Service\ActivityPub;
 use App\Entity\Entry;
 use App\Entity\Magazine;
 use App\Entity\Post;
+use App\Exception\BadUrlException;
 use App\Repository\EntryRepository;
 use App\Repository\MagazineFollowRepository;
 use App\Utils\Slugger;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use App\Utils\UrlCleaner;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
 use League\CommonMark\CommonMarkConverter;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -32,11 +32,11 @@ class ShadowThreadManager
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly ManagerRegistry $managerRegistry,
         private readonly MagazineFollowRepository $magazineFollowRepository,
         private readonly EntryRepository $entryRepository,
         private readonly TranslatorInterface $translator,
         private readonly Slugger $slugger,
+        private readonly UrlCleaner $urlCleaner,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -47,6 +47,13 @@ class ShadowThreadManager
     public function shadow(Entry|Post $original, array $object, ?string $deliveredBy, ?string $activityType): void
     {
         if (null === $activityType || $original->magazine->isRestricted()) {
+            return;
+        }
+
+        $url = $this->urlOf($object);
+        if (null === $url) {
+            $this->logger->info('[ShadowThreadManager::shadow] {o} has no http(s) id, not shadowing it', ['o' => $object['id'] ?? '<no id>']);
+
             return;
         }
 
@@ -62,7 +69,7 @@ class ShadowThreadManager
 
             $shadow = new Entry(
                 $original instanceof Entry ? $this->titleForEntry($original) : $this->titleForPost($original),
-                $this->urlOf($object),
+                $url,
                 $original->body,
                 $magazine,
                 $original->user,
@@ -80,18 +87,8 @@ class ShadowThreadManager
             $shadow->updateScore();
             $shadow->updateRanking();
 
-            try {
-                $this->entityManager->persist($shadow);
-                $this->entityManager->flush();
-            } catch (UniqueConstraintViolationException) {
-                // another worker shadowed the same original into this magazine between the
-                // check above and this insert; its shadow stands, and the inbox message must
-                // not fail over a duplicate. A failed flush closes the entity manager.
-                $this->logger->info('[ShadowThreadManager::shadow] {o} is already shadowed in {m}', ['o' => $object['id'] ?? '<no id>', 'm' => $magazine->name]);
-                $this->managerRegistry->resetManager();
-
-                return;
-            }
+            $this->entityManager->persist($shadow);
+            $this->entityManager->flush();
 
             $magazine->entryCount = $this->entryRepository->countEntriesByMagazine($magazine);
             $this->entityManager->flush();
@@ -152,16 +149,43 @@ class ShadowThreadManager
     }
 
     /**
+     * The link a shadow carries: the object's url when it is http(s) on the same host as the
+     * object's id, else the id itself. A url is rendered as an href, so a javascript: url or
+     * one pointing at an arbitrary host must never get through. Null when the id itself is not
+     * an http(s) url, in which case there is nothing safe to link to.
+     *
      * @param array<string, mixed> $object
      */
     private function urlOf(array $object): ?string
     {
-        $url = $object['url'] ?? null;
+        $id = \is_string($object['id'] ?? null) ? $object['id'] : null;
+        $idHost = null !== $id && self::isHttpUrl($id) ? mb_strtolower((string) parse_url($id, PHP_URL_HOST)) : null;
+        if (null === $id || null === $idHost) {
+            return null;
+        }
+
+        $url = $id;
+        $candidate = self::urlCandidate($object['url'] ?? null);
+        if (null !== $candidate && self::isHttpUrl($candidate) && mb_strtolower((string) parse_url($candidate, PHP_URL_HOST)) === $idHost) {
+            $url = $candidate;
+        }
+
+        try {
+            return ($this->urlCleaner)($url);
+        } catch (BadUrlException) {
+            return $url;
+        }
+    }
+
+    /**
+     * The string url, or the first href of a Link object or a list of them.
+     */
+    private static function urlCandidate(mixed $url): ?string
+    {
         if (\is_string($url) && '' !== $url) {
             return $url;
         }
         if (\is_array($url)) {
-            // a single Link object, or a list of them
             $links = isset($url['href']) ? [$url] : $url;
             foreach ($links as $link) {
                 if (\is_array($link) && isset($link['href']) && \is_string($link['href'])) {
@@ -170,7 +194,16 @@ class ShadowThreadManager
             }
         }
 
-        return \is_string($object['id'] ?? null) ? $object['id'] : null;
+        return null;
+    }
+
+    private static function isHttpUrl(string $url): bool
+    {
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+        $host = parse_url($url, PHP_URL_HOST);
+
+        return \is_string($scheme) && \in_array(mb_strtolower($scheme), ['http', 'https'], true)
+            && \is_string($host) && '' !== $host;
     }
 
     private function hasShadow(Entry|Post $original, Magazine $magazine): bool

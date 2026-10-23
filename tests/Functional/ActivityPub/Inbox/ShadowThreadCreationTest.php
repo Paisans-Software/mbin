@@ -162,6 +162,24 @@ class ShadowThreadCreationTest extends ActivityPubFunctionalTestCase
         self::assertSame('bold and a link', $manager->titleForPost(new Post("\n\n**bold**   and [a link](https://example.com)\nsecond line", $this->random, $user, false)));
     }
 
+    public function testJavascriptUrlFallsBackToTheId(): void
+    {
+        self::assertSame($this->pageToNobody['object']['id'], $this->shadowUrlFor('javascript:alert(1)'));
+    }
+
+    public function testForeignHostUrlFallsBackToTheId(): void
+    {
+        self::assertSame($this->pageToNobody['object']['id'], $this->shadowUrlFor([['type' => 'Link', 'href' => 'https://evil.example/phish']]));
+    }
+
+    public function testSameHostUrlIsCleanedOfTrackingParameters(): void
+    {
+        self::assertSame(
+            "https://$this->remoteDomain/some/page?keep=1",
+            $this->shadowUrlFor("https://$this->remoteDomain/some/page?utm_source=feed&keep=1"),
+        );
+    }
+
     public function testOriginalAddressedToRemoteCommunityStillShadowed(): void
     {
         $this->bus->dispatch(new ActivityMessage(json_encode($this->pageToRemoteGroup)));
@@ -264,6 +282,21 @@ class ShadowThreadCreationTest extends ActivityPubFunctionalTestCase
         // positive control: a thread created the normal way does notify carol
         $this->createEntry('a normal circle thread', $this->circle, $admin);
         self::assertSame($before + 1, $this->notificationRepository->countUnreadNotifications($carol));
+    }
+
+    /**
+     * @param string|array<mixed> $url
+     */
+    private function shadowUrlFor(string|array $url): ?string
+    {
+        $create = $this->pageToNobody;
+        $create['object']['url'] = $url;
+        $this->bus->dispatch(new ActivityMessage(json_encode($create)));
+
+        $shadows = $this->entryRepository->findBy(['magazine' => $this->circle]);
+        self::assertCount(1, $shadows);
+
+        return $shadows[0]->url;
     }
 
     private function follow(Magazine $magazine, MagazineFollowKind $kind): void
