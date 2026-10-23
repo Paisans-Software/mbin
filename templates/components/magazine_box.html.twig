@@ -22,6 +22,8 @@
                 <a href="{{ path('front_magazine', {name: magazine.name}) }}" class="{{ html_classes({'stretched-link': false}) }}">
                     {{ computed.magazine.title }}
                 </a>
+                {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+                {{ include('components/_magazine_access_icon.html.twig', {access: magazine.access.value}, with_context: false) }}
                 {% if magazine.postingRestrictedToMods %}
                     <i class="fa-solid fa-lock"
                        aria-description="{{ 'magazine_posting_restricted_to_mods_warning'|trans }}"

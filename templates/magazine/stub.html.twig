@@ -30,7 +30,7 @@
                  alt="{{ stubMagazine.name }}" class="image-inline magazine-stub__icon" loading="lazy">
         {% endif %}
         <h1>
-            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+            {{ include('components/_magazine_access_icon.html.twig', {access: stubMagazine.access.value}, with_context: false) }}
             {{ stubMagazine.title }}
         </h1>
         {% if stubMagazine.description %}
