@@ -137,7 +137,7 @@ class RestrictedMagazineFederationGuardTest extends TestCase
             'actor' => 'https://local.example/m/circle',
             'object' => $follow,
         ]));
-        self::assertTrue($guard->isAllowedHandshake([
+        self::assertFalse($guard->isAllowedHandshake([
             'type' => 'Reject',
             'actor' => 'https://local.example/m/circle',
             'object' => ['type' => 'Follow', 'actor' => 'https://remote.example/u/bob', 'object' => 'https://local.example/m/circle'],

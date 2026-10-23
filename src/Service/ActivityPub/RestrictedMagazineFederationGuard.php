@@ -52,8 +52,9 @@ readonly class RestrictedMagazineFederationGuard
     }
 
     /**
-     * A Follow, an Undo of a Follow or a Reject of a Follow whose actor is a restricted
-     * local magazine: the magazine following (or unfollowing) somebody itself.
+     * A Follow or an Undo of a Follow whose actor is a restricted local magazine: the
+     * magazine following (or unfollowing) somebody itself. A restricted magazine never
+     * sends a Reject, since a remote Follow of it is dropped silently.
      *
      * @param array<mixed> $payload
      */
@@ -62,7 +63,7 @@ readonly class RestrictedMagazineFederationGuard
         $type = $payload['type'] ?? null;
         $isHandshake = match ($type) {
             'Follow' => true,
-            'Undo', 'Reject' => \is_array($payload['object'] ?? null) && 'Follow' === ($payload['object']['type'] ?? null),
+            'Undo' => \is_array($payload['object'] ?? null) && 'Follow' === ($payload['object']['type'] ?? null),
             default => false,
         };
 
