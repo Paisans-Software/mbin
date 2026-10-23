@@ -20,6 +20,12 @@ use Doctrine\ORM\QueryBuilder;
  * Nothing here is cached: membership is read by the query itself, so removing a member
  * takes effect on their next request.
  *
+ * It reads the access column alone, so it is deliberately stricter than
+ * Magazine::isRestricted() for remote magazines: isRestricted() is always false for a
+ * remote magazine, while a remote magazine row whose access is not public would be
+ * filtered here. Remote magazines are created public and their access is never edited,
+ * so the two agree in practice; when they could differ, the listing fails closed.
+ *
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
  */
 final class MagazineAccessClause

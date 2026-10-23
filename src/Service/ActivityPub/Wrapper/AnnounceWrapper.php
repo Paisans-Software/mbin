@@ -65,7 +65,13 @@ class AnnounceWrapper
         return $activity;
     }
 
-    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    /**
+     * The magazine the announced object belongs to. An object held only as a URL string
+     * resolves to null: a URL only arrives here when a magazine announces a remote activity
+     * it holds by URL alone (GenericAnnounceHandler), which has no local magazine to record.
+     *
+     * FORK DIVERGENCE — do not offer this upstream: private magazines
+     */
     private static function magazineOf(ActivityPubActivityInterface|Activity|string $object): ?Magazine
     {
         if ($object instanceof Activity) {
