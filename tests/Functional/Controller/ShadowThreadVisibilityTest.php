@@ -41,8 +41,7 @@ class ShadowThreadVisibilityTest extends ActivityPubFunctionalTestCase
     public function setUpRemoteEntities(): void
     {
         $this->firstPage = $this->addressedToNobody($this->remotePageCreate('shadowed page for the circle'));
-        // the page just built is the last of the entities to remove
-        $page = $this->entitiesToRemoveAfterSetup[\count($this->entitiesToRemoveAfterSetup) - 1];
+        $page = $this->lastRemotePage;
         self::assertInstanceOf(Entry::class, $page);
 
         $reply = $this->createEntryComment('a third party reply to the page', $page, $this->remoteSubscriber);

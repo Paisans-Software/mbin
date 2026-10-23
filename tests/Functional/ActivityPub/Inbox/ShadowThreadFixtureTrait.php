@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\ActivityPub\Inbox;
 
 use App\Entity\Contracts\ActivityPubActivityInterface;
+use App\Entity\Entry;
 use App\Entity\Magazine;
 use App\Entity\MagazineFollow;
 use App\Enum\MagazineAccess;
@@ -19,6 +20,9 @@ use App\Enum\MagazineFollowKind;
  */
 trait ShadowThreadFixtureTrait
 {
+    /** The entry behind the page most recently built by remotePageCreate(). */
+    protected ?Entry $lastRemotePage = null;
+
     public function setUpLocalEntities(): void
     {
         $admin = $this->getUserByUsername('admin', isAdmin: true);
@@ -70,6 +74,7 @@ trait ShadowThreadFixtureTrait
 
         $this->entitiesToRemoveAfterSetup[] = $createActivity;
         $this->entitiesToRemoveAfterSetup[] = $entry;
+        $this->lastRemotePage = $entry;
 
         return $create;
     }

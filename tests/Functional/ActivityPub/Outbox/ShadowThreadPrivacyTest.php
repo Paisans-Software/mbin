@@ -6,6 +6,7 @@ namespace App\Tests\Functional\ActivityPub\Outbox;
 
 use App\Entity\Contracts\VotableInterface;
 use App\Entity\Entry;
+use App\Entity\EntryComment;
 use App\Entity\MagazineSubscription;
 use App\Entity\User;
 use App\Enum\MagazineFollowKind;
@@ -37,6 +38,7 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
     private Entry $original;
     private Entry $shadow;
     private int $baseline;
+    private int $controlSeen = 0;
 
     public function setUpRemoteEntities(): void
     {
@@ -52,6 +54,7 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
         $admin = $this->userRepository->findOneByUsername('admin');
         $this->alice = $this->getUserByUsername('alice');
         static::getContainer()->get(MagazineMemberManager::class)->add($circle, $this->alice, $admin);
+        self::assertTrue($circle->userCanView($this->alice), 'alice should be a member of the circle');
 
         // somebody remote to deliver to on every path: the circle's subscribers and alice's followers
         $this->entityManager->persist(new MagazineSubscription($this->remoteSubscriber, $circle));
@@ -66,15 +69,35 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
 
         $this->mention = "@remoteUser@$this->remoteDomain";
         // legitimate earlier deliveries (follow handshakes, the original's own traffic) must not mask anything
-        $this->baseline = \count($this->testingApHttpClient->getPostedObjects());
+        $this->baseline = $this->controlSeen = \count($this->testingApHttpClient->getPostedObjects());
     }
 
     public function testControlActivityOnTheOriginalIsDelivered(): void
     {
-        $this->createEntryComment("a reply to $this->mention", $this->original, $this->alice);
-        $this->voteManager->vote(VotableInterface::VOTE_UP, $this->original, $this->alice, rateLimit: false);
+        $comment = $this->createEntryComment("a reply to $this->mention", $this->original, $this->alice);
+        $this->assertDelivered('reply');
+        $mentions = [];
+        foreach (\array_slice($this->testingApHttpClient->getPostedObjects(), $this->baseline) as $posted) {
+            foreach ($posted['payload']['object']['tag'] ?? [] as $tag) {
+                if ('Mention' === ($tag['type'] ?? null)) {
+                    $mentions[] = $tag['name'];
+                }
+            }
+        }
+        self::assertContains($this->mention, $mentions, 'the mention of the remote user should resolve');
+        self::assertContains($this->remoteUser->apInboxUrl, array_column($this->testingApHttpClient->getPostedObjects(), 'inboxUrl'));
 
-        self::assertNotSame([], $this->newlyPosted(), 'the harness should see deliveries for public content');
+        $this->voteManager->vote(VotableInterface::VOTE_UP, $this->original, $this->alice, rateLimit: false);
+        $this->assertDelivered('boost');
+        $this->favouriteManager->toggle($this->alice, $this->original);
+        $this->assertDelivered('favourite');
+        // Mbin federates no downvote of its own: casting one only withdraws a like, which is an Undo
+        $this->voteManager->vote(VotableInterface::VOTE_DOWN, $this->original, $this->alice, rateLimit: false);
+        $this->assertDelivered('downvote that withdraws the like');
+        $this->voteManager->vote(VotableInterface::VOTE_UP, $comment, $this->alice, rateLimit: false);
+        $this->assertDelivered('comment boost');
+        $this->favouriteManager->toggle($this->alice, $comment);
+        $this->assertDelivered('comment favourite');
     }
 
     public function testReplyOnShadowNotDeliveredToOriginalAuthor(): void
@@ -92,15 +115,36 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
         $comment = $this->createEntryComment('a reply on the shadow', $this->shadow, $this->alice);
         $this->assertNothingDelivered();
 
-        $this->voteManager->vote(VotableInterface::VOTE_DOWN, $this->shadow, $this->alice, rateLimit: false);
-        $this->voteManager->vote(VotableInterface::VOTE_UP, $this->shadow, $this->alice, rateLimit: false);
-        $this->voteManager->vote(VotableInterface::VOTE_UP, $comment, $this->alice, rateLimit: false);
-        $this->voteManager->vote(VotableInterface::VOTE_NONE, $comment, $this->alice, rateLimit: false);
         $this->favouriteManager->toggle($this->alice, $this->shadow);
+        $this->entityManager->refresh($this->shadow);
+        self::assertSame(1, $this->shadow->favouriteCount, 'the favourite should take effect');
+
+        // a downvote withdraws the like, which on a public thread would send an Undo
+        $this->voteManager->vote(VotableInterface::VOTE_DOWN, $this->shadow, $this->alice, rateLimit: false);
+        $this->entityManager->refresh($this->shadow);
+        self::assertSame([1, 0, 0], [$this->shadow->countDownVotes(), $this->shadow->countUpVotes(), $this->shadow->favouriteCount], 'the downvote should take effect');
+
+        $this->voteManager->vote(VotableInterface::VOTE_UP, $this->shadow, $this->alice, rateLimit: false);
+        $this->entityManager->refresh($this->shadow);
+        self::assertSame([0, 1], [$this->shadow->countDownVotes(), $this->shadow->countUpVotes()], 'the boost should take effect');
+
+        $this->voteManager->vote(VotableInterface::VOTE_UP, $comment, $this->alice, rateLimit: false);
+        $this->entityManager->refresh($comment);
+        self::assertSame(1, $comment->countUpVotes(), 'the boost of the comment should take effect');
+
+        $this->favouriteManager->toggle($this->alice, $this->shadow);
+        $this->entityManager->refresh($this->shadow);
+        self::assertSame(1, $this->shadow->favouriteCount, 'the second favourite should take effect');
         $this->favouriteManager->toggle($this->alice, $comment);
+        $this->entityManager->refresh($comment);
+        self::assertSame(1, $comment->favouriteCount, 'the favourite of the comment should take effect');
+
         // and undone again, which would send an Undo
         $this->favouriteManager->toggle($this->alice, $this->shadow);
         $this->voteManager->vote(VotableInterface::VOTE_NONE, $this->shadow, $this->alice, rateLimit: false);
+        $this->voteManager->vote(VotableInterface::VOTE_NONE, $comment, $this->alice, rateLimit: false);
+        $this->entityManager->refresh($this->shadow);
+        self::assertSame([0, 0, 0], [$this->shadow->favouriteCount, $this->shadow->countUpVotes(), $this->shadow->countDownVotes()], 'the undos should take effect');
 
         $this->assertNothingDelivered();
     }
@@ -109,6 +153,7 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
     {
         $this->createEntryComment("hello $this->mention, are you there", $this->shadow, $this->alice);
 
+        self::assertSame(1, $this->entryCommentRepository->count(['entry' => $this->shadow]));
         $this->assertNothingDelivered();
     }
 
@@ -116,6 +161,7 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
     {
         $comment = $this->createEntryComment("hello $this->mention", $this->shadow, $this->alice);
         $id = $comment->getId();
+        self::assertSame(1, $this->entryCommentRepository->count(['entry' => $this->shadow]));
 
         $this->entityManager->clear();
         $alice = $this->userRepository->find($this->alice->getId());
@@ -123,10 +169,14 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
         $dto = $this->entryCommentManager->createDto($comment);
         $dto->body = "edited $this->mention";
         $this->entryCommentManager->edit($comment, $dto, $alice);
+        $this->entityManager->clear();
+        self::assertSame("edited $this->mention", $this->entryCommentRepository->find($id)->body, 'the edit should take effect');
         // the delivery handlers leave the entity manager holding stale copies, so start over
         $this->entityManager->clear();
         $this->entryCommentManager->delete($this->userRepository->find($this->alice->getId()), $this->entryCommentRepository->find($id));
 
+        // a comment without replies is purged, one with replies is soft deleted
+        self::assertNotSame(EntryComment::VISIBILITY_VISIBLE, $this->entryCommentRepository->find($id)?->visibility, 'the delete should take effect');
         $this->assertNothingDelivered();
     }
 
@@ -145,6 +195,17 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
         $local = $this->createEntry('A local public thread', $this->magazineRepository->findOneByName('garden'), $this->userRepository->findOneByUsername('admin'));
         $this->client->request('GET', "/m/garden/t/{$local->getId()}", server: $headers);
         self::assertResponseIsSuccessful();
+        // and so is a local comment, on the same comment route
+        $localComment = $this->createEntryComment('A local public comment', $local, $this->userRepository->findOneByUsername('admin'));
+        $this->client->request('GET', "/m/garden/t/{$local->getId()}/-/comment/{$localComment->getId()}", server: $headers);
+        self::assertResponseIsSuccessful();
+    }
+
+    private function assertDelivered(string $what): void
+    {
+        $posted = \count($this->testingApHttpClient->getPostedObjects());
+        self::assertGreaterThan($this->controlSeen, $posted, "the $what on the original should be delivered");
+        $this->controlSeen = $posted;
     }
 
     private function assertNothingDelivered(): void
