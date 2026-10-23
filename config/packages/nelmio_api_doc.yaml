@@ -178,6 +178,8 @@ nelmio_api_doc:
                                 moderate:magazine:ban:create: Ban users in your moderated magazines.
                                 moderate:magazine:ban:delete: Unban users in your moderated magazines.
                                 moderate:magazine:list: Read a list of your moderated magazines.
+                                # FORK DIVERGENCE — do not offer this upstream: private magazines
+                                moderate:magazine:members: Manage the members of magazines you moderate.
                                 moderate:magazine:reports: Manage reports in your moderated magazines.
                                 moderate:magazine:reports:read: Read reports in your moderated magazines.
                                 moderate:magazine:reports:action: Accept or reject reports in your moderated magazines.
@@ -294,6 +296,8 @@ nelmio_api_doc:
                                 moderate:magazine:ban:create: Ban users in your moderated magazines.
                                 moderate:magazine:ban:delete: Unban users in your moderated magazines.
                                 moderate:magazine:list: Read a list of your moderated magazines.
+                                # FORK DIVERGENCE — do not offer this upstream: private magazines
+                                moderate:magazine:members: Manage the members of magazines you moderate.
                                 moderate:magazine:reports: Manage reports in your moderated magazines.
                                 moderate:magazine:reports:read: Read reports in your moderated magazines.
                                 moderate:magazine:reports:action: Accept or reject reports in your moderated magazines.

@@ -108,6 +108,8 @@ class OAuth2ClientDto extends ImageUploadDto implements \JsonSerializable
         'moderate:magazine:ban:create',
         'moderate:magazine:ban:delete',
         'moderate:magazine:list',
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        'moderate:magazine:members',
         'moderate:magazine:reports',
         'moderate:magazine:reports:read',
         'moderate:magazine:reports:action',
