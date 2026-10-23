@@ -36,6 +36,8 @@ class ShadowThreadVisibilityTest extends ActivityPubFunctionalTestCase
     private array $replyToFirstPage;
     /** @var array<string, mixed> */
     private array $followersOnlyNote;
+    /** @var array<string, mixed> */
+    private array $linkPage;
     private User $alice;
     private User $bob;
     private Entry $original;
@@ -59,6 +61,7 @@ class ShadowThreadVisibilityTest extends ActivityPubFunctionalTestCase
 
         $this->secondPage = $this->addressedToNobody($this->remotePageCreate('a later page for the circle'));
         $this->followersOnlyNote = $this->remoteNoteCreate('a note for my followers only');
+        $this->linkPage = $this->addressedToNobody($this->remotePageCreate('a link for the circle', 'https://article.example/story'));
     }
 
     public function setUp(): void
@@ -115,6 +118,25 @@ class ShadowThreadVisibilityTest extends ActivityPubFunctionalTestCase
 
         $this->get($this->entryPath($this->shadow));
         self::assertResponseIsSuccessful();
+    }
+
+    public function testMemberSeesCrossPostLinkOfALinkPage(): void
+    {
+        $this->bus->dispatch(new ActivityMessage(json_encode($this->linkPage)));
+        $original = $this->entryRepository->findOneBy(['apId' => $this->linkPage['object']['id']]);
+        self::assertNotNull($original);
+        self::assertSame('https://article.example/story', $original->url);
+        $shadow = $this->entryRepository->findOneBy(['shadowOfEntry' => $original]);
+        self::assertNotNull($shadow);
+        self::assertSame($original->url, $shadow->url, 'the shadow links to the article, as the original does');
+
+        $this->client->loginUser($this->alice);
+        $page = $this->get($this->entryPath($original));
+        self::assertStringContainsString($this->entryPath($shadow), $page, 'the original should list the shadow as a cross post');
+
+        $this->client->loginUser($this->bob);
+        $page = $this->get($this->entryPath($original));
+        self::assertStringNotContainsString($this->entryPath($shadow), $page);
     }
 
     public function testLocalFollowerOfAuthorStillSeesNewPosts(): void

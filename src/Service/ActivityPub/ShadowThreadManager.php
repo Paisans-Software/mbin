@@ -50,7 +50,7 @@ class ShadowThreadManager
             return;
         }
 
-        $url = $this->urlOf($object);
+        $url = $this->linkOf($original) ?? $this->urlOf($object);
         if (null === $url) {
             $this->logger->info('[ShadowThreadManager::shadow] {o} has no http(s) id, not shadowing it', ['o' => $object['id'] ?? '<no id>']);
 
@@ -244,8 +244,26 @@ class ShadowThreadManager
     }
 
     /**
-     * The link a shadow carries: the object's url when it is http(s) on the same host as the
-     * object's id, else the id itself. A url is rendered as an href, so a javascript: url or
+     * A link thread's own link, which the public path already took from the object and
+     * cleaned: the shadow points at the same article, so both are found as cross posts.
+     * Null for anything else, and for a link that is not http(s).
+     */
+    private function linkOf(Entry|Post $original): ?string
+    {
+        if (!$original instanceof Entry || null === $original->url || !self::isHttpUrl($original->url)) {
+            return null;
+        }
+
+        try {
+            return ($this->urlCleaner)($original->url);
+        } catch (BadUrlException) {
+            return null;
+        }
+    }
+
+    /**
+     * Otherwise the link a shadow carries: the object's url when it is http(s) on the same
+     * host as the object's id, else the id itself. A url is rendered as an href, so a javascript: url or
      * one pointing at an arbitrary host must never get through. Null when the id itself is not
      * an http(s) url, in which case there is nothing safe to link to.
      *

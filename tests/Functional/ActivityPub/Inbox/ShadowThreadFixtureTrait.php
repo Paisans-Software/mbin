@@ -64,9 +64,9 @@ trait ShadowThreadFixtureTrait
     /**
      * @return array<string, mixed>
      */
-    protected function remotePageCreate(string $title): array
+    protected function remotePageCreate(string $title, ?string $url = null): array
     {
-        $entry = $this->getEntryByTitle($title, magazine: $this->remoteMagazine, user: $this->remoteUser);
+        $entry = $this->getEntryByTitle($title, url: $url, magazine: $this->remoteMagazine, user: $this->remoteUser);
         $createActivity = $this->createWrapper->build($entry);
         $create = $this->activityJsonBuilder->buildActivityJson($createActivity);
         $create['cc'] = [];
