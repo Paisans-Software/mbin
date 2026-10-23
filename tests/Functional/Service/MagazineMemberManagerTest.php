@@ -120,9 +120,9 @@ class MagazineMemberManagerTest extends WebTestCase
     public static function unusableAccountProvider(): array
     {
         return [
-            'banned from the instance' => [fn (User $user) => $user->isBanned = true],
-            'deleted' => [fn (User $user) => $user->isDeleted = true],
-            'soft-deleted' => [fn (User $user) => $user->softDelete()],
+            'banned from the instance' => [static function (User $user): void { $user->isBanned = true; }],
+            'deleted' => [static function (User $user): void { $user->isDeleted = true; }],
+            'soft-deleted' => [static function (User $user): void { $user->softDelete(); }],
         ];
     }
 
