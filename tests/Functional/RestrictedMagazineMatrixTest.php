@@ -17,7 +17,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 /**
  * Every viewer against every surface of a private and of a hidden magazine.
  *
- * A viewer is a member, a moderator of the magazine, a global moderator or an admin.
+ * A viewer is a member, a moderator of the magazine, a global moderator or an admin. The
+ * admin owns the magazines and wrote their content; a second admin with no ties to either
+ * shows that the admin bypass alone grants the view.
  * Anonymous visitors and signed-in non-members see nothing: the stub on a private
  * magazine's front page, a 404 on every content route and on a hidden magazine's front
  * page, and no trace in listings. RSS is 404 for everyone, viewer or not. ActivityPub
@@ -31,7 +33,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class RestrictedMagazineMatrixTest extends WebTestCase
 {
-    private const array VIEWERS = ['anonymous', 'non-member', 'member', 'magazine moderator', 'global moderator', 'admin'];
+    private const array VIEWERS = ['anonymous', 'non-member', 'member', 'magazine moderator', 'global moderator', 'admin', 'unattached admin'];
     private const array LEVELS = ['private' => 'circle', 'hidden' => 'vault'];
     private const array SURFACES = ['front', 'entry', 'post', 'all', 'comments', 'search', 'profile', 'api entry', 'api magazines', 'rss', 'ap entry'];
 
@@ -46,6 +48,8 @@ class RestrictedMagazineMatrixTest extends WebTestCase
     private array $restrictedEntries = [];
     /** @var array<string, Post> */
     private array $restrictedPosts = [];
+    /** The positive control for surfaces that answer 404 to everyone on restricted content. */
+    private Entry $publicEntry;
 
     /**
      * @return iterable<string, array{string, string, string}>
@@ -73,6 +77,8 @@ class RestrictedMagazineMatrixTest extends WebTestCase
         $alice = $this->getUserByUsername('alice');
         $mmod = $this->getUserByUsername('mmod');
         $this->getUserByUsername('gmod', isModerator: true);
+        $this->getUserByUsername('root', isAdmin: true);
+        $this->publicEntry = $this->createEntry('Public control entry', $this->getMagazineByName('open', $admin), $admin);
 
         $members = static::getContainer()->get(MagazineMemberManager::class);
 
@@ -162,11 +168,13 @@ class RestrictedMagazineMatrixTest extends WebTestCase
                 $this->api('/api/magazines?perPage=100', $user);
                 self::assertResponseIsSuccessful();
                 $names = array_column(self::getJsonResponse($this->client)['items'], 'name');
-                $listed = 'private' === $level || \in_array($viewer, ['global moderator', 'admin'], true);
+                $listed = 'private' === $level || \in_array($viewer, ['global moderator', 'admin', 'unattached admin'], true);
                 self::assertSame($listed, \in_array($name, $names, true), implode(', ', $names));
                 break;
 
             case 'rss':
+                $this->html('/rss?magazine=open', $user);
+                self::assertResponseIsSuccessful('positive control: a public magazine has a feed');
                 $this->html("/rss?magazine=$name", $user);
                 self::assertResponseStatusCodeSame(404);
                 $this->html("/rss?magazine=$name&content=microblog", $user);
@@ -175,11 +183,14 @@ class RestrictedMagazineMatrixTest extends WebTestCase
 
             case 'ap entry':
                 // requests arrive on the instance's own host, so the ids built while answering are local URLs
-                $this->client->request('GET', "/m/$name/t/{$entry->getId()}/-", server: [
+                $ap = [
                     'HTTP_ACCEPT' => 'application/activity+json',
                     'HTTP_HOST' => $this->settingsManager->get('KBIN_DOMAIN'),
                     'HTTPS' => 'on',
-                ]);
+                ];
+                $this->client->request('GET', "/m/open/t/{$this->publicEntry->getId()}/-", server: $ap);
+                self::assertResponseIsSuccessful('positive control: a public entry is served');
+                $this->client->request('GET', "/m/$name/t/{$entry->getId()}/-", server: $ap);
                 self::assertResponseStatusCodeSame(404);
                 break;
 
@@ -197,6 +208,7 @@ class RestrictedMagazineMatrixTest extends WebTestCase
             'magazine moderator' => $this->getUserByUsername('mmod'),
             'global moderator' => $this->getUserByUsername('gmod', isModerator: true),
             'admin' => $this->getUserByUsername('admin', isAdmin: true),
+            'unattached admin' => $this->getUserByUsername('root', isAdmin: true),
             default => throw new \LogicException("unknown viewer $viewer"),
         };
     }
