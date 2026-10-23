@@ -58,11 +58,45 @@ class RestrictedFeedTest extends WebTestCase
     public function testRssForRestrictedMagazineIsLikeAMissingOne(): void
     {
         $this->client->loginUser($this->alice);
-        $this->client->request('GET', '/rss?magazine=circle');
-        $restricted = $this->client->getResponse()->getStatusCode();
-        $this->client->request('GET', '/rss?magazine=nonexistent');
+        foreach (['circle', 'vault'] as $name) {
+            $this->client->request('GET', '/rss?magazine=nonexistent');
+            $missing = $this->production404();
+            self::assertSame(404, $missing[0]);
+            self::assertStringEndsWith('NotFoundHttpException', $missing[2]);
+            $this->client->request('GET', '/rss?magazine='.$name);
 
-        self::assertSame($restricted, $this->client->getResponse()->getStatusCode());
+            self::assertSame($missing, $this->production404(), $name);
+        }
+    }
+
+    /**
+     * Debug mode dumps the exception with its message, file and line; production serves
+     * a page chosen by the status code. Compare the status, the content type and the
+     * exception class (the first line of the dump), which is what both answers share.
+     *
+     * @return array{int, ?string, string}
+     */
+    private function production404(): array
+    {
+        $response = $this->client->getResponse();
+        preg_match('/^(\S+) \{#\d+/', (string) $response->getContent(), $class);
+
+        return [$response->getStatusCode(), $response->headers->get('Content-Type'), $class[1] ?? ''];
+    }
+
+    public function testDomainAndTagRssOmitRestrictedContent(): void
+    {
+        $admin = $this->getUserByUsername('admin');
+        $this->createEntry('Secret tagged entry', $this->circle, $admin, 'https://secret.example/tagged', body: 'about #feedtag');
+        $this->createEntry('Public tagged entry', $this->open, $admin, 'https://secret.example/public', body: 'about #feedtag');
+
+        $this->client->loginUser($this->alice);
+        foreach (['/rss?domain=secret.example', '/rss?tag=feedtag'] as $path) {
+            $body = $this->rss($path);
+            self::assertStringContainsString('Public tagged entry', $body, $path);
+            self::assertStringNotContainsString('Secret tagged entry', $body, $path);
+            self::assertStringNotContainsString('Secret entry title', $body, $path);
+        }
     }
 
     public function testRssForPublicMagazineWorks(): void
