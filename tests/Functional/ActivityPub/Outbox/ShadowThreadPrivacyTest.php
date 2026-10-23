@@ -180,6 +180,31 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
         $this->assertNothingDelivered();
     }
 
+    public function testModeratorEditAndTrashOfShadowNotDelivered(): void
+    {
+        // the control first: the same moderation of a local public thread is delivered
+        $admin = $this->userRepository->findOneByUsername('admin');
+        $garden = $this->magazineRepository->findOneByName('garden');
+        $this->entityManager->persist(new MagazineSubscription($this->remoteSubscriber, $garden));
+        $this->entityManager->flush();
+        $local = $this->createEntry('A local public thread', $garden, $this->alice);
+        $this->controlSeen = \count($this->testingApHttpClient->getPostedObjects());
+        $this->moderatorEdit($local, $admin);
+        $this->assertDelivered('moderator edit');
+        $this->entryManager->trash($admin, $local);
+        $this->assertDelivered('moderator trash');
+        $this->baseline = $this->controlSeen;
+
+        self::assertTrue($this->shadow->magazine->userIsModerator($admin), 'admin moderates the circle');
+        $this->moderatorEdit($this->shadow, $admin);
+        $this->entryManager->trash($admin, $this->shadow);
+        $this->entityManager->refresh($this->shadow);
+        self::assertSame('Moderated title', $this->shadow->title, 'the edit should take effect');
+        self::assertSame(Entry::VISIBILITY_TRASHED, $this->shadow->visibility, 'the trash should take effect');
+
+        $this->assertNothingDelivered();
+    }
+
     public function testShadowNotFetchableOverActivityPub(): void
     {
         $comment = $this->createEntryComment('a reply on the shadow', $this->shadow, $this->alice);
@@ -199,6 +224,13 @@ class ShadowThreadPrivacyTest extends ActivityPubFunctionalTestCase
         $localComment = $this->createEntryComment('A local public comment', $local, $this->userRepository->findOneByUsername('admin'));
         $this->client->request('GET', "/m/garden/t/{$local->getId()}/-/comment/{$localComment->getId()}", server: $headers);
         self::assertResponseIsSuccessful();
+    }
+
+    private function moderatorEdit(Entry $entry, User $moderator): void
+    {
+        $dto = $this->entryManager->createDto($entry);
+        $dto->title = 'Moderated title';
+        $this->entryManager->edit($entry, $dto, $moderator);
     }
 
     private function assertDelivered(string $what): void
