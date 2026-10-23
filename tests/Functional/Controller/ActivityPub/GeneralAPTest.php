@@ -21,6 +21,15 @@ class GeneralAPTest extends WebTestCase
         self::assertResponseHeaderSame('Content-Type', 'application/activity+json');
     }
 
+    public function testApProfileOfMissingMagazineIsNotFound(): void
+    {
+        $this->client->request('GET', '/m/missing', [], [], [
+            'HTTP_ACCEPT' => 'application/activity+json',
+        ]);
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public static function provideAcceptHeaders(): array
     {
         return [
