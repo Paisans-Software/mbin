@@ -27,9 +27,9 @@ class MagazineResolver implements ValueResolverInterface
 
         $magazine = $this->repository->findOneByName($magazineName);
 
-        // FORK DIVERGENCE — do not offer this upstream: private magazines
-        // a missing name is a 404, the same one a withheld magazine gets, not the
-        // TypeError (a 500) a non-nullable controller argument throws on null
+        // Upstream bug fix, also owed upstream as its own change: a missing name is a 404,
+        // not the TypeError (a 500) a non-nullable controller argument throws on null.
+        // Private magazines rely on it, since a withheld magazine answers with this 404.
         if (null === $magazine && !$argument->isNullable()) {
             throw new NotFoundHttpException();
         }

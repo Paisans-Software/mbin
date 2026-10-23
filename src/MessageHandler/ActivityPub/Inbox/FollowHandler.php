@@ -61,7 +61,8 @@ class FollowHandler extends MbinMessageHandler
                     // FORK DIVERGENCE — do not offer this upstream: private magazines
                     // a restricted magazine has no remote followers, and the Follow gets
                     // exactly what a Follow of a missing magazine gets: nothing at all,
-                    // decided before the read only Reject, which a missing magazine never gets
+                    // decided before the read only Reject, which a missing magazine never gets.
+                    // No apId check is needed: isRestricted() is false for every remote magazine.
                     if ($object instanceof Magazine && $object->isRestricted()) {
                         $this->logger->debug('ignoring a Follow of restricted magazine {m}', ['m' => $object->name]);
 
