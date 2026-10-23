@@ -48,6 +48,11 @@ class SentVoteNotificationHandler extends MbinMessageHandler
 
     private function notifyMagazine(VotableInterface $votable): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if ($votable->magazine->isRestricted()) {
+            return;
+        }
+
         if (false === $this->settingsManager->get('KBIN_MERCURE_ENABLED')) {
             return;
         }

@@ -76,7 +76,7 @@ class EntryNotificationManager implements ContentNotificationManagerInterface
         // Notify mentioned
         $mentions = $this->mentionManager->clearLocal($this->mentionManager->extract($subject->body));
         foreach ($this->mentionManager->getUsersFromArray($mentions) as $user) {
-            if (!$user->apId && !$user->isBlocked($subject->user)) {
+            if (!$user->apId && !$user->isBlocked($subject->user) && $subject->magazine->userCanView($user)) {
                 $notification = new EntryMentionedNotification($user, $subject);
                 $this->entityManager->persist($notification);
                 $this->eventDispatcher->dispatch(new NotificationCreatedEvent($notification));
@@ -91,6 +91,9 @@ class EntryNotificationManager implements ContentNotificationManagerInterface
             $subscribers = array_filter($subscribers, fn ($s) => !\in_array($s->username, $mentions ?? []));
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $subscribers = array_filter($subscribers, fn ($s) => $subject->magazine->userCanView($s));
+
         foreach ($subscribers as $subscriber) {
             $notification = new EntryCreatedNotification($subscriber, $subject);
             $this->entityManager->persist($notification);
@@ -102,6 +105,11 @@ class EntryNotificationManager implements ContentNotificationManagerInterface
 
     private function notifyMagazine(Notification $notification): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if ($notification->entry->magazine->isRestricted()) {
+            return;
+        }
+
         if (false === $this->settingsManager->get('KBIN_MERCURE_ENABLED')) {
             return;
         }

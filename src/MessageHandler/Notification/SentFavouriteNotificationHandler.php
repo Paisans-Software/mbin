@@ -48,6 +48,11 @@ class SentFavouriteNotificationHandler extends MbinMessageHandler
 
     private function notifyMagazine(FavouriteInterface $subject): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if ($subject->magazine->isRestricted()) {
+            return;
+        }
+
         if (false === $this->settingsManager->get('KBIN_MERCURE_ENABLED')) {
             return;
         }
