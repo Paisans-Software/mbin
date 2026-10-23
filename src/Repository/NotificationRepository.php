@@ -80,8 +80,9 @@ class NotificationRepository extends ServiceEntityRepository
      * Drop the user's notifications about content (or a report on content) in a magazine
      * the user cannot see now, for example after being removed from a private magazine.
      * The content columns belong to the notification subclasses, which DQL on the root
-     * class cannot reach, so each subclass that carries one gets its own subquery. The
-     * exclusion stays inside the paginated query: no id list is fetched or bound.
+     * class cannot reach, so each subclass that carries one gets its own subquery, correlated on
+     * the notification id. The exclusion stays inside the paginated query: no id list is
+     * fetched or bound.
      *
      * FORK DIVERGENCE — do not offer this upstream: private magazines
      */
@@ -108,7 +109,7 @@ class NotificationRepository extends ServiceEntityRepository
                 $content = 'nam_c'.$i;
                 $notification = 'nam_n'.$i;
                 $qb->andWhere(\sprintf(
-                    'n.id NOT IN (SELECT %1$s.id FROM %2$s %1$s JOIN %1$s.%3$s %4$s JOIN %4$s.magazine %5$s WHERE NOT %6$s)',
+                    'NOT EXISTS (SELECT %1$s.id FROM %2$s %1$s JOIN %1$s.%3$s %4$s JOIN %4$s.magazine %5$s WHERE %1$s.id = n.id AND NOT %6$s)',
                     $notification,
                     $subclass,
                     $field,
