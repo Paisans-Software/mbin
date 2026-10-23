@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler\ActivityPub\Inbox;
 
 use App\DTO\ReportDto;
+use App\Entity\Contracts\ContentInterface;
 use App\Entity\Contracts\ReportInterface;
 use App\Entity\User;
 use App\Exception\SubjectHasBeenReportedException;
@@ -67,6 +68,12 @@ class FlagHandler extends MbinMessageHandler
                 $subject = $this->findLocalSubject($item);
             } else {
                 $subject = $this->findRemoteSubject($item);
+            }
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a remote actor is never a viewer of a restricted magazine: its report on that
+            // content is treated like a report on something that does not exist
+            if ($subject instanceof ContentInterface && true === $subject->getMagazine()?->isRestricted()) {
+                $subject = null;
             }
             if (null !== $subject) {
                 try {

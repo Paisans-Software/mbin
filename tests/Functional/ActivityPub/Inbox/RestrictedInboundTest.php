@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Tests\Functional\ActivityPub\Inbox;
 
 use App\Entity\Contracts\ActivityPubActivityInterface;
+use App\Entity\Entry;
 use App\Entity\Magazine;
 use App\Entity\MagazineFollow;
 use App\Entity\MagazineSubscription;
 use App\Enum\MagazineAccess;
 use App\Message\ActivityPub\Inbox\ActivityMessage;
 use App\Tests\Functional\ActivityPub\ActivityPubFunctionalTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -27,6 +29,7 @@ class RestrictedInboundTest extends ActivityPubFunctionalTestCase
 {
     private Magazine $circle;
     private Magazine $random;
+    private Magazine $open;
     /** @var array<string, mixed> */
     private array $createAddressedToCircle;
     /** @var array<string, mixed> */
@@ -55,6 +58,7 @@ class RestrictedInboundTest extends ActivityPubFunctionalTestCase
         $circle = $this->getMagazineByName('circle', $admin);
         $circle->access = MagazineAccess::Private;
         $this->getMagazineByName('random', $admin);
+        $this->getMagazineByName('open', $admin);
         $this->entityManager->flush();
     }
 
@@ -63,6 +67,7 @@ class RestrictedInboundTest extends ActivityPubFunctionalTestCase
         parent::setUp();
         $this->circle = $this->magazineRepository->findOneByName('circle');
         $this->random = $this->magazineRepository->findOneByName('random');
+        $this->open = $this->magazineRepository->findOneByName('open');
     }
 
     public function testRemoteFollowOfRestrictedMagazineIsDroppedLikeAFollowOfAMissingOne(): void
@@ -157,6 +162,53 @@ class RestrictedInboundTest extends ActivityPubFunctionalTestCase
         $entry = $this->entryRepository->findOneBy(['apId' => $this->createAddressedToNobody['object']['id']]);
         self::assertNotNull($entry);
         self::assertSame($this->random->getId(), $entry->magazine->getId());
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function reactionProvider(): array
+    {
+        return ['Like' => ['Like'], 'Dislike' => ['Dislike'], 'Announce' => ['Announce'], 'Flag' => ['Flag']];
+    }
+
+    /**
+     * A remote actor is never a viewer, so its reactions to restricted content are
+     * dropped before anything is stored; the same reaction to public content is kept.
+     */
+    #[DataProvider('reactionProvider')]
+    public function testRemoteReactionToRestrictedContentIsDropped(string $type): void
+    {
+        $admin = $this->userRepository->findOneByUsername('admin');
+        $restricted = $this->createEntry("circle entry for $type", $this->circle, $admin);
+        $public = $this->createEntry("open entry for $type", $this->open, $admin);
+
+        foreach (['circle' => $restricted, 'open' => $public] as $name => $entry) {
+            $url = $this->urlGenerator->generate('ap_entry', ['magazine_name' => $name, 'entry_id' => $entry->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
+            $this->bus->dispatch(new ActivityMessage(json_encode([
+                '@context' => ActivityPubActivityInterface::CONTEXT_URL,
+                'id' => "https://$this->remoteDomain/activity/$type-$name",
+                'type' => $type,
+                'actor' => $this->remoteUser->apProfileId,
+                'object' => 'Flag' === $type ? [$url] : $url,
+                'to' => [ActivityPubActivityInterface::PUBLIC_URL],
+            ])));
+        }
+
+        $this->entityManager->refresh($restricted);
+        $this->entityManager->refresh($public);
+        self::assertSame(0, $this->reactionCount($type, $restricted), 'restricted');
+        self::assertSame(1, $this->reactionCount($type, $public), 'positive control: public');
+    }
+
+    private function reactionCount(string $type, Entry $entry): int
+    {
+        return match ($type) {
+            'Like' => $entry->favourites->count(),
+            'Dislike' => $entry->getDownVotes()->count(),
+            'Announce' => $entry->getUpVotes()->count(),
+            'Flag' => null === $this->reportRepository->findBySubject($entry) ? 0 : 1,
+        };
     }
 
     /**

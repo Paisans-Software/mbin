@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\ActivityPub\Inbox;
 
+use App\Entity\Contracts\ContentInterface;
 use App\Entity\User;
 use App\EventSubscriber\VoteHandleSubscriber;
 use App\Message\ActivityPub\Inbox\AnnounceMessage;
@@ -56,6 +57,12 @@ class AnnounceHandler extends MbinMessageHandler
             if (!$entity) {
                 return;
             }
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a remote actor is never a viewer of a restricted magazine, so it may not vote on,
+            // favourite or boost its content either; dropped before anything is stored
+            if (self::isRestrictedContent($entity)) {
+                return;
+            }
             $actor = $this->activityPubManager->findActorOrCreate($message->payload['actor']);
 
             if ($actor instanceof User) {
@@ -70,5 +77,13 @@ class AnnounceHandler extends MbinMessageHandler
         if ('Undo' === $message->payload['type']) {
             return;
         }
+    }
+
+    /**
+     * FORK DIVERGENCE — do not offer this upstream: private magazines.
+     */
+    private static function isRestrictedContent(mixed $entity): bool
+    {
+        return $entity instanceof ContentInterface && true === $entity->getMagazine()?->isRestricted();
     }
 }

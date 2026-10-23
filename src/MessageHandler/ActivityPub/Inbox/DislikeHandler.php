@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\ActivityPub\Inbox;
 
+use App\Entity\Contracts\ContentInterface;
 use App\Entity\Contracts\VotableInterface;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
@@ -72,6 +73,12 @@ class DislikeHandler extends MbinMessageHandler
             if (!$entity) {
                 return;
             }
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a remote actor is never a viewer of a restricted magazine, so it may not vote on,
+            // favourite or boost its content either; dropped before anything is stored
+            if (self::isRestrictedContent($entity)) {
+                return;
+            }
 
             $actor = $this->activityPubManager->findActorOrCreate($message->payload['actor']);
             // Check if actor and entity aren't empty
@@ -91,6 +98,10 @@ class DislikeHandler extends MbinMessageHandler
                 if (!$entity) {
                     return;
                 }
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                if (self::isRestrictedContent($entity)) {
+                    return;
+                }
 
                 $actor = $this->activityPubManager->findActorOrCreate($message->payload['actor']);
                 // Check if actor and entity aren't empty
@@ -104,5 +115,13 @@ class DislikeHandler extends MbinMessageHandler
                 }
             }
         }
+    }
+
+    /**
+     * FORK DIVERGENCE — do not offer this upstream: private magazines.
+     */
+    private static function isRestrictedContent(mixed $entity): bool
+    {
+        return $entity instanceof ContentInterface && true === $entity->getMagazine()?->isRestricted();
     }
 }
