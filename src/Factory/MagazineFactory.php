@@ -41,7 +41,7 @@ class MagazineFactory
 
     public function createFromDto(MagazineDto $dto, ?User $user): Magazine
     {
-        return new Magazine(
+        $magazine = new Magazine(
             $dto->name,
             $dto->title,
             $user,
@@ -51,6 +51,13 @@ class MagazineFactory
             $dto->isPostingRestrictedToMods,
             $dto->icon
         );
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (null === $dto->apId) {
+            $magazine->access = $dto->access;
+        }
+
+        return $magazine;
     }
 
     public function createDto(Magazine $magazine): MagazineDto
@@ -78,6 +85,8 @@ class MagazineFactory
         $dto->apId = $magazine->apId;
         $dto->apProfileId = $magazine->apProfileId;
         $dto->apFeaturedUrl = $magazine->apFeaturedUrl;
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $dto->access = $magazine->access;
         $dto->setId($magazine->getId());
 
         /** @var User $currentUser */
@@ -152,8 +161,12 @@ class MagazineFactory
             throw new NotFoundHttpException('Magazine was not found!');
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $viewer = $this->security->getUser();
+        $canView = $magazine->userCanView($viewer instanceof User ? $viewer : null);
+
         return MagazineResponseDto::create(
-            $dto->getOwner() ? $this->moderatorFactory->createDtoWithUser($dto->getOwner(), $magazine) : null,
+            $canView && $dto->getOwner() ? $this->moderatorFactory->createDtoWithUser($dto->getOwner(), $magazine) : null,
             $dto->icon,
             $dto->banner,
             $dto->name,
@@ -170,16 +183,18 @@ class MagazineFactory
             $dto->isBlockedByUser,
             $dto->tags,
             array_map(fn (Badge|BadgeDto $badge) => new BadgeResponseDto($badge), $dto->badges?->toArray() ?? []),
-            array_map(fn (Moderator $moderator) => $this->moderatorFactory->createDto($moderator), $dto->moderators?->toArray() ?? []),
+            $canView ? array_map(fn (Moderator $moderator) => $this->moderatorFactory->createDto($moderator), $dto->moderators?->toArray() ?? []) : [],
             $dto->apId,
             $dto->apProfileId,
             $dto->getId(),
             $dto->serverSoftware,
             $dto->serverSoftwareVersion,
             $dto->isPostingRestrictedToMods,
-            $dto->localSubscribers,
+            $canView ? $dto->localSubscribers : null,
             $dto->discoverable,
             $dto->indexable,
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            $dto->access->value,
         );
     }
 

@@ -1,0 +1,9 @@
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+# Tests read the Mercure updates the application publishes from this recording hub.
+services:
+    App\Tests\Service\RecordingHub:
+        public: true
+
+    Symfony\Component\Mercure\HubInterface:
+        alias: App\Tests\Service\RecordingHub
+        public: true

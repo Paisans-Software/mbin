@@ -64,6 +64,10 @@
             <div class="checkbox help-text">
                 {{ form_help(form.nameAsTag) }}
             </div>
+            {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+            {% if form.access is defined %}
+                {{ form_row(form.access) }}
+            {% endif %}
             <div class="row actions">
                 {{ form_row(form.submit, {label: 'create_new_magazine', attr: {class: 'btn btn__primary'}, row_attr: {class: 'float-end'}}) }}
             </div>

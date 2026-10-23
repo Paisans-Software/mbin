@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Entity\Traits\ActivityPubActorTrait;
 use App\Message\ActivityPub\Outbox\DeliverMessage;
+use App\Service\ActivityPub\RestrictedMagazineFederationGuard;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -16,6 +17,8 @@ readonly class DeliverManager
         private OutboundFederationPolicy $policy,
         private MessageBusInterface $bus,
         private LoggerInterface $logger,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private RestrictedMagazineFederationGuard $restrictedGuard,
     ) {
     }
 
@@ -24,6 +27,16 @@ readonly class DeliverManager
      */
     public function deliver(array $inboxes, array $activity, bool $useOldPrivateKey = false): void
     {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // decided once for the whole fan out: the payload is the same for every inbox
+        if ($this->restrictedGuard->touchesRestrictedMagazine($activity) && !$this->restrictedGuard->isAllowedHandshake($activity)) {
+            $this->logger->debug('not delivering a {type}, it is about a restricted magazine', [
+                'type' => \is_string($activity['type'] ?? null) ? $activity['type'] : 'activity without a type',
+            ]);
+
+            return;
+        }
+
         foreach ($inboxes as $inbox) {
             if (!$inbox) {
                 continue;

@@ -28,6 +28,8 @@
                                 @{{- attribute(subject, actor).name|apDomain -}}
                             {%- endif -%}
                             {% if attribute(subject, actor).isAdult %}<small class="badge danger">18+</small>{% endif %}
+                            {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+                            {% if attribute(subject, actor).access is defined %}{{ include('components/_magazine_access_icon.html.twig', {access: attribute(subject, actor).access.value}, with_context: false) }}{% endif %}
                         </a>
                         <small>{{ component('date', {date: subject.createdAt}) }}</small>
                     </div>

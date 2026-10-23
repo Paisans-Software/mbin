@@ -33,11 +33,19 @@ final class EntriesCrossComponent
         $userId = $this->security->getUser()?->getId();
         $locale = $this->requestStack->getCurrentRequest()?->getLocale();
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // HTML naming an entry in a restricted magazine is not kept: a member removed from that
+        // magazine must stop seeing it on their next request, not when the cache expires.
         return $this->cache->get(
             "entries_cross_{$entryId}_{$userId}_{$locale}",
             function (ItemInterface $item) use ($entryId) {
                 $item->expiresAfter(60);
                 $entries = $this->repository->findCross($this->entry);
+                foreach ($entries as $entry) {
+                    if ($entry->magazine->isRestricted()) {
+                        $item->expiresAfter(0);
+                    }
+                }
 
                 $item->tag(['entry_'.$entryId]);
                 foreach ($entries as $entry) {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Controller\Traits\MagazineViewTrait;
 use App\Entity\Entry;
 use App\Entity\Magazine;
 use App\Entity\Post;
@@ -18,6 +19,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class NotificationSettingsController extends AbstractController
 {
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    use MagazineViewTrait;
+
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly NotificationSettingsRepository $repository,
@@ -29,6 +33,11 @@ class NotificationSettingsController extends AbstractController
     {
         $status = ENotificationStatus::getFromString($status);
         $subject = $this->entityManager->getRepository(self::GetClassFromSubjectType($subject_type))->findOneBy(['id' => $subject_id]);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (null === $subject) {
+            throw $this->createNotFoundException();
+        }
+        $this->assertTargetViewable($subject);
         $user = $this->getUserOrThrow();
         $this->repository->setStatusByTarget($user, $subject, $status);
         if ($request->isXmlHttpRequest()) {

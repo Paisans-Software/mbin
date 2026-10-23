@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Entry\Comment;
 
 use App\Controller\AbstractController;
+use App\Controller\Traits\MagazineViewTrait;
 use App\Entity\Contracts\VotableInterface;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
@@ -18,6 +19,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EntryCommentVotersController extends AbstractController
 {
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    use MagazineViewTrait;
+
     public function __construct(
         private readonly SettingsManager $settingsManager,
     ) {
@@ -33,6 +37,9 @@ class EntryCommentVotersController extends AbstractController
         Request $request,
         string $type,
     ): Response {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($comment->magazine);
+
         if ('down' === $type && DownvotesMode::Enabled !== $this->settingsManager->getDownvotesMode()) {
             $votes = [];
         } else {

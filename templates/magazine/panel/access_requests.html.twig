@@ -1,0 +1,62 @@
+{# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+{% extends 'base.html.twig' %}
+
+{%- block title -%}
+    {{- 'access_requests'|trans }} - {{ 'magazine_panel'|trans }} - {{ parent() -}}
+{%- endblock -%}
+
+{% block mainClass %}page-magazine-panel page-magazine-access-requests{% endblock %}
+
+{% block header_nav %}
+{% endblock %}
+
+{% block sidebar_top %}
+{% endblock %}
+
+{% block body %}
+    {% include 'magazine/panel/_options.html.twig' %}
+    {% include 'magazine/_visibility_info.html.twig' %}
+
+    <h1 hidden>{{ 'access_requests'|trans }}</h1>
+    {% if requests|length %}
+        <div id="content" class="section access-requests access-requests-table table-responsive">
+            <table>
+                <thead>
+                <tr>
+                    <th>{{ 'name'|trans }}</th>
+                    <th>{{ 'created'|trans }}</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for accessRequest in requests %}
+                    <tr>
+                        <td>{{ component('user_inline', {user: accessRequest.user, showNewIcon: true}) }}</td>
+                        <td>{{ component('date', {date: accessRequest.createdAt}) }}</td>
+                        <td>
+                            <form method="post"
+                                  action="{{ path('magazine_panel_access_request_approve', {name: magazine.name, request_id: accessRequest.id}) }}">
+                                <input type="hidden" name="token" value="{{ csrf_token('magazine_access_request_decide') }}">
+                                <button class="btn btn__primary">{{ 'approve'|trans }}</button>
+                            </form>
+                            <form method="post"
+                                  action="{{ path('magazine_panel_access_request_deny', {name: magazine.name, request_id: accessRequest.id}) }}">
+                                <input type="hidden" name="token" value="{{ csrf_token('magazine_access_request_decide') }}">
+                                <button class="btn btn__secondary">{{ 'deny'|trans }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+    {% if(requests.haveToPaginate is defined and requests.haveToPaginate) %}
+        {{ pagerfanta(requests, null, {'pageParameter':'[p]'}) }}
+    {% endif %}
+    {% if not requests|length %}
+        <aside class="section section--muted">
+            <p>{{ 'no_access_requests'|trans }}</p>
+        </aside>
+    {% endif %}
+{% endblock %}

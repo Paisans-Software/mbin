@@ -35,6 +35,13 @@ readonly class MagazineFollowResolver
         // Software that models communities names one in audience/to/cc. That
         // answer always wins: the publisher was explicit.
         if (null !== $addressed) {
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // nothing from the fediverse lands in a restricted magazine, and content
+            // addressed to one is dropped rather than filed anywhere else
+            if ($addressed->isRestricted()) {
+                return null;
+            }
+
             return $addressed;
         }
 

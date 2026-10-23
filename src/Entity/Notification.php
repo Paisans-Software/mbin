@@ -47,6 +47,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
     'report_approved' => 'ReportApprovedNotification',
     'report_rejected' => 'ReportRejectedNotification',
     'new_signup' => 'NewSignupNotification',
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    'magazine_access_requested' => 'MagazineAccessRequestedNotification',
+    'magazine_access_granted' => 'MagazineAccessGrantedNotification',
 ])]
 abstract class Notification
 {

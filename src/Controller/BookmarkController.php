@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Controller\Traits\MagazineViewTrait;
 use App\Entity\BookmarkList;
 use App\Repository\BookmarkRepository;
 use App\Service\BookmarkManager;
@@ -17,6 +18,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class BookmarkController extends AbstractController
 {
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    use MagazineViewTrait;
+
     public function __construct(
         private readonly BookmarkManager $bookmarkManager,
         private readonly BookmarkRepository $bookmarkRepository,
@@ -29,6 +33,11 @@ class BookmarkController extends AbstractController
     {
         $subjectClass = BookmarkManager::GetClassFromSubjectType($subject_type);
         $subjectEntity = $this->entityManager->getRepository($subjectClass)->findOneBy(['id' => $subject_id]);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (null === $subjectEntity) {
+            throw $this->createNotFoundException();
+        }
+        $this->assertMagazineViewable($subjectEntity->magazine);
         $this->bookmarkManager->addBookmarkToDefaultList($this->getUserOrThrow(), $subjectEntity);
         if ($request->isXmlHttpRequest()) {
             return new JsonResponse([
@@ -51,6 +60,11 @@ class BookmarkController extends AbstractController
     {
         $subjectClass = BookmarkManager::GetClassFromSubjectType($subject_type);
         $subjectEntity = $this->entityManager->getRepository($subjectClass)->findOneBy(['id' => $subject_id]);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (null === $subjectEntity) {
+            throw $this->createNotFoundException();
+        }
+        $this->assertMagazineViewable($subjectEntity->magazine);
         if ($request->isXmlHttpRequest()) {
             return new JsonResponse([
                 'html' => $this->renderView('components/_ajax.html.twig', [
@@ -72,6 +86,11 @@ class BookmarkController extends AbstractController
     {
         $subjectClass = BookmarkManager::GetClassFromSubjectType($subject_type);
         $subjectEntity = $this->entityManager->getRepository($subjectClass)->findOneBy(['id' => $subject_id]);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (null === $subjectEntity) {
+            throw $this->createNotFoundException();
+        }
+        $this->assertMagazineViewable($subjectEntity->magazine);
         $user = $this->getUserOrThrow();
         if ($user->getId() !== $list->user->getId()) {
             throw new AccessDeniedHttpException();
@@ -99,6 +118,11 @@ class BookmarkController extends AbstractController
     {
         $subjectClass = BookmarkManager::GetClassFromSubjectType($subject_type);
         $subjectEntity = $this->entityManager->getRepository($subjectClass)->findOneBy(['id' => $subject_id]);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (null === $subjectEntity) {
+            throw $this->createNotFoundException();
+        }
+        $this->assertMagazineViewable($subjectEntity->magazine);
         $this->bookmarkRepository->removeAllBookmarksForContent($this->getUserOrThrow(), $subjectEntity);
         if ($request->isXmlHttpRequest()) {
             return new JsonResponse([
@@ -121,6 +145,11 @@ class BookmarkController extends AbstractController
     {
         $subjectClass = BookmarkManager::GetClassFromSubjectType($subject_type);
         $subjectEntity = $this->entityManager->getRepository($subjectClass)->findOneBy(['id' => $subject_id]);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (null === $subjectEntity) {
+            throw $this->createNotFoundException();
+        }
+        $this->assertMagazineViewable($subjectEntity->magazine);
         $user = $this->getUserOrThrow();
         if ($user->getId() !== $list->user->getId()) {
             throw new AccessDeniedHttpException();

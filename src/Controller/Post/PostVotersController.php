@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Post;
 
 use App\Controller\AbstractController;
+use App\Controller\Traits\MagazineViewTrait;
 use App\Entity\Magazine;
 use App\Entity\Post;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -16,6 +17,9 @@ use Twig\Runtime\EscaperRuntime;
 
 class PostVotersController extends AbstractController
 {
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    use MagazineViewTrait;
+
     public function __invoke(
         #[MapEntity(mapping: ['magazine_name' => 'name'])]
         Magazine $magazine,
@@ -23,6 +27,9 @@ class PostVotersController extends AbstractController
         Post $post,
         Request $request,
     ): Response {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->assertMagazineViewable($post->magazine);
+
         if ($request->isXmlHttpRequest()) {
             return new JsonResponse([
                 'html' => $this->renderView('components/voters_inline.html.twig', [

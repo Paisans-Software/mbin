@@ -110,6 +110,10 @@ class EntryRepository extends ServiceEntityRepository
             $qb->orWhere('e.user IS NULL');
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // after the orWhere above, so followers-only entries are filtered too
+        MagazineAccessClause::apply($qb, 'm', $user instanceof User ? $user : null);
+
         $qb->setParameter('visibility', $criteria->visibility)
             ->setParameter('visible', VisibilityInterface::VISIBILITY_VISIBLE);
 
@@ -375,6 +379,9 @@ class EntryRepository extends ServiceEntityRepository
             ->setParameter('tag', $tag)
             ->setMaxResults($limit);
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::apply($qb, 'm', $user);
+
         if (null !== $user) {
             $qb->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedMagazinesDql($user))))
                 ->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedUsersDql($user))));
@@ -405,6 +412,9 @@ class EntryRepository extends ServiceEntityRepository
             ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
             ->setMaxResults($limit);
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::apply($qb, 'm', $user);
+
         if (null !== $user) {
             $qb->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedMagazinesDql($user))))
                 ->andWhere($qb->expr()->not($qb->expr()->exists($this->sqlHelpers->getBlockedUsersDql($user))));
@@ -430,6 +440,8 @@ class EntryRepository extends ServiceEntityRepository
         if ($this->settingsManager->get('MBIN_SIDEBAR_SECTIONS_RANDOM_LOCAL_ONLY')) {
             $qb = $qb->andWhere('m.apId IS NULL');
         }
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        MagazineAccessClause::apply($qb, 'm', $user);
 
         if (null !== $user) {
             $magazineBlocks = $this->sqlHelpers->getCachedUserMagazineBlocks($user);
@@ -451,18 +463,30 @@ class EntryRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
     /**
+     * @param bool $onlyVisibleToViewer when true, nothing is returned unless the signed-in user
+     *                                  may view the magazine. Off for the featured collection
+     *                                  sync of a remote magazine, which must see every pin.
+     *
      * @return Entry[]
      */
-    public function findPinned(Magazine $magazine): array
+    public function findPinned(Magazine $magazine, bool $onlyVisibleToViewer = false): array
     {
-        return $this->createQueryBuilder('e')
+        $qb = $this->createQueryBuilder('e')
             ->where('e.magazine = :m')
             ->andWhere('e.sticky = true')
             ->andWhere('e.visibility = :visibility')
             ->setParameter('m', $magazine)
-            ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
-            ->getQuery()
+            ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE);
+
+        if ($onlyVisibleToViewer) {
+            $viewer = $this->security->getUser();
+            $qb->join('e.magazine', 'm');
+            MagazineAccessClause::apply($qb, 'm', $viewer instanceof User ? $viewer : null);
+        }
+
+        return $qb->getQuery()
             ->getResult()
         ;
     }
@@ -528,6 +552,10 @@ class EntryRepository extends ServiceEntityRepository
             ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
             ->orderBy('e.createdAt', 'DESC')
             ->setMaxResults(5);
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $viewer = $this->security->getUser();
+        MagazineAccessClause::apply($qb, 'm', $viewer instanceof User ? $viewer : null);
 
         return $qb->getQuery()->getResult();
     }

@@ -8,6 +8,7 @@ use App\Controller\Api\Entry\EntriesBaseApi;
 use App\DTO\EntryResponseDto;
 use App\Entity\Entry;
 use App\Entity\Magazine;
+use App\Exception\MoveRefusedException;
 use App\Factory\EntryFactory;
 use App\Service\EntryManager;
 use Nelmio\ApiDocBundle\Attribute\Model;
@@ -15,6 +16,7 @@ use Nelmio\ApiDocBundle\Attribute\Security;
 use OpenApi\Attributes as OA;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -29,6 +31,11 @@ class EntriesChangeMagazineApi extends EntriesBaseApi
             new OA\Header(header: 'X-RateLimit-Retry-After', schema: new OA\Schema(type: 'integer'), description: 'Unix timestamp to retry the request after'),
             new OA\Header(header: 'X-RateLimit-Limit', schema: new OA\Schema(type: 'integer'), description: 'Number of requests available'),
         ]
+    )]
+    #[OA\Response(
+        response: 400,
+        description: 'The entry or the target magazine is restricted',
+        content: new OA\JsonContent(ref: new Model(type: \App\Schema\Errors\BadRequestErrorSchema::class))
     )]
     #[OA\Response(
         response: 401,
@@ -83,7 +90,12 @@ class EntriesChangeMagazineApi extends EntriesBaseApi
     ): JsonResponse {
         $headers = $this->rateLimit($apiModerateLimiter);
 
-        $manager->changeMagazine($entry, $target);
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        try {
+            $manager->changeMagazine($entry, $target);
+        } catch (MoveRefusedException $e) {
+            throw new BadRequestHttpException($e->getMessage(), $e);
+        }
 
         return new JsonResponse(
             $this->serializeEntry($factory->createDto($entry), $this->tagLinkRepository->getTagsOfContent($entry), $this->entryRepository->findCross($entry)),

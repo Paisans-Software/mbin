@@ -11,6 +11,7 @@ use App\Repository\ApActivityRepository;
 use App\Repository\InstanceRepository;
 use App\Service\ActivityPub\ApObjectExtractor;
 use App\Service\ActivityPub\Page;
+use App\Service\ActivityPub\ShadowThreadManager;
 use App\Service\ActivityPubManager;
 use App\Service\EntryManager;
 use App\Service\SettingsManager;
@@ -62,6 +63,8 @@ class PageTest extends TestCase
             $this->createStub(ApObjectExtractor::class),
             $this->createStub(LoggerInterface::class),
             $this->createStub(InstanceRepository::class),
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            $this->createStub(ShadowThreadManager::class),
         );
 
         $this->expectException(NoMagazineFoundException::class);

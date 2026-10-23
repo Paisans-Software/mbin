@@ -7,6 +7,7 @@ namespace App\Controller\Post;
 use App\Controller\AbstractController;
 use App\Entity\Magazine;
 use App\Entity\Post;
+use App\Exception\MoveRefusedException;
 use App\Repository\MagazineRepository;
 use App\Service\PostManager;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -34,7 +35,16 @@ class PostChangeMagazineController extends AbstractController
 
         $newMagazine = $this->repository->findOneByName($request->get('change_magazine')['new_magazine']);
 
-        $this->manager->changeMagazine($post, $newMagazine);
+        if (null === $newMagazine) {
+            throw $this->createNotFoundException();
+        }
+
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        try {
+            $this->manager->changeMagazine($post, $newMagazine);
+        } catch (MoveRefusedException) {
+            $this->addFlash('error', 'move_unavailable');
+        }
 
         return $this->redirectToRefererOrHome($request);
     }

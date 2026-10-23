@@ -14,6 +14,18 @@ magazine_panel_unban:
   path: /m/{name}/panel/unban/{username}
   methods: [ POST ]
 
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+magazine_panel_members:
+  controller: App\Controller\Magazine\Panel\MagazineMemberController::members
+  path: /m/{name}/panel/members
+  methods: [ GET, POST ]
+
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+magazine_panel_member_remove:
+  controller: App\Controller\Magazine\Panel\MagazineMemberController::remove
+  path: /m/{name}/panel/members/{username}/remove
+  methods: [ POST ]
+
 magazine_panel_general:
   controller: App\Controller\Magazine\Panel\MagazineEditController
   path: /m/{name}/panel/general
@@ -116,3 +128,23 @@ magazine_panel_moderator_request_reject:
   path: /m/{name}/panel/moderator_requests/{username}/reject
   methods: [ POST ]
 
+
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+magazine_panel_access_requests:
+  controller: App\Controller\Magazine\Panel\MagazineAccessRequestPanelController::requests
+  path: /m/{name}/panel/requests
+  methods: [ GET ]
+
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+magazine_panel_access_request_approve:
+  controller: App\Controller\Magazine\Panel\MagazineAccessRequestPanelController::approve
+  path: /m/{name}/panel/requests/{request_id}/approve
+  methods: [ POST ]
+  requirements: { request_id: '\d+' }
+
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+magazine_panel_access_request_deny:
+  controller: App\Controller\Magazine\Panel\MagazineAccessRequestPanelController::deny
+  path: /m/{name}/panel/requests/{request_id}/deny
+  methods: [ POST ]
+  requirements: { request_id: '\d+' }

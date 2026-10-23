@@ -6,7 +6,10 @@ namespace App\Twig\Components;
 
 use App\Entity\Contracts\VisibilityInterface;
 use App\Entity\Magazine;
+use App\Entity\User;
+use App\Repository\MagazineAccessClause;
 use App\Repository\MagazineRepository;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\ComponentAttributes;
 use Twig\Environment;
@@ -16,8 +19,12 @@ final class FeaturedMagazinesComponent
 {
     public ?Magazine $magazine = null;
 
-    public function __construct(private readonly Environment $twig, private readonly MagazineRepository $repository)
-    {
+    public function __construct(
+        private readonly Environment $twig,
+        private readonly MagazineRepository $repository,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly Security $security,
+    ) {
     }
 
     public function getHtml(ComponentAttributes $attributes): string
@@ -27,11 +34,16 @@ final class FeaturedMagazinesComponent
 
     private function render(): string
     {
-        $magazines = $this->repository->findBy(
-            ['apId' => null, 'visibility' => VisibilityInterface::VISIBILITY_VISIBLE],
-            ['lastActive' => 'DESC'],
-            28
-        );
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $qb = $this->repository->createQueryBuilder('m')
+            ->where('m.apId IS NULL')
+            ->andWhere('m.visibility = :visibility')
+            ->setParameter('visibility', VisibilityInterface::VISIBILITY_VISIBLE)
+            ->orderBy('m.lastActive', 'DESC')
+            ->setMaxResults(28);
+        $viewer = $this->security->getUser();
+        MagazineAccessClause::applyDiscovery($qb, 'm', $viewer instanceof User ? $viewer : null);
+        $magazines = $qb->getQuery()->getResult();
 
         if ($this->magazine && !\in_array($this->magazine, $magazines)) {
             array_unshift($magazines, $this->magazine);

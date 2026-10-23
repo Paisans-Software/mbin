@@ -34,6 +34,11 @@ class PostCommentVoter extends Voter
             return false;
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (!$subject->magazine->userCanView($user)) {
+            return false;
+        }
+
         return match ($attribute) {
             self::EDIT => $this->canEdit($subject, $user),
             self::PURGE => $this->canPurge($subject, $user),

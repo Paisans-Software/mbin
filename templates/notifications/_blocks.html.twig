@@ -119,6 +119,17 @@
     {{ 'you_are_no_longer_banned_from_magazine'|trans({'%m': component('magazine_inline', {'magazine': notification.ban.magazine})})|raw }}
 {% endblock magazine_unban_notification %}
 
+{# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+{% block magazine_access_requested %}
+    {{ 'notification_access_requested'|trans({'%user%': component('user_inline', {user: notification.requester, showNewIcon: true}), '%magazine%': component('magazine_inline', {magazine: notification.magazine})})|raw }}
+    - <a href="{{ path('magazine_panel_access_requests', {name: notification.magazine.name}) }}">{{ 'access_requests'|trans }}</a>
+{% endblock magazine_access_requested %}
+
+{# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+{% block magazine_access_granted %}
+    {{ 'notification_access_granted'|trans({'%magazine%': component('magazine_inline', {magazine: notification.magazine})})|raw }}
+{% endblock magazine_access_granted %}
+
 {% block reportlink %}
     {% if notification.report.entry is defined and notification.report.entry is not same as null %}
         {% set entry = notification.report.entry %}

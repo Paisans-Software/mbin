@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Contracts\ContentInterface;
+use App\Entity\Magazine;
+use App\Entity\MagazineAccessRequest;
 use App\Entity\MagazineBan;
 use App\Entity\Message;
 use App\Entity\MessageNotification;
 use App\Entity\Notification;
 use App\Entity\User;
+use App\Service\Notification\MagazineAccessNotificationManager;
 use App\Service\Notification\MagazineBanNotificationManager;
 use App\Service\Notification\MessageNotificationManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,6 +24,8 @@ class NotificationManager
         private readonly MessageNotificationManager $messageNotificationManager,
         private readonly EntityManagerInterface $entityManager,
         private readonly MagazineBanNotificationManager $magazineBanNotificationManager,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly MagazineAccessNotificationManager $magazineAccessNotificationManager,
     ) {
     }
 
@@ -47,6 +52,18 @@ class NotificationManager
     public function sendMagazineBanNotification(MagazineBan $ban): void
     {
         $this->magazineBanNotificationManager->send($ban);
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public function sendMagazineAccessRequestedNotification(MagazineAccessRequest $request): void
+    {
+        $this->magazineAccessNotificationManager->sendRequested($request);
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public function sendMagazineAccessGrantedNotification(Magazine $magazine, User $user): void
+    {
+        $this->magazineAccessNotificationManager->sendGranted($magazine, $user);
     }
 
     public function markAllAsRead(User $user): void

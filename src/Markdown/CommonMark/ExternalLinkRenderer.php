@@ -172,19 +172,21 @@ final class ExternalLinkRenderer implements NodeRendererInterface, Configuration
                     't' => $apActivity['type'],
                     'id' => $apActivity['id'],
                 ]);
-                /** @var Entry|EntryComment|Post|PostComment $entity */
+                /** @var Entry|EntryComment|Post|PostComment|null $entity */
                 $entity = $this->entityManager->getRepository($apActivity['type'])->find($apActivity['id']);
 
-                if (null !== $entity) {
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                // Rendered markdown is cached for every viewer, so content in a private or
+                // hidden magazine is never inlined: it renders as the plain URL that was
+                // written, exactly like a local URL that matches nothing.
+                if (null === $entity) {
+                    $this->logger->warning('[ExternalLinkRenderer::render] Could not find an entity for type {t} with id {id} from url {url}', ['t' => $apActivity['type'], 'id' => $apActivity['id'], 'url' => $url]);
+                } elseif (!$entity->magazine->isRestricted()) {
                     if (null === $node->getTitle() && (null === $childContent || $url === $childContent)) {
                         return $this->renderInlineEntity($entity);
                     } else {
                         $apLink = $this->activityRepository->getLocalUrlOfEntity($entity);
                     }
-                } else {
-                    $this->logger->warning('[ExternalLinkRenderer::render] Could not find an entity for type {t} with id {id} from url {url}', ['t' => $apActivity['type'], 'id' => $apActivity['id'], 'url' => $url]);
-
-                    return new HtmlElement('div');
                 }
             }
         } else {
@@ -403,7 +405,8 @@ final class ExternalLinkRenderer implements NodeRendererInterface, Configuration
     {
         $magName = $node->getKbinUsername();
         $magazine = $this->magazineRepository->findOneByName($magName);
-        if (!$magazine) {
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        if (!$magazine || $magazine->isHidden()) {
             $this->logger->error('cannot render {o}, couldn\'t find magazine {m}', ['o' => $node, 'm' => $magName]);
 
             return '';

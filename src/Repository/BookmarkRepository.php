@@ -137,6 +137,19 @@ class BookmarkRepository extends ServiceEntityRepository
             $parameters['time'] = $criteria->getSince();
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        // a bookmark stays in the list, but its content is left out while the list's owner
+        // cannot see its magazine (removed or banned from a private or hidden one)
+        [$access, $accessParameters] = MagazineAccessClause::sql('bam', $list->user);
+        if ('TRUE' !== $access) {
+            $accessCond = fn (string $alias) => "EXISTS (SELECT 1 FROM magazine bam WHERE bam.id = $alias.magazine_id AND $access)";
+            $entryWhereArr[] = $accessCond('e');
+            $entryCommentWhereArr[] = $accessCond('ec');
+            $postWhereArr[] = $accessCond('p');
+            $postCommentWhereArr[] = $accessCond('pc');
+            $parameters += $accessParameters;
+        }
+
         $entryWhere = SqlHelpers::makeWhereString($entryWhereArr);
         $entryCommentWhere = SqlHelpers::makeWhereString($entryCommentWhereArr);
         $postWhere = SqlHelpers::makeWhereString($postWhereArr);

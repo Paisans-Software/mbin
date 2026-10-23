@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\ActivityPub\Inbox;
 
+use App\Entity\Contracts\ContentInterface;
+use App\Entity\Entry;
+use App\Entity\Post;
 use App\Entity\User;
 use App\EventSubscriber\VoteHandleSubscriber;
 use App\Message\ActivityPub\Inbox\AnnounceMessage;
 use App\Message\ActivityPub\Inbox\ChainActivityMessage;
 use App\Message\Contracts\MessageInterface;
 use App\MessageHandler\MbinMessageHandler;
+use App\Service\ActivityPub\ShadowThreadManager;
 use App\Service\ActivityPubManager;
 use App\Service\VoteManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,6 +33,8 @@ class AnnounceHandler extends MbinMessageHandler
         private readonly VoteManager $voteManager,
         private readonly VoteHandleSubscriber $voteHandleSubscriber,
         private readonly LoggerInterface $logger,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly ShadowThreadManager $shadowThreadManager,
     ) {
         parent::__construct($this->entityManager, $this->kernel);
     }
@@ -56,6 +62,19 @@ class AnnounceHandler extends MbinMessageHandler
             if (!$entity) {
                 return;
             }
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a remote actor is never a viewer of a restricted magazine, so it may not vote on,
+            // favourite or boost its content either; dropped before anything is stored
+            if (self::isRestrictedContent($entity)) {
+                return;
+            }
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a known post announced by an actor a restricted magazine follows gets its shadow
+            // now, if the follow came after the post did; an existing shadow is left alone
+            if ($entity instanceof Entry || $entity instanceof Post) {
+                $object = \is_array($message->payload['object']) ? $message->payload['object'] : ['id' => $entity->apId];
+                $this->shadowThreadManager->shadow($entity, $object, $message->payload['actor'] ?? null, 'Announce');
+            }
             $actor = $this->activityPubManager->findActorOrCreate($message->payload['actor']);
 
             if ($actor instanceof User) {
@@ -70,5 +89,13 @@ class AnnounceHandler extends MbinMessageHandler
         if ('Undo' === $message->payload['type']) {
             return;
         }
+    }
+
+    /**
+     * FORK DIVERGENCE — do not offer this upstream: private magazines.
+     */
+    private static function isRestrictedContent(mixed $entity): bool
+    {
+        return $entity instanceof ContentInterface && true === $entity->getMagazine()?->isRestricted();
     }
 }

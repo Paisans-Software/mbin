@@ -282,6 +282,51 @@ class SearchApiTest extends ActivityPubFunctionalTestCase
         $settingsManager->set('KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN', $value);
     }
 
+    public function testApiV1ReturnsUserFoundByUrlAsActor(): void
+    {
+        $settingsManager = $this->settingsManager;
+        $value = $settingsManager->get('KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN');
+        $settingsManager->set('KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN', false);
+
+        // resolving the handle stores the remote user locally
+        $this->client->request('GET', '/api/search/v2?q=@'.self::TEST_USER_HANDLE);
+        self::assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/api/search?q='.urlencode(self::TEST_USER_URL));
+
+        self::assertResponseIsSuccessful();
+        $jsonData = self::getJsonResponse($this->client);
+        self::assertCount(1, $jsonData['apActors']);
+        self::assertSame('user', $jsonData['apActors'][0]['type']);
+        self::assertCount(0, $jsonData['apObjects']);
+
+        $settingsManager->set('KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN', $value);
+    }
+
+    public function testApiV1ReturnsMagazineFoundByUrlAsActor(): void
+    {
+        // Admin user must exist to retrieve a remote magazine since remote mods aren't federated (yet)
+        $this->getUserByUsername('admin', isAdmin: true);
+
+        $settingsManager = $this->settingsManager;
+        $value = $settingsManager->get('KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN');
+        $settingsManager->set('KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN', false);
+
+        // resolving the handle stores the remote magazine locally
+        $this->client->request('GET', '/api/search/v2?q=!'.self::TEST_MAGAZINE_HANDLE);
+        self::assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/api/search?q='.urlencode(self::TEST_MAGAZINE_URL));
+
+        self::assertResponseIsSuccessful();
+        $jsonData = self::getJsonResponse($this->client);
+        self::assertCount(1, $jsonData['apActors']);
+        self::assertSame('magazine', $jsonData['apActors'][0]['type']);
+        self::assertCount(0, $jsonData['apObjects']);
+
+        $settingsManager->set('KBIN_FEDERATED_SEARCH_ONLY_LOGGEDIN', $value);
+    }
+
     private static function validateResponseOuterData(array $data, int $expectedLength, int $expectedApLength): void
     {
         self::assertIsArray($data);

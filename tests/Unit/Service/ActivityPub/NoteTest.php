@@ -9,6 +9,7 @@ use App\Factory\ImageFactory;
 use App\Repository\ApActivityRepository;
 use App\Service\ActivityPub\ApObjectExtractor;
 use App\Service\ActivityPub\Note;
+use App\Service\ActivityPub\ShadowThreadManager;
 use App\Service\ActivityPubManager;
 use App\Service\EntryCommentManager;
 use App\Service\PostCommentManager;
@@ -57,6 +58,8 @@ class NoteTest extends TestCase
             $settingsManager,
             $this->createStub(ImageFactory::class),
             $this->createStub(ApObjectExtractor::class),
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            $this->createStub(ShadowThreadManager::class),
         );
 
         $this->expectException(NoMagazineFoundException::class);

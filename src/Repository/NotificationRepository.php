@@ -7,11 +7,14 @@ namespace App\Repository;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
 use App\Entity\Magazine;
+use App\Entity\MagazineAccessRequestedNotification;
+use App\Entity\Moderator;
 use App\Entity\Notification;
 use App\Entity\Post;
 use App\Entity\PostComment;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Pagerfanta\Doctrine\ORM\QueryAdapter;
 use Pagerfanta\Exception\NotValidCurrentPageException;
@@ -56,6 +59,10 @@ class NotificationRepository extends ServiceEntityRepository
                 ->setParameter('status', $status);
         }
 
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        $this->excludeUnviewableContent($qb, $user);
+        $this->excludeStaleAccessRequests($qb, $user);
+
         $pagerfanta = new Pagerfanta(
             new QueryAdapter(
                 $qb
@@ -70,6 +77,73 @@ class NotificationRepository extends ServiceEntityRepository
         }
 
         return $pagerfanta;
+    }
+
+    /**
+     * Drop the user's notifications about content (or a report on content) in a magazine
+     * the user cannot see now, for example after being removed from a private magazine.
+     * The content columns belong to the notification subclasses, which DQL on the root
+     * class cannot reach, so each subclass that carries one gets its own subquery, correlated on
+     * the notification id. The exclusion stays inside the paginated query: no id list is
+     * fetched or bound.
+     *
+     * FORK DIVERGENCE — do not offer this upstream: private magazines
+     */
+    private function excludeUnviewableContent(QueryBuilder $qb, User $user): void
+    {
+        $em = $this->getEntityManager();
+        $subclasses = $em->getClassMetadata(Notification::class)->subClasses;
+        sort($subclasses);
+
+        $i = 0;
+        foreach ($subclasses as $subclass) {
+            $metadata = $em->getClassMetadata($subclass);
+            foreach (['entry', 'entryComment', 'post', 'postComment', 'report'] as $field) {
+                if (!$metadata->hasAssociation($field)) {
+                    continue;
+                }
+
+                $magazine = 'nam_m'.$i;
+                $condition = MagazineAccessClause::dql($qb, $magazine, $user);
+                if (null === $condition) {
+                    return;
+                }
+
+                $content = 'nam_c'.$i;
+                $notification = 'nam_n'.$i;
+                $qb->andWhere(\sprintf(
+                    'NOT EXISTS (SELECT %1$s.id FROM %2$s %1$s JOIN %1$s.%3$s %4$s JOIN %4$s.magazine %5$s WHERE %1$s.id = n.id AND NOT %6$s)',
+                    $notification,
+                    $subclass,
+                    $field,
+                    $content,
+                    $magazine,
+                    $condition,
+                ));
+                ++$i;
+            }
+        }
+    }
+
+    /**
+     * Drop the user's access-request notifications for a magazine they no longer moderate:
+     * the requester's name is for moderators only. Correlated on the notification id, like
+     * excludeUnviewableContent(); admins and global moderators keep everything.
+     *
+     * FORK DIVERGENCE — do not offer this upstream: private magazines
+     */
+    private function excludeStaleAccessRequests(QueryBuilder $qb, User $user): void
+    {
+        if ($user->isAdmin() || $user->isModerator()) {
+            return;
+        }
+
+        $qb->andWhere(\sprintf(
+            'NOT EXISTS (SELECT nar.id FROM %s nar WHERE nar.id = n.id AND NOT EXISTS (SELECT nmd.id FROM %s nmd WHERE nmd.magazine = nar.magazine AND nmd.user = :nar_viewer AND (nmd.isConfirmed = true OR nmd.isOwner = true)))',
+            MagazineAccessRequestedNotification::class,
+            Moderator::class,
+        ));
+        $qb->setParameter('nar_viewer', $user->getId());
     }
 
     public function findUnreadEntryNotifications(User $user, Entry $entry): iterable

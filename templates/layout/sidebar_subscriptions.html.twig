@@ -70,6 +70,8 @@
 
                             <span class="{{ html_classes('magazine-name', { 'has-image': magazine.icon, 'onlyMobile': app.request.cookies.get(KBIN_SUBSCRIPTIONS_SHOW_MAGAZINE_ICON) is same as V_FALSE }) }}">
                                 <span>{{ magazine.title ?? magazine.name }}</span>
+                                {# FORK DIVERGENCE — do not offer this upstream: private magazines #}
+                                {{ include('components/_magazine_access_icon.html.twig', {access: magazine.access.value}, with_context: false) }}
                                 {%- if SHOW_MAGAZINE_FULLNAME is same as V_TRUE -%}
                                     <span>@{{- magazine.name|apDomain -}}</span>
                                 {%- endif -%}

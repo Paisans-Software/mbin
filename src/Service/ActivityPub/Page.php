@@ -35,6 +35,8 @@ class Page extends ActivityPubContent
         private readonly ApObjectExtractor $objectExtractor,
         private readonly LoggerInterface $logger,
         private readonly InstanceRepository $instanceRepository,
+        // FORK DIVERGENCE — do not offer this upstream: private magazines
+        private readonly ShadowThreadManager $shadowThreadManager,
     ) {
     }
 
@@ -53,7 +55,8 @@ class Page extends ActivityPubContent
         // First try to find the activity object in the database
         $current = $this->repository->findByObjectId($object['id']);
         if ($current) {
-            return $this->entityManager->getRepository($current['type'])->find((int) $current['id']);
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            return $this->shadowKnown($this->entityManager->getRepository($current['type'])->find((int) $current['id']), $object, $deliveredBy, $activityType);
         }
         $actorUrl = $this->activityPubManager->getSingleActorFromAttributedTo($object['attributedTo']);
         if ($this->settingsManager->isBannedInstance($actorUrl)) {
@@ -72,7 +75,8 @@ class Page extends ActivityPubContent
             if ($current) {
                 $this->logger->debug('Page already exists, not creating it');
 
-                return $this->entityManager->getRepository($current['type'])->find((int) $current['id']);
+                // FORK DIVERGENCE — do not offer this upstream: private magazines
+                return $this->shadowKnown($this->entityManager->getRepository($current['type'])->find((int) $current['id']), $object, $deliveredBy, $activityType);
             }
 
             if (\is_string($object['to'])) {
@@ -132,10 +136,32 @@ class Page extends ActivityPubContent
 
             $this->logger->debug('creating page');
 
-            return $this->entryManager->create($dto, $actor, false, $stickyIt);
+            // FORK DIVERGENCE — do not offer this upstream: private magazines
+            // a restricted magazine following this actor gets its own private copy
+            $entry = $this->entryManager->create($dto, $actor, false, $stickyIt);
+            $this->shadowThreadManager->shadow($entry, $object, $deliveredBy, $activityType);
+
+            return $entry;
         } else {
             throw new EntityNotFoundException('Actor could not be found for entry.');
         }
+    }
+
+    /**
+     * A restricted magazine may have started following after the object first arrived, so a
+     * known object is offered for shadowing too; one that already has its shadow is skipped.
+     *
+     * FORK DIVERGENCE — do not offer this upstream: private magazines
+     *
+     * @param array<string, mixed> $object
+     */
+    private function shadowKnown(?object $known, array $object, ?string $deliveredBy, ?string $activityType): ?object
+    {
+        if ($known instanceof Entry) {
+            $this->shadowThreadManager->shadow($known, $object, $deliveredBy, $activityType);
+        }
+
+        return $known;
     }
 
     private function extractUrlIntoDto(EntryDto $dto, ?array $object, User $actor): void

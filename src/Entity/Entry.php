@@ -33,6 +33,8 @@ use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\OneToMany;
 use Doctrine\ORM\Mapping\OrderBy;
+// FORK DIVERGENCE — do not offer this upstream: private magazines
+use Doctrine\ORM\Mapping\UniqueConstraint;
 use Webmozart\Assert\Assert;
 
 #[Entity(repositoryClass: EntryRepository::class)]
@@ -45,6 +47,9 @@ use Webmozart\Assert\Assert;
 #[Index(columns: ['last_active'], name: 'entry_last_active_at_idx')]
 #[Index(columns: ['body_ts'], name: 'entry_body_ts_idx')]
 #[Index(columns: ['title_ts'], name: 'entry_title_ts_idx')]
+// FORK DIVERGENCE — do not offer this upstream: private magazines
+#[UniqueConstraint(name: 'entry_shadow_entry_idx', columns: ['magazine_id', 'shadow_of_entry_id'])]
+#[UniqueConstraint(name: 'entry_shadow_post_idx', columns: ['magazine_id', 'shadow_of_post_id'])]
 class Entry implements VotableInterface, CommentInterface, DomainInterface, VisibilityInterface, RankingInterface, ReportInterface, FavouriteInterface, ActivityPubActivityInterface, ContentVisibilityInterface
 {
     use VotableTrait;
@@ -81,6 +86,14 @@ class Entry implements VotableInterface, CommentInterface, DomainInterface, Visi
     #[ManyToOne(targetEntity: Domain::class, inversedBy: 'entries')]
     #[JoinColumn(nullable: true)]
     public ?Domain $domain = null;
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    #[ManyToOne(targetEntity: Entry::class)]
+    #[JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    public ?Entry $shadowOfEntry = null;
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    #[ManyToOne(targetEntity: Post::class)]
+    #[JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    public ?Post $shadowOfPost = null;
     #[Column(type: 'string', nullable: true)]
     public ?string $slug = null;
     #[Column(type: 'string', length: self::MAX_TITLE_LENGTH, nullable: false)]
@@ -372,6 +385,12 @@ class Entry implements VotableInterface, CommentInterface, DomainInterface, Visi
     public function getUser(): ?User
     {
         return $this->user;
+    }
+
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    public function isShadow(): bool
+    {
+        return null !== $this->shadowOfEntry || null !== $this->shadowOfPost;
     }
 
     public function isAdult(): bool

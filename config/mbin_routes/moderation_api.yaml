@@ -132,6 +132,27 @@ api_moderate_magazine_unban_user:
   methods: [ DELETE ]
   format: json
 
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+api_moderate_magazine_members:
+  controller: App\Controller\Api\Magazine\Moderate\MagazineMembersApi::collection
+  path: /api/moderate/magazine/{magazine_id}/members
+  methods: [ GET ]
+  format: json
+
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+api_moderate_magazine_member_add:
+  controller: App\Controller\Api\Magazine\Moderate\MagazineMembersApi::add
+  path: /api/moderate/magazine/{magazine_id}/members/{user_id}
+  methods: [ PUT ]
+  format: json
+
+# FORK DIVERGENCE — do not offer this upstream: private magazines
+api_moderate_magazine_member_remove:
+  controller: App\Controller\Api\Magazine\Moderate\MagazineMembersApi::remove
+  path: /api/moderate/magazine/{magazine_id}/members/{user_id}
+  methods: [ DELETE ]
+  format: json
+
 api_moderate_magazine_mod_user:
   controller: App\Controller\Api\Magazine\Admin\MagazineAddModeratorsApi
   path: /api/moderate/magazine/{magazine_id}/mod/{user_id}

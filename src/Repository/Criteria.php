@@ -99,6 +99,9 @@ abstract class Criteria
     public ?string $domain = null;
     public ?array $languages = null;
     public bool $stickiesFirst = false;
+    // FORK DIVERGENCE — do not offer this upstream: private magazines
+    // Evaluate magazine access as an anonymous viewer, whoever is logged in (RSS).
+    public bool $publicAccessOnly = false;
 
     /** @var int[]|null */
     public ?array $cachedUserFollows = null;
