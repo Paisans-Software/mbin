@@ -8,10 +8,12 @@ use App\Entity\Magazine;
 use App\Entity\MagazineAccessGrantedNotification;
 use App\Entity\MagazineAccessRequest;
 use App\Entity\MagazineAccessRequestedNotification;
+use App\Entity\MagazineSubscription;
 use App\Entity\Moderator;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\Service\MagazineAccessRequestManager;
+use App\Service\MagazineMemberManager;
 use App\Service\NotificationManager;
 use App\Tests\WebTestCase;
 
@@ -69,6 +71,32 @@ class MagazineAccessNotificationTest extends WebTestCase
         self::assertInstanceOf(MagazineAccessGrantedNotification::class, $notification);
         self::assertSame('magazine_access_granted', $notification->getType());
         self::assertSame('circle', $notification->magazine->name);
+    }
+
+    public function testDirectlyAddedMemberIsNotifiedOnceAndNotSubscribed(): void
+    {
+        $vault = $this->getMagazineByName('vault', $this->owner);
+        $vault->access = MagazineAccess::Hidden;
+        $this->entityManager->flush();
+        $members = static::getContainer()->get(MagazineMemberManager::class);
+
+        foreach ([$this->circle, $vault] as $i => $magazine) {
+            $members->add($magazine, $this->bob, $this->owner);
+            // Adding an existing member again notifies nobody.
+            $members->add($magazine, $this->bob, $this->owner);
+
+            self::assertSame($i + 1, $this->notificationRepository->countUnreadNotifications($this->bob), $magazine->name);
+            $notification = $this->entityManager->getRepository(MagazineAccessGrantedNotification::class)->findOneBy(['user' => $this->bob, 'magazine' => $magazine]);
+            self::assertInstanceOf(MagazineAccessGrantedNotification::class, $notification);
+            self::assertNull($this->entityManager->getRepository(MagazineSubscription::class)->findOneBy(['magazine' => $magazine, 'user' => $this->bob]), $magazine->name);
+        }
+    }
+
+    public function testAddingSomeoneWhoCanAlreadyViewNotifiesNobody(): void
+    {
+        static::getContainer()->get(MagazineMemberManager::class)->add($this->circle, $this->second, $this->owner);
+
+        self::assertSame(0, $this->notificationRepository->countUnreadNotifications($this->second));
     }
 
     public function testNotificationsApiSerializesBothTypes(): void

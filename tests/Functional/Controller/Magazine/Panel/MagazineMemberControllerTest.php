@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Controller\Magazine\Panel;
 
 use App\Entity\Magazine;
+use App\Entity\MagazineSubscription;
 use App\Enum\MagazineAccess;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
@@ -53,6 +54,38 @@ class MagazineMemberControllerTest extends WebTestCase
         $this->entityManager->clear();
         $circle = $this->entityManager->getRepository(Magazine::class)->findOneBy(['name' => 'circle']);
         self::assertTrue($circle->userCanView($this->getUserByUsername('alice')));
+    }
+
+    public function testAddedMemberOfHiddenMagazineIsNotifiedAndCanJoin(): void
+    {
+        $owner = $this->getUserByUsername('owner');
+        $vault = $this->getMagazineByName('vault', $owner);
+        $vault->access = MagazineAccess::Hidden;
+        $this->entityManager->flush();
+
+        $this->client->loginUser($owner);
+        $crawler = $this->client->request('GET', '/m/vault/panel/members');
+        $this->client->submit(
+            $crawler->filter('#main form[name=magazine_member]')->selectButton('Add member')->form([
+                'magazine_member[username]' => 'alice',
+            ])
+        );
+        $this->client->followRedirect();
+
+        $alice = $this->getUserByUsername('alice');
+        $this->client->loginUser($alice);
+        $crawler = $this->client->request('GET', '/settings/notifications');
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $crawler->filter('#main a[href$="/m/vault"]')->count());
+
+        $crawler = $this->client->request('GET', '/m/vault');
+        self::assertResponseIsSuccessful();
+        $this->client->submit($crawler->filter('#sidebar .magazine')->selectButton('Subscribe')->form());
+        $this->client->followRedirect();
+
+        $this->entityManager->clear();
+        $vault = $this->entityManager->getRepository(Magazine::class)->findOneBy(['name' => 'vault']);
+        self::assertNotNull($this->entityManager->getRepository(MagazineSubscription::class)->findOneBy(['magazine' => $vault, 'user' => $this->getUserByUsername('alice')]));
     }
 
     public function testBannedAccountIsAFormError(): void

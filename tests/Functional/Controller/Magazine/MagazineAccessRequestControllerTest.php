@@ -16,7 +16,6 @@ use App\Service\MagazineManager;
 use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
@@ -292,7 +291,6 @@ class MagazineAccessRequestControllerTest extends WebTestCase
             $container->get('doctrine.orm.entity_manager'),
             $container->get(EventDispatcherInterface::class),
             $container->get(MagazineMemberManager::class),
-            $container->get(MessageBusInterface::class),
             $container->get('doctrine'),
         );
 
