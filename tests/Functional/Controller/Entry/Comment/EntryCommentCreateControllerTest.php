@@ -37,6 +37,21 @@ class EntryCommentCreateControllerTest extends WebTestCase
         $this->assertSelectorTextContains('#main blockquote', 'test comment 1');
     }
 
+    public function testPageCarriesTheNoticeForAnUnconfirmedSend(): void
+    {
+        $this->client->loginUser($this->getUserByUsername('JohnDoe'));
+
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+
+        $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");
+
+        $this->assertSelectorExists('template#send-unconfirmed');
+        $this->assertStringContainsString(
+            'reload the page and check before sending it again',
+            $this->client->getResponse()->getContent()
+        );
+    }
+
     public function testUserCannotCreateEntryCommentInLockedEntry(): void
     {
         $user = $this->getUserByUsername('JohnDoe');
