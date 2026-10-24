@@ -8,7 +8,6 @@ use App\Entity\Contracts\VisibilityInterface;
 use App\Entity\Magazine;
 use App\Entity\MagazineBlock;
 use App\Entity\User;
-use App\Enum\MagazineAccess;
 use App\Repository\MagazineAccessClause;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -38,10 +37,7 @@ class MagazineAutocompleteType extends AbstractType
             'query_builder' => function (EntityRepository $repository): QueryBuilder {
                 $qb = $repository->createQueryBuilder('entity');
                 $viewer = $this->security->getUser();
-                $canView = MagazineAccessClause::dql($qb, 'entity', $viewer instanceof User ? $viewer : null);
-                if (null !== $canView) {
-                    $qb->andWhere("entity.access <> '".MagazineAccess::Hidden->value."' OR $canView");
-                }
+                MagazineAccessClause::applyDiscovery($qb, 'entity', $viewer instanceof User ? $viewer : null);
 
                 return $qb;
             },
@@ -56,11 +52,6 @@ class MagazineAutocompleteType extends AbstractType
                         )
                         ->setParameter('user', $currentUser);
                 }
-
-                // FORK DIVERGENCE — do not offer this upstream: private magazines
-                // before the early return: an empty query still lists magazines, page by page
-                $viewer = $this->security->getUser();
-                MagazineAccessClause::applyDiscovery($qb, 'entity', $viewer instanceof User ? $viewer : null);
 
                 if (!$query) {
                     return;

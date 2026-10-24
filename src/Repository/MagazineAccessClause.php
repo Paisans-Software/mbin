@@ -106,7 +106,8 @@ final class MagazineAccessClause
 
     /**
      * Restrict a magazine discovery query (directory, search, suggestions): private
-     * magazines stay listed so people can find and ask to join them, hidden ones do not.
+     * magazines stay listed so people can find and ask to join them, hidden ones only for
+     * those who may view them.
      */
     public static function applyDiscovery(QueryBuilder $qb, string $magazineAlias, ?User $viewer): void
     {
@@ -115,20 +116,36 @@ final class MagazineAccessClause
             return;
         }
 
-        $qb->andWhere("$a.access <> '".MagazineAccess::Hidden->value."'");
+        $notHidden = "$a.access <> '".MagazineAccess::Hidden->value."'";
+        if (null === $viewer) {
+            $qb->andWhere($notHidden);
+
+            return;
+        }
+
+        $qb->andWhere("($notHidden OR ".self::dql($qb, $a, $viewer).')');
     }
 
     /**
      * applyDiscovery() for native SQL, where $magazineAlias is an alias of the magazine table.
+     *
+     * @return array{string, array<string, int>} the condition and the parameters it uses
      */
-    public static function sqlDiscovery(string $magazineAlias, ?User $viewer): string
+    public static function sqlDiscovery(string $magazineAlias, ?User $viewer): array
     {
         $a = self::checkAlias($magazineAlias);
         if (self::seesEverything($viewer)) {
-            return 'TRUE';
+            return ['TRUE', []];
         }
 
-        return "$a.access <> '".MagazineAccess::Hidden->value."'";
+        $notHidden = "$a.access <> '".MagazineAccess::Hidden->value."'";
+        if (null === $viewer) {
+            return [$notHidden, []];
+        }
+
+        [$canView, $parameters] = self::sql($a, $viewer);
+
+        return ["($notHidden OR $canView)", $parameters];
     }
 
     private static function seesEverything(?User $viewer): bool

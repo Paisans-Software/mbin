@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Controller\Magazine;
 
 use App\Controller\User\ThemeSettingsController;
+use App\DTO\MagazineBanDto;
 use App\Entity\Entry;
 use App\Entity\Magazine;
 use App\Entity\MagazineFollow;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\Repository\MagazineRepository;
+use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\BrowserKit\Cookie;
@@ -20,7 +22,8 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
  *
  * Magazine discovery lists a private magazine and leaves a hidden one out, except for
- * admins and global moderators. WebFinger resolves neither while it follows nothing.
+ * those who may view it: its members who are not banned, its moderators, admins and
+ * global moderators. WebFinger resolves neither while it follows nothing.
  */
 class HiddenDiscoveryTest extends WebTestCase
 {
@@ -104,6 +107,50 @@ class HiddenDiscoveryTest extends WebTestCase
         $this->actAs($this->admin);
         self::assertContains('vault', $names($this->repository()->findByActivity()));
         self::assertSame(['vault'], $names(iterator_to_array($this->repository()->search('vault', 1)->getCurrentPageResults())));
+    }
+
+    public function testMemberFindsHiddenMagazineWhereverMagazinesAreListed(): void
+    {
+        $alice = $this->getUserByUsername('alice');
+        $this->memberManager()->add($this->vault, $alice, $this->admin);
+        $this->admin->lastActive = new \DateTime('-2 months');
+        $this->entityManager->flush();
+
+        $this->client->loginUser($alice);
+        self::assertStringContainsString('/m/vault', $this->get('/magazines'));
+        self::assertStringContainsString('/m/vault', $this->get('/magazines/abandoned'));
+        self::assertStringContainsString('/m/vault', $this->get('/search?search%5Bq%5D=vault'));
+        $this->client->request('GET', '/autocomplete/magazine_autocomplete_type?query=vault');
+        self::assertStringContainsString('vault', $this->client->getResponse()->getContent());
+        $this->client->getCookieJar()->set(new Cookie(ThemeSettingsController::KBIN_GENERAL_TOPBAR, ThemeSettingsController::TRUE));
+        $crawler = $this->client->request('GET', '/all');
+        self::assertStringContainsString('/m/vault', $crawler->filter('#topbar')->html());
+        self::assertStringContainsString('"name":"vault"', $this->getApi('/api/magazines', $alice));
+
+        $names = fn (array $magazines) => array_map(fn (Magazine $m) => $m->name, $magazines);
+        self::assertContains('vault', $names($this->magazineRepository->findRandom($alice)));
+        self::assertSame(['vault'], $names($this->magazineRepository->findRelated('vault', $alice)));
+        $this->actAs($alice);
+        self::assertContains('vault', $names($this->repository()->findByActivity()));
+        self::assertSame(['vault'], $names(iterator_to_array($this->repository()->search('vault', 1)->getCurrentPageResults())));
+
+        // membership of one hidden magazine reveals no other
+        $this->client->loginUser($this->bob);
+        self::assertStringNotContainsString('/m/vault', $this->get('/magazines'));
+    }
+
+    public function testBannedMemberDoesNotFindHiddenMagazine(): void
+    {
+        $alice = $this->getUserByUsername('alice');
+        $this->memberManager()->add($this->vault, $alice, $this->admin);
+        $dto = new MagazineBanDto();
+        $dto->reason = 'test';
+        $this->magazineManager->ban($this->vault, $alice, $this->admin, $dto);
+
+        $this->client->loginUser($alice);
+        self::assertStringNotContainsString('/m/vault', $this->get('/magazines'));
+        self::assertStringNotContainsString('/m/vault', $this->get('/search?search%5Bq%5D=vault'));
+        self::assertNotContains('vault', array_map(fn (Magazine $m) => $m->name, $this->magazineRepository->findRandom($alice)));
     }
 
     public function testHiddenMagazineNeverReceivesTaggedPosts(): void
@@ -259,6 +306,11 @@ class HiddenDiscoveryTest extends WebTestCase
     private function repository(): MagazineRepository
     {
         return self::getContainer()->get(MagazineRepository::class);
+    }
+
+    private function memberManager(): MagazineMemberManager
+    {
+        return self::getContainer()->get(MagazineMemberManager::class);
     }
 
     private function actAs(User $user): void
