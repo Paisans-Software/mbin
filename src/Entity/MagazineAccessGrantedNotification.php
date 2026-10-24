@@ -12,7 +12,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Sent to a user whose request to join a private magazine was approved.
+ * Sent to a user let into a private or hidden magazine, by an approved request or by a
+ * moderator adding them.
  *
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
  */

@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Controller;
 use App\Entity\Entry;
 use App\Entity\EntryComment;
 use App\Entity\Magazine;
+use App\Entity\MagazineAccessGrantedNotification;
 use App\Entity\Post;
 use App\Entity\PostComment;
 use App\Entity\User;
@@ -46,5 +47,12 @@ trait RestrictedContentFixtureTrait
         $this->bob = $this->getUserByUsername('bob');
         $this->alice = $this->getUserByUsername('alice');
         static::getContainer()->get(MagazineMemberManager::class)->add($this->circle, $this->alice, $admin);
+        // Tests count the notifications restricted content causes, so alice starts with none.
+        $this->entityManager->createQueryBuilder()
+            ->delete(MagazineAccessGrantedNotification::class, 'n')
+            ->where('n.user = :user')
+            ->setParameter('user', $this->alice)
+            ->getQuery()
+            ->execute();
     }
 }

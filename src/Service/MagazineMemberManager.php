@@ -8,8 +8,10 @@ use App\Entity\Magazine;
 use App\Entity\MagazineAccessRequest;
 use App\Entity\MagazineMember;
 use App\Entity\User;
+use App\Message\Notification\MagazineAccessGrantedNotificationMessage;
 use App\Repository\MagazineMemberRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
@@ -20,6 +22,7 @@ class MagazineMemberManager
         private readonly MagazineMemberRepository $repository,
         private readonly MagazineManager $magazineManager,
         private readonly EntityManagerInterface $entityManager,
+        private readonly MessageBusInterface $bus,
     ) {
     }
 
@@ -40,6 +43,7 @@ class MagazineMemberManager
             return $existing;
         }
 
+        $couldView = $magazine->userCanView($user);
         $member = new MagazineMember($magazine, $user, $addedBy);
         $magazine->members->add($member);
         $this->entityManager->persist($member);
@@ -53,6 +57,12 @@ class MagazineMemberManager
             ->getQuery()
             ->execute();
         $this->entityManager->flush();
+
+        // Every admission path ends here too, so whoever is let in hears it once, and
+        // someone who could already see the magazine hears nothing.
+        if (!$couldView) {
+            $this->bus->dispatch(new MagazineAccessGrantedNotificationMessage($magazine->getId(), $user->getId()));
+        }
 
         return $member;
     }
