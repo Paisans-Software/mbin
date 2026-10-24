@@ -77,6 +77,8 @@ export default class extends Controller {
         const form = event.target.closest('form');
         const url = form.action;
 
+        form.querySelector('.send-unconfirmed')?.remove();
+
         try {
             this.loadingValue = true;
             self.sendBtnLabel = event.target.innerHTML;
@@ -124,6 +126,13 @@ export default class extends Controller {
         } catch (e) {
             console.error(e);
             // this.containerTarget.innerHTML = '';
+            // The request may have reached the server even though no answer
+            // came back, so say so rather than invite a duplicate.
+            const notice = document.getElementById('send-unconfirmed')?.content.firstElementChild.cloneNode(true);
+            if (notice) {
+                notice.classList.add('send-unconfirmed');
+                form.prepend(notice);
+            }
         } finally {
             this.application
                 .getControllerForElementAndIdentifier(document.getElementById('main'), 'lightbox')

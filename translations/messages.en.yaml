@@ -1241,3 +1241,4 @@ unblock_instance_globally_long: Unblock Instance for all Users
 in_reply_to: in reply to
 original_image: Original image
 invisible_or_deleted: invisible or deleted
+send_unconfirmed: Could not confirm this was sent. It may already have been posted, so reload the page and check before sending it again.
