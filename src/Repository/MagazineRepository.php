@@ -506,7 +506,9 @@ class MagazineRepository extends ServiceEntityRepository
             $whereClauses[] = 'm.ap_id IS NULL';
         }
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        $whereClauses[] = MagazineAccessClause::sqlDiscovery('m', $user);
+        [$discoveryClause, $discoveryParameters] = MagazineAccessClause::sqlDiscovery('m', $user);
+        $whereClauses[] = $discoveryClause;
+        $parameters = array_merge($parameters, $discoveryParameters);
         if (null !== $user) {
             $whereClauses[] = 'm.id NOT IN(:blockedMagazines)';
             $parameters['blockedMagazines'] = $this->sqlHelpers->getCachedUserMagazineBlocks($user);

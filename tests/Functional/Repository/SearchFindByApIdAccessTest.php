@@ -8,12 +8,14 @@ use App\Entity\Magazine;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\Repository\SearchRepository;
+use App\Service\MagazineMemberManager;
 use App\Tests\WebTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 /**
- * Looking a magazine up by its ActivityPub id is discovery: a hidden magazine is not
- * found except by admins and global moderators; a private one is.
+ * Looking a magazine up by its ActivityPub id is discovery: a hidden magazine is found
+ * only by those who may view it (its members, admins and global moderators); a private
+ * one is found by everyone.
  *
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
  */
@@ -32,7 +34,7 @@ class SearchFindByApIdAccessTest extends WebTestCase
         return array_map(fn (Magazine $m) => $m->name, array_values(array_filter($found, fn ($o) => $o instanceof Magazine)));
     }
 
-    public function testHiddenMagazineIsFoundOnlyBySiteStaff(): void
+    public function testHiddenMagazineIsFoundOnlyByThoseWhoMayViewIt(): void
     {
         $admin = $this->getUserByUsername('admin', isAdmin: true);
         $vault = $this->getMagazineByName('vault', $admin);
@@ -48,5 +50,9 @@ class SearchFindByApIdAccessTest extends WebTestCase
         self::assertSame(['vault'], $this->magazinesFoundBy($admin, $vault), 'admin');
         self::assertSame(['vault'], $this->magazinesFoundBy($this->getUserByUsername('gmod', isModerator: true), $vault), 'global moderator');
         self::assertSame(['circle'], $this->magazinesFoundBy($bob, $circle), 'a private magazine stays discoverable');
+
+        $alice = $this->getUserByUsername('alice');
+        static::getContainer()->get(MagazineMemberManager::class)->add($vault, $alice, $admin);
+        self::assertSame(['vault'], $this->magazinesFoundBy($alice, $vault), 'member');
     }
 }

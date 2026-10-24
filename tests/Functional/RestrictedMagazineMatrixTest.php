@@ -26,8 +26,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * fetches carry no user, so the entry object is checked anonymously only.
  *
  * In the magazine directory (/api/magazines) a private magazine is listed for everyone
- * and a hidden one only for admins and global moderators: the directory is discovery,
- * and members and moderators of a hidden magazine reach it through their own lists.
+ * and a hidden one for every viewer who may view it: hidden means hidden from those who
+ * cannot.
  *
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
  */
@@ -168,7 +168,7 @@ class RestrictedMagazineMatrixTest extends WebTestCase
                 $this->api('/api/magazines?perPage=100', $user);
                 self::assertResponseIsSuccessful();
                 $names = array_column(self::getJsonResponse($this->client)['items'], 'name');
-                $listed = 'private' === $level || \in_array($viewer, ['global moderator', 'admin', 'unattached admin'], true);
+                $listed = 'private' === $level || !\in_array($viewer, ['anonymous', 'non-member'], true);
                 self::assertSame($listed, \in_array($name, $names, true), implode(', ', $names));
                 break;
 
