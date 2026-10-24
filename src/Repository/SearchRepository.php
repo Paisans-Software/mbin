@@ -200,8 +200,9 @@ class SearchRepository
         // FORK DIVERGENCE — do not offer this upstream: private magazines
         // content in magazines the searching user cannot see is left out of the four content queries
         [$accessClause, $accessParameters] = MagazineAccessClause::sql('m', $searchingUser);
-        // and hidden magazines are left out of the magazine query
-        $magazineDiscoveryClause = MagazineAccessClause::sqlDiscovery('m', $searchingUser);
+        // and hidden magazines the searching user cannot see are left out of the magazine query
+        [$magazineDiscoveryClause, $discoveryParameters] = MagazineAccessClause::sqlDiscovery('m', $searchingUser);
+        $accessParameters = array_merge($accessParameters, $discoveryParameters);
         $conn = $this->entityManager->getConnection();
         $sqlEntry = "SELECT e.id, e.created_at, e.visibility, 2 * ts_rank_cd(e.title_ts, plainto_tsquery(:tsLang, :query)) + ts_rank_cd(e.body_ts, plainto_tsquery(:tsLang, :query)) as rank, 'entry' AS type FROM entry e
             INNER JOIN public.user u ON u.id = user_id
@@ -304,7 +305,7 @@ class SearchRepository
             'tsLang' => $this->settingsManager->getSearchLang(),
         ];
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        // only when a content query is part of $sql: the magazine and user queries do not use them
+        // only when a query that uses them is part of $sql: the user query does not
         foreach ($accessParameters as $name => $value) {
             if (str_contains($sql, ":$name")) {
                 $parameters[$name] = $value;
@@ -338,11 +339,12 @@ class SearchRepository
     {
         $conn = $this->entityManager->getConnection();
         // FORK DIVERGENCE — do not offer this upstream: private magazines
-        // content in magazines the signed-in user cannot view, and hidden magazines, are not found
+        // content in magazines the signed-in user cannot view, and hidden magazines they cannot view, are not found
         $parameters = ['url' => "$url"];
         [$entryAccess, $entryCommentAccess, $postAccess, $postCommentAccess] = $this->contentAccessConditions($parameters);
         $viewer = $this->security->getUser();
-        $magazineDiscovery = MagazineAccessClause::sqlDiscovery('magazine', $viewer instanceof User ? $viewer : null);
+        [$magazineDiscovery, $discoveryParameters] = MagazineAccessClause::sqlDiscovery('magazine', $viewer instanceof User ? $viewer : null);
+        $parameters = array_merge($parameters, $discoveryParameters);
         $sql = "
         SELECT id, created_at, 'entry' AS type FROM entry WHERE ap_id = :url $entryAccess
         UNION ALL

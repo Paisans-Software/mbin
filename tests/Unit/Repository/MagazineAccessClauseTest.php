@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Repository;
 
 use App\Entity\Magazine;
+use App\Entity\MagazineBan;
+use App\Entity\MagazineMember;
+use App\Entity\Moderator;
 use App\Entity\User;
 use App\Repository\MagazineAccessClause;
 use Doctrine\ORM\EntityManagerInterface;
@@ -80,15 +83,20 @@ class MagazineAccessClauseTest extends TestCase
         self::assertCount(2, array_unique($names));
     }
 
-    public function testDiscoveryHidesOnlyHidden(): void
+    public function testDiscoveryHidesHiddenFromThoseWhoCannotViewIt(): void
     {
         $qb = $this->builder();
         MagazineAccessClause::applyDiscovery($qb, 'm', $this->viewer());
-        self::assertStringContainsString("m.access <> 'hidden'", $qb->getDQL());
+        $dql = $qb->getDQL();
+        self::assertStringContainsString("(m.access <> 'hidden' OR (m.access = 'public' OR (EXISTS (", $dql);
+        self::assertStringContainsString(MagazineMember::class, $dql);
+        self::assertStringContainsString(MagazineBan::class, $dql);
+        self::assertStringContainsString(Moderator::class, $dql);
+        self::assertSame(42, $qb->getParameter('mac_viewer_m')->getValue());
 
         $qb = $this->builder();
         MagazineAccessClause::applyDiscovery($qb, 'm', null);
-        self::assertStringContainsString("m.access <> 'hidden'", $qb->getDQL());
+        self::assertStringEndsWith("WHERE m.access <> 'hidden'", $qb->getDQL());
 
         $qb = $this->builder();
         $before = $qb->getDQL();
@@ -96,12 +104,14 @@ class MagazineAccessClauseTest extends TestCase
         self::assertSame($before, $qb->getDQL());
     }
 
-    public function testSqlDiscoveryHidesOnlyHidden(): void
+    public function testSqlDiscoveryHidesHiddenFromThoseWhoCannotViewIt(): void
     {
-        self::assertSame("m.access <> 'hidden'", MagazineAccessClause::sqlDiscovery('m', $this->viewer()));
-        self::assertSame("m.access <> 'hidden'", MagazineAccessClause::sqlDiscovery('m', null));
-        self::assertSame('TRUE', MagazineAccessClause::sqlDiscovery('m', $this->viewer(admin: true)));
-        self::assertSame('TRUE', MagazineAccessClause::sqlDiscovery('m', $this->viewer(globalModerator: true)));
+        [$condition, $parameters] = MagazineAccessClause::sqlDiscovery('m', $this->viewer());
+        self::assertStringStartsWith("(m.access <> 'hidden' OR (m.access = 'public' OR (EXISTS (SELECT 1 FROM magazine_member", $condition);
+        self::assertSame(['mac_viewer_m' => 42], $parameters);
+        self::assertSame(["m.access <> 'hidden'", []], MagazineAccessClause::sqlDiscovery('m', null));
+        self::assertSame(['TRUE', []], MagazineAccessClause::sqlDiscovery('m', $this->viewer(admin: true)));
+        self::assertSame(['TRUE', []], MagazineAccessClause::sqlDiscovery('m', $this->viewer(globalModerator: true)));
     }
 
     public function testRejectsUnsafeAlias(): void
