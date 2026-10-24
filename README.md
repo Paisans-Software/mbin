@@ -87,17 +87,17 @@ Unofficial magazines:
                 </a>
             </td>
             <td align="center">
-                <a href="https://github.com/BentiGorlich">
-                    <img src="https://avatars.githubusercontent.com/u/25664458?v=4" width="100;" alt="BentiGorlich"/>
-                    <br />
-                    <sub><b>BentiGorlich</b></sub>
-                </a>
-            </td>
-            <td align="center">
                 <a href="https://github.com/josephquigley">
                     <img src="https://avatars.githubusercontent.com/u/682509?v=4" width="100;" alt="josephquigley"/>
                     <br />
                     <sub><b>Joseph Quigley</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/BentiGorlich">
+                    <img src="https://avatars.githubusercontent.com/u/25664458?v=4" width="100;" alt="BentiGorlich"/>
+                    <br />
+                    <sub><b>BentiGorlich</b></sub>
                 </a>
             </td>
             <td align="center">
