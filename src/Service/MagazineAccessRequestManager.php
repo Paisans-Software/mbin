@@ -9,13 +9,11 @@ use App\Entity\MagazineAccessRequest;
 use App\Entity\User;
 use App\Enum\MagazineAccess;
 use App\Event\Magazine\MagazineAccessRequestedEvent;
-use App\Message\Notification\MagazineAccessGrantedNotificationMessage;
 use App\Repository\MagazineAccessRequestRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * FORK DIVERGENCE — do not offer this upstream: private magazines.
@@ -27,7 +25,6 @@ class MagazineAccessRequestManager
         private readonly EntityManagerInterface $entityManager,
         private readonly EventDispatcherInterface $dispatcher,
         private readonly MagazineMemberManager $memberManager,
-        private readonly MessageBusInterface $bus,
         private readonly ManagerRegistry $registry,
     ) {
     }
@@ -80,12 +77,10 @@ class MagazineAccessRequestManager
         $magazine = $request->magazine;
         $user = $request->user;
 
-        $admitted = false;
         if (!$magazine->isBanned($user)) {
-            $alreadyViewer = $magazine->userCanView($user);
             try {
+                // add() tells the requester they were let in.
                 $this->memberManager->add($magazine, $user, $moderator);
-                $admitted = !$alreadyViewer;
             } catch (\InvalidArgumentException) {
                 // Refused on purpose: the requester cannot be admitted, so the request is dropped below and nobody is added.
             }
@@ -93,10 +88,6 @@ class MagazineAccessRequestManager
 
         $this->entityManager->remove($request);
         $this->entityManager->flush();
-
-        if ($admitted) {
-            $this->bus->dispatch(new MagazineAccessGrantedNotificationMessage($magazine->getId(), $user->getId()));
-        }
     }
 
     public function deny(MagazineAccessRequest $request): void

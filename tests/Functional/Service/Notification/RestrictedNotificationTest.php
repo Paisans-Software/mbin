@@ -86,10 +86,12 @@ class RestrictedNotificationTest extends WebTestCase
         $this->entityManager->flush();
         $this->magazineManager->subscribe($this->circle, $carol);
         $this->addMember($carol);
+        // being let in is a notification of its own
+        $before = $this->notificationRepository->countUnreadNotifications($carol);
 
         $this->createEntry('Circle entry', $this->circle, $this->alice);
 
-        self::assertSame(1, $this->notificationRepository->countUnreadNotifications($carol));
+        self::assertSame($before + 1, $this->notificationRepository->countUnreadNotifications($carol));
     }
 
     public function testMentionOfNonMemberInACommentCreatesNoNotification(): void
