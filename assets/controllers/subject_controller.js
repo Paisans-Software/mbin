@@ -1,4 +1,4 @@
-import { fetch, ok } from '@app/utils/http';
+import { fetch, ok, postWithProgress } from '@app/utils/http';
 import getIntIdFromElement, { getDepth, getLevel, getTypeFromNotification } from '@app/utils/mbin';
 import { Controller } from '@hotwired/stimulus';
 import { defaultPopover } from '@app/utils/popover.js';
@@ -76,6 +76,7 @@ export default class extends Controller {
 
         const form = event.target.closest('form');
         const url = form.action;
+        const fileInputs = [...form.querySelectorAll('input[type="file"]')].filter((input) => input.files.length);
 
         try {
             this.loadingValue = true;
@@ -83,10 +84,18 @@ export default class extends Controller {
             event.target.disabled = true;
             event.target.innerHTML = 'Sending...';
 
-            let response = await fetch(url, {
-                method: 'POST',
-                body: new FormData(form),
-            });
+            let response;
+            if (fileInputs.length) {
+                response = await postWithProgress(url, new FormData(form), (e) => {
+                    const detail = { loaded: e.loaded, total: e.lengthComputable ? e.total : 0 };
+                    fileInputs.forEach((input) => input.dispatchEvent(new CustomEvent('image-upload:progress', { bubbles: true, detail })));
+                });
+            } else {
+                response = await fetch(url, {
+                    method: 'POST',
+                    body: new FormData(form),
+                });
+            }
 
             response = await ok(response);
             response = await response.json();
@@ -134,6 +143,7 @@ export default class extends Controller {
             this.loadingValue = false;
             event.target.disabled = false;
             event.target.innerHTML = self.sendBtnLabel;
+            fileInputs.forEach((input) => input.dispatchEvent(new CustomEvent('image-upload:end', { bubbles: true })));
         }
 
     }
