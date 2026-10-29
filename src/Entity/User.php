@@ -383,13 +383,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Visibil
         return $this;
     }
 
+    /**
+     * Adds or removes ROLE_AGENT alone. Unlike the admin and moderator helpers,
+     * it leaves every other role in place.
+     */
     public function setOrRemoveAgentRole(bool $remove = false): self
     {
-        $this->roles = ['ROLE_AGENT'];
-
-        if ($remove) {
-            $this->roles = [];
+        $roles = array_values(array_diff($this->roles, ['ROLE_AGENT']));
+        if (!$remove) {
+            $roles[] = 'ROLE_AGENT';
         }
+        $this->roles = $roles;
 
         return $this;
     }
