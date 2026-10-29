@@ -61,10 +61,13 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
 			php bin/console mbin:ap:keys:update
 			php bin/console mbin:push:keys:update
 
-			# FORK DIVERGENCE — do not offer this upstream: make the agent OAuth client
-			# and its bot account match the MBIN_AGENT_* declaration.
+			# FORK DIVERGENCE: do not offer this upstream. Make the agent OAuth client
+			# and its bot account match the MBIN_AGENT_* declaration. A failed sync
+			# logs one line and Mbin starts anyway, without the agent client changing.
 			if [ -n "${MBIN_AGENT_CLIENT_ID:-}" ]; then
-				php bin/console mbin:agent:sync
+				if ! AGENT_SYNC_OUTPUT=$(php bin/console mbin:agent:sync --no-ansi 2>&1); then
+					echo "mbin:agent:sync failed, the agent client is unchanged: $(printf '%s' "$AGENT_SYNC_OUTPUT" | tr -s '\n\t ' ' ')"
+				fi
 			fi
 		fi
 	fi
