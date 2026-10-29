@@ -1,0 +1,11 @@
+api_agent_magazine_subscribe:
+  controller: App\Controller\Api\Agent\AgentMagazineSubscriptionApi::subscribe
+  path: /api/agent/users/{user_id}/magazines/{magazine_id}/subscription
+  methods: [ PUT ]
+  format: json
+
+api_agent_magazine_unsubscribe:
+  controller: App\Controller\Api\Agent\AgentMagazineSubscriptionApi::unsubscribe
+  path: /api/agent/users/{user_id}/magazines/{magazine_id}/subscription
+  methods: [ DELETE ]
+  format: json

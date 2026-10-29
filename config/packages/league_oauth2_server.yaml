@@ -145,6 +145,8 @@ league_oauth2_server:
                 "admin:oauth_clients",
                 "admin:oauth_clients:read",
                 "admin:oauth_clients:revoke",
+                "agent:magazine:subscribe",
+                "agent:magazine:create",
             ]
         default: ["read"]
     persistence:
