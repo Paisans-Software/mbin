@@ -81,6 +81,41 @@ class EmbedTest extends TestCase
         self::assertNull($result->title);
     }
 
+    public function testFailedOEmbedRequestKeepsPageMetadata(): void
+    {
+        $oEmbedRequestCount = 0;
+        $httpClient = new MockHttpClient(function (string $method, string $url) use (&$oEmbedRequestCount): MockResponse {
+            if (str_starts_with($url, 'http://93.184.216.34/oembed')) {
+                ++$oEmbedRequestCount;
+
+                return new MockResponse('', ['error' => 'Idle timeout reached']);
+            }
+
+            return new MockResponse(
+                '<html><head><title>Flooded sinkhole</title>'
+                .'<meta property="og:image" content="http://93.184.216.34/cover.jpg">'
+                .'<link rel="alternate" type="application/json+oembed" href="http://93.184.216.34/oembed?url=article">'
+                .'</head></html>'
+            );
+        });
+
+        $result = $this->createEmbed($httpClient)->fetch('http://93.184.216.34/article');
+
+        self::assertSame('Flooded sinkhole', $result->title);
+        self::assertSame('http://93.184.216.34/cover.jpg', $result->image);
+        self::assertSame(1, $oEmbedRequestCount);
+    }
+
+    public function testFailedPageRequestFailsFetch(): void
+    {
+        $httpClient = new MockHttpClient(new MockResponse('', ['error' => 'Idle timeout reached']));
+
+        $result = $this->createEmbed($httpClient)->fetch('http://93.184.216.34/article');
+
+        self::assertNull($result->url);
+        self::assertNull($result->title);
+    }
+
     public function testUnsupportedVideoSourceHtmlIsRejected(): void
     {
         $embed = $this->createEmbed();

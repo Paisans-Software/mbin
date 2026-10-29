@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace App\Factory;
 
-use Embed\Http\Crawler;
 use Symfony\Component\HttpClient\NoPrivateNetworkHttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -39,12 +38,6 @@ class WwwHttpClientFactory implements ResetInterface
     {
         $client = $this->getClient($base, $clientOptions);
         return new Psr18Client($client);
-    }
-
-    public function getEmbedCrawler(?HttpClientInterface $base = null, ?array $clientOptions = null): Crawler
-    {
-        $client = $this->getPsr18Client($base, $clientOptions);
-        return new Crawler($client, $client, $client);
     }
 
     private function buildConfiguredClient(HttpClientInterface $client): HttpClientInterface

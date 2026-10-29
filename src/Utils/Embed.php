@@ -13,6 +13,8 @@ use App\Service\SettingsManager;
 use App\Service\VideoManager;
 use Embed\Embed as BaseEmbed;
 use Embed\Extractor;
+use Embed\Http\Crawler;
+use Embed\Http\FactoryDiscovery;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -111,8 +113,7 @@ class Embed
 
     private function fetchEmbed(string $url): Extractor
     {
-        $fetcher = new BaseEmbed($this->httpClientFactory->getEmbedCrawler());
-        $embed = $fetcher->get($url);
+        $embed = $this->createFetcher()->get($url);
 
         if ($this->detectFaultyRedirectEmbed($embed)) {
             $this->logger->debug('[Embed::fetch] Suspecting faulty redirect, refetching', [
@@ -120,10 +121,17 @@ class Embed
                 'responseUrl' => $embed->getUri(),
             ]);
 
-            $embed = $fetcher->get((string) $embed->getUri());
+            $embed = $this->createFetcher()->get((string) $embed->getUri());
         }
 
         return $embed;
+    }
+
+    private function createFetcher(): BaseEmbed
+    {
+        $client = $this->httpClientFactory->getPsr18Client();
+
+        return new BaseEmbed(new Crawler(new EmbedPageClient($client, FactoryDiscovery::getResponseFactory(), $this->logger), $client, $client));
     }
 
     private function detectFaultyRedirectEmbed(Extractor $embed): bool
