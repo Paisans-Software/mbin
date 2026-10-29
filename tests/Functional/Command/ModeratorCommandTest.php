@@ -34,6 +34,25 @@ class ModeratorCommandTest extends KernelTestCase
         $this->assertTrue($this->repository->findOneByUsername('actor')->isModerator());
     }
 
+    public function testKeepsOtherRoles(): void
+    {
+        $dto = (new UserDto())->create('actor', 'contact@example.com');
+        $dto->plainPassword = 'secret';
+        $user = $this->getContainer()->get(UserManager::class)->create($dto, false);
+        $user->setOrRemoveAdminRole();
+        $this->getContainer()->get('doctrine')->getManager()->flush();
+
+        $tester = new CommandTester($this->command);
+        $tester->execute(['username' => 'actor']);
+        $tester->execute(['username' => 'actor']);
+
+        $this->assertSame(['ROLE_ADMIN', 'ROLE_MODERATOR'], $this->repository->findOneByUsername('actor')->roles);
+
+        $tester->execute(['username' => 'actor', '--remove' => true]);
+
+        $this->assertSame(['ROLE_ADMIN'], $this->repository->findOneByUsername('actor')->roles);
+    }
+
     protected function setUp(): void
     {
         $application = new Application(self::bootKernel());
