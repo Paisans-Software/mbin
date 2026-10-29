@@ -383,6 +383,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Visibil
         return $this;
     }
 
+    public function setOrRemoveAgentRole(bool $remove = false): self
+    {
+        $this->roles = ['ROLE_AGENT'];
+
+        if ($remove) {
+            $this->roles = [];
+        }
+
+        return $this;
+    }
+
     public function getPassword(): string
     {
         return (string) $this->password;
@@ -735,6 +746,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Visibil
     public function isModerator(): bool
     {
         return \in_array('ROLE_MODERATOR', $this->getRoles());
+    }
+
+    public function isAgent(): bool
+    {
+        return \in_array('ROLE_AGENT', $this->getRoles());
     }
 
     public function getRoles(): array
