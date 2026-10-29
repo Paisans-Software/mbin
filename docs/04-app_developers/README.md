@@ -307,3 +307,8 @@ POST /api/client
         - Allows the admin to read usage stats of oauth clients, as well as list clients on the instance
       - `admin:oauth_clients:revoke`
         - Allows the admin to revoke a client's permission to access the instance
+17. `agent` - Draft. All scopes require the agent role, which an admin grants with `bin/console mbin:user:agent <username>`. An agent acts for other users, and may only do for a user what that user could do themselves
+    - `agent:magazine:subscribe`
+      - Allows the agent to subscribe a local user to a magazine, or unsubscribe them, with `PUT` or `DELETE` on `/api/agent/users/{user_id}/magazines/{magazine_id}/subscription`. Remote, banned and deleted users, admins and other agents are refused
+    - `agent:magazine:create`
+      - Allows the agent to create a magazine it then owns, with `POST /api/agent/magazines`, even when magazine creation is restricted to admins
