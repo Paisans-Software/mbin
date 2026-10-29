@@ -1307,3 +1307,4 @@ no_access_requests: There are no pending requests.
 deny: Deny
 shadow_untitled: Untitled post
 send_unconfirmed: Could not confirm this was sent. It may already have been posted, so reload the page and check before sending it again.
+link_image_preview: Thumbnail from the link
