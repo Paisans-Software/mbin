@@ -363,39 +363,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Visibil
 
     public function setOrRemoveAdminRole(bool $remove = false): self
     {
-        $this->roles = ['ROLE_ADMIN'];
-
-        if ($remove) {
-            $this->roles = [];
-        }
+        $this->setOrRemoveRole('ROLE_ADMIN', $remove);
 
         return $this;
     }
 
     public function setOrRemoveModeratorRole(bool $remove = false): self
     {
-        $this->roles = ['ROLE_MODERATOR'];
-
-        if ($remove) {
-            $this->roles = [];
-        }
+        $this->setOrRemoveRole('ROLE_MODERATOR', $remove);
 
         return $this;
     }
 
     /**
-     * Adds or removes ROLE_AGENT alone. Unlike the admin and moderator helpers,
-     * it leaves every other role in place.
+     * Adds or removes ROLE_AGENT and leaves the other roles in place.
      */
     public function setOrRemoveAgentRole(bool $remove = false): self
     {
-        $roles = array_values(array_diff($this->roles, ['ROLE_AGENT']));
-        if (!$remove) {
-            $roles[] = 'ROLE_AGENT';
-        }
-        $this->roles = $roles;
+        $this->setOrRemoveRole('ROLE_AGENT', $remove);
 
         return $this;
+    }
+
+    /**
+     * Adds or removes one role and leaves the others in place, as the admin
+     * panel does for global moderators.
+     */
+    private function setOrRemoveRole(string $role, bool $remove): void
+    {
+        $roles = array_values(array_diff($this->roles, [$role]));
+        if (!$remove) {
+            $roles[] = $role;
+        }
+        $this->roles = $roles;
     }
 
     public function getPassword(): string
