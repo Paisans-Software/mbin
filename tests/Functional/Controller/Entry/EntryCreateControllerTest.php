@@ -26,6 +26,18 @@ class EntryCreateControllerTest extends WebTestCase
         $this->assertSelectorExists('form[name=entry]');
     }
 
+    public function testLinkFormCarriesAHiddenImagePreview(): void
+    {
+        $this->client->loginUser($this->getUserByUsername('user'));
+
+        $this->getMagazineByName('acme');
+
+        $this->client->request('GET', '/m/acme/new_entry');
+
+        $this->assertSelectorExists('form[name=entry] figure.link-image-preview.hidden[data-entry-link-create-target=imagePreview] img[data-entry-link-create-target=imagePreviewImage]');
+        $this->assertSelectorTextContains('form[name=entry] figure.link-image-preview figcaption', 'Thumbnail from the link');
+    }
+
     public function testUserCanCreateEntryLinkFromMagazinePage(): void
     {
         $this->client->loginUser($this->getUserByUsername('user'));
