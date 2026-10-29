@@ -11,11 +11,15 @@ use App\Tests\WebTestCase;
 
 class AgentMagazineSubscriptionApiTest extends WebTestCase
 {
+    use AgentTokenTrait;
+
+    private const SCOPE = 'agent:magazine:subscribe';
+
     public function testPutSubscribes(): void
     {
         [$member, $magazine] = $this->target();
 
-        $this->request('PUT', $member, $magazine, $this->agentToken());
+        $this->request('PUT', $member, $magazine, $this->agentToken(self::SCOPE));
 
         self::assertResponseStatusCodeSame(204);
         self::assertTrue($this->reloadMagazine($magazine)->isSubscribed($this->reloadUser($member)));
@@ -24,7 +28,7 @@ class AgentMagazineSubscriptionApiTest extends WebTestCase
     public function testPutTwiceIsIdempotent(): void
     {
         [$member, $magazine] = $this->target();
-        $token = $this->agentToken();
+        $token = $this->agentToken(self::SCOPE);
 
         $this->request('PUT', $member, $magazine, $token);
         self::assertResponseStatusCodeSame(204);
@@ -39,7 +43,7 @@ class AgentMagazineSubscriptionApiTest extends WebTestCase
         [$member, $magazine] = $this->target();
         $this->magazineManager->subscribe($magazine, $member);
 
-        $this->request('DELETE', $member, $magazine, $this->agentToken());
+        $this->request('DELETE', $member, $magazine, $this->agentToken(self::SCOPE));
 
         self::assertResponseStatusCodeSame(204);
         self::assertFalse($this->reloadMagazine($magazine)->isSubscribed($this->reloadUser($member)));
@@ -49,7 +53,7 @@ class AgentMagazineSubscriptionApiTest extends WebTestCase
     {
         [$member, $magazine] = $this->target();
 
-        $this->request('DELETE', $member, $magazine, $this->agentToken());
+        $this->request('DELETE', $member, $magazine, $this->agentToken(self::SCOPE));
 
         self::assertResponseStatusCodeSame(204);
     }
@@ -77,7 +81,7 @@ class AgentMagazineSubscriptionApiTest extends WebTestCase
     {
         [$member, $magazine] = $this->target();
 
-        $this->request('PUT', $member, $magazine, $this->agentToken(grantRole: false));
+        $this->request('PUT', $member, $magazine, $this->agentToken(self::SCOPE, grantRole: false));
 
         self::assertResponseStatusCodeSame(403);
         self::assertFalse($this->reloadMagazine($magazine)->isSubscribed($this->reloadUser($member)));
@@ -87,7 +91,7 @@ class AgentMagazineSubscriptionApiTest extends WebTestCase
     {
         [, $magazine] = $this->target();
 
-        $this->client->request('PUT', $this->path(999999, $magazine->getId()), server: $this->auth($this->agentToken()));
+        $this->client->request('PUT', $this->path(999999, $magazine->getId()), server: $this->auth($this->agentToken(self::SCOPE)));
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -96,7 +100,7 @@ class AgentMagazineSubscriptionApiTest extends WebTestCase
     {
         [$member] = $this->target();
 
-        $this->client->request('PUT', $this->path($member->getId(), 999999), server: $this->auth($this->agentToken()));
+        $this->client->request('PUT', $this->path($member->getId(), 999999), server: $this->auth($this->agentToken(self::SCOPE)));
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -165,28 +169,6 @@ class AgentMagazineSubscriptionApiTest extends WebTestCase
         return [$member, $magazine];
     }
 
-    private function agentToken(string $scope = 'agent:magazine:subscribe', bool $grantRole = true): string
-    {
-        self::createOAuth2ClientCredsClient();
-        // A bot account signs in like any other, so it must be verified.
-        $bot = $this->userRepository->findOneByUsername('test_bot');
-        $bot->isVerified = true;
-        if ($grantRole) {
-            $bot->setOrRemoveAgentRole();
-        }
-        $this->entityManager->flush();
-
-        $this->client->request('POST', '/token', [
-            'grant_type' => 'client_credentials',
-            'client_id' => 'testclient',
-            'client_secret' => 'testsecret',
-            'scope' => $scope,
-        ]);
-        $json = self::getJsonResponse($this->client);
-
-        return $json['token_type'].' '.$json['access_token'];
-    }
-
     private function request(string $method, User $member, Magazine $magazine, string $token): void
     {
         $this->client->request($method, $this->path($member->getId(), $magazine->getId()), server: $this->auth($token));
@@ -194,7 +176,7 @@ class AgentMagazineSubscriptionApiTest extends WebTestCase
 
     private function assertRefused(User $member, Magazine $magazine): void
     {
-        $this->request('PUT', $member, $magazine, $this->agentToken());
+        $this->request('PUT', $member, $magazine, $this->agentToken(self::SCOPE));
 
         self::assertResponseStatusCodeSame(400);
         self::assertFalse($this->reloadMagazine($magazine)->isSubscribed($this->reloadUser($member)));

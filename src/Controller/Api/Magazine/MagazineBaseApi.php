@@ -73,7 +73,7 @@ class MagazineBaseApi extends BaseApi
         return $dto;
     }
 
-    protected function createMagazine(?ImageDto $image = null): Magazine
+    protected function createMagazine(?ImageDto $image = null, bool $ignoreCreationRestriction = false): Magazine
     {
         $dto = $this->deserializeMagazine();
 
@@ -104,7 +104,7 @@ class MagazineBaseApi extends BaseApi
         }
 
         // Rate limit handled elsewhere
-        $magazine = $this->manager->create($dto, $this->getUserOrThrow(), rateLimit: false);
+        $magazine = $this->manager->create($dto, $this->getUserOrThrow(), rateLimit: false, ignoreCreationRestriction: $ignoreCreationRestriction);
 
         return $magazine;
     }

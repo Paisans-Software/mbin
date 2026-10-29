@@ -15,7 +15,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 class AgentCommandTest extends KernelTestCase
 {
     private Command $command;
-    private ?UserRepository $repository;
+    private UserRepository $repository;
 
     public function testGrantsAndRevokesAgentRole(): void
     {
