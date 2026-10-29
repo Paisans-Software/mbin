@@ -9,3 +9,9 @@ api_agent_magazine_unsubscribe:
   path: /api/agent/users/{user_id}/magazines/{magazine_id}/subscription
   methods: [ DELETE ]
   format: json
+
+api_agent_magazine_create:
+  controller: App\Controller\Api\Agent\AgentMagazineCreateApi
+  path: /api/agent/magazines
+  methods: [ POST ]
+  format: json
