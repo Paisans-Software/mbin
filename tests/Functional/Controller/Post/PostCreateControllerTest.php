@@ -37,6 +37,17 @@ class PostCreateControllerTest extends WebTestCase
         $this->assertSelectorTextContains('#content .post', 'test post 1');
     }
 
+    public function testPostComposerExplainsPostsAndPointsToThreads(): void
+    {
+        $this->client->loginUser($this->getUserByUsername('JohnDoe'));
+        $this->getMagazineByName('acme');
+
+        $crawler = $this->client->request('GET', '/m/acme/microblog');
+
+        $this->assertSelectorTextContains('.composer-hint', "A post is about what you're saying. Replies are directed at you.");
+        $this->assertSame('/m/acme/new_entry', $crawler->filter('.composer-hint a')->attr('href'));
+    }
+
     #[Group(name: 'NonThreadSafe')]
     public function testUserCanCreatePostWithImage(): void
     {
