@@ -40,6 +40,25 @@ class AgentCommandTest extends KernelTestCase
         $this->assertFalse($this->repository->findOneByUsername('actor')->isAgent());
     }
 
+    public function testKeepsOtherRoles(): void
+    {
+        $dto = (new UserDto())->create('actor', 'contact@example.com');
+        $dto->plainPassword = 'secret';
+        $user = $this->getContainer()->get(UserManager::class)->create($dto, false);
+        $user->setOrRemoveModeratorRole();
+        $this->getContainer()->get('doctrine')->getManager()->flush();
+
+        $tester = new CommandTester($this->command);
+        $tester->execute(['username' => 'actor']);
+        $tester->execute(['username' => 'actor']);
+
+        $this->assertSame(['ROLE_MODERATOR', 'ROLE_AGENT'], $this->repository->findOneByUsername('actor')->roles);
+
+        $tester->execute(['username' => 'actor', '--remove' => true]);
+
+        $this->assertSame(['ROLE_MODERATOR'], $this->repository->findOneByUsername('actor')->roles);
+    }
+
     public function testUnknownUserFails(): void
     {
         $tester = new CommandTester($this->command);

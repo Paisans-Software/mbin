@@ -55,6 +55,21 @@ class AgentMagazineCreateApiTest extends WebTestCase
         self::assertNull($this->magazineRepository->findOneByName('welcome'));
     }
 
+    public function testAuthorizationCodeTokenOfAnAgentIsForbidden(): void
+    {
+        $agent = $this->getUserByUsername('AgentPerson');
+        $agent->setOrRemoveAgentRole();
+        $this->entityManager->flush();
+        $this->client->loginUser($agent);
+        self::createOAuth2AuthCodeClient();
+        $codes = self::getAuthorizationCodeTokenResponse($this->client, scopes: self::SCOPE);
+
+        $this->create($codes['token_type'].' '.$codes['access_token']);
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertNull($this->magazineRepository->findOneByName('welcome'));
+    }
+
     private function create(string $token): void
     {
         $this->client->jsonRequest(

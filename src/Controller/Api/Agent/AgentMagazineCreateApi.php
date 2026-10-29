@@ -20,6 +20,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  */
 class AgentMagazineCreateApi extends MagazineBaseApi
 {
+    use AgentClientCredentialsTrait;
+
     #[OA\Response(
         response: 201,
         description: 'Draft: magazine created, owned by the agent',
@@ -42,7 +44,7 @@ class AgentMagazineCreateApi extends MagazineBaseApi
     )]
     #[OA\Response(
         response: 403,
-        description: 'The token lacks the agent:magazine:create scope, or its user is not an agent',
+        description: 'The token lacks the agent:magazine:create scope, its user is not an agent, or it is not a client credentials token of the agent\'s own client',
         content: new OA\JsonContent(ref: new Model(type: \App\Schema\Errors\ForbiddenErrorSchema::class))
     )]
     #[OA\Response(
@@ -59,6 +61,7 @@ class AgentMagazineCreateApi extends MagazineBaseApi
         RateLimiterFactoryInterface $apiMagazineLimiter,
     ): JsonResponse {
         $headers = $this->rateLimit($apiMagazineLimiter);
+        $this->requireOwnClientCredentials();
 
         $magazine = $this->createMagazine(ignoreCreationRestriction: true);
 
