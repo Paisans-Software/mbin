@@ -1308,3 +1308,9 @@ deny: Deny
 shadow_untitled: Untitled post
 send_unconfirmed: Could not confirm this was sent. It may already have been posted, so reload the page and check before sending it again.
 link_image_preview: Thumbnail from the link
+composer_hint_thread: A thread is about a topic. Replies discuss the subject.
+composer_hint_post: A post is about what you're saying. Replies are directed at you.
+composer_nudge_thread: More of a thought than a topic?
+composer_nudge_thread_link: Post it
+composer_nudge_post: More of a topic than a thought?
+composer_nudge_post_link: Start a thread

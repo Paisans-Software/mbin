@@ -19,6 +19,7 @@ class EntryEditControllerTest extends WebTestCase
         $crawler = $this->client->click($crawler->filter('#main .entry')->selectLink('Edit')->link());
 
         $this->assertSelectorExists('#main .entry_edit');
+        $this->assertSelectorNotExists('.composer-hint');
 
         $this->assertInputValueSame('entry_edit[url]', 'https://kbin.pub');
         $this->assertEquals('disabled', $crawler->filter('#entry_edit_magazine')->attr('disabled'));

@@ -38,6 +38,21 @@ class EntryCreateControllerTest extends WebTestCase
         $this->assertSelectorTextContains('form[name=entry] figure.link-image-preview figcaption', 'Thumbnail from the link');
     }
 
+    public function testThreadComposerExplainsThreadsAndPointsToPosts(): void
+    {
+        $this->client->loginUser($this->getUserByUsername('user'));
+        $this->getMagazineByName('acme');
+
+        $crawler = $this->client->request('GET', '/m/acme/new_entry');
+
+        $this->assertSelectorTextContains('.composer-hint', 'A thread is about a topic. Replies discuss the subject.');
+        $this->assertSame('/m/acme/microblog', $crawler->filter('.composer-hint a')->attr('href'));
+
+        $crawler = $this->client->request('GET', '/new_entry');
+
+        $this->assertSame('/microblog', $crawler->filter('.composer-hint a')->attr('href'));
+    }
+
     public function testUserCanCreateEntryLinkFromMagazinePage(): void
     {
         $this->client->loginUser($this->getUserByUsername('user'));

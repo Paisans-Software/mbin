@@ -9,6 +9,16 @@
 
 {{ form_start(form, {attr: {class: edit ? 'entry_edit' : 'entry-create'}}) }}
 
+    {% if not edit %}
+        <div class="alert alert__info composer-hint">
+            <p>{{ 'composer_hint_thread'|trans }}</p>
+            <p>
+                {{ 'composer_nudge_thread'|trans }}
+                <a href="{{ magazine is defined and magazine ? path('magazine_posts', {name: magazine.name}) : path('posts_front') }}">{{ 'composer_nudge_thread_link'|trans }}</a>
+            </p>
+        </div>
+    {% endif %}
+
     <div>
         {% set label %}
             URL
