@@ -60,6 +60,12 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
 		if [ "$1" = 'frankenphp' ]; then
 			php bin/console mbin:ap:keys:update
 			php bin/console mbin:push:keys:update
+
+			# FORK DIVERGENCE — do not offer this upstream: make the agent OAuth client
+			# and its bot account match the MBIN_AGENT_* declaration.
+			if [ -n "${MBIN_AGENT_CLIENT_ID:-}" ]; then
+				php bin/console mbin:agent:sync
+			fi
 		fi
 	fi
 
