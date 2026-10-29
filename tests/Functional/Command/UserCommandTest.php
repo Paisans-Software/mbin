@@ -50,6 +50,24 @@ class UserCommandTest extends KernelTestCase
         $this->assertTrue($actor->isAdmin());
     }
 
+    public function testCreateAdminAndModeratorUser(): void
+    {
+        $tester = new CommandTester($this->command);
+        $tester->execute(
+            [
+                'username' => 'actor',
+                'email' => 'contact@example.com',
+                'password' => 'secret',
+                '--admin' => true,
+                '--moderator' => true,
+            ],
+        );
+
+        $actor = $this->repository->findOneByUsername('actor');
+        $this->assertTrue($actor->isAdmin());
+        $this->assertTrue($actor->isModerator());
+    }
+
     protected function setUp(): void
     {
         $application = new Application(self::bootKernel());
