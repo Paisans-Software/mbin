@@ -15,7 +15,7 @@ class CombinedRetrieveApiMagazineTest extends WebTestCase
         $this->createPost('unrelated post');
 
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $entry = $this->getEntryByTitle('another entry', url: 'https://wikipedia.com', magazine: $magazine);
+        $entry = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         $this->voteManager->vote(1, $entry, $this->getUserByUsername('voter1'), rateLimit: false);
         $post = $this->createPost('a post', $magazine);
         $post->createdAt = new \DateTimeImmutable('now - 1min');
@@ -61,7 +61,7 @@ class CombinedRetrieveApiMagazineTest extends WebTestCase
         $this->createPost('unrelated post');
 
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $entry = $this->getEntryByTitle('another entry', url: 'https://wikipedia.com', magazine: $magazine);
+        $entry = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         $this->voteManager->vote(1, $entry, $this->getUserByUsername('voter1'), rateLimit: false);
         $post = $this->createPost('a post', $magazine);
         $post->createdAt = new \DateTimeImmutable('now - 1min');
@@ -113,11 +113,11 @@ class CombinedRetrieveApiMagazineTest extends WebTestCase
         $first = $this->getEntryByTitle('an entry', body: 'test');
         $this->createEntryComment('up the ranking', $first);
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $second = $this->getEntryByTitle('another entry', url: 'https://wikipedia.com', magazine: $magazine);
+        $second = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         // Upvote and comment on $second so it should come first, but then pin $third so it actually comes first
         $voteManager->vote(1, $second, $voter, rateLimit: false);
         $this->createEntryComment('test', $second, $voter);
-        $third = $this->getEntryByTitle('a pinned entry', url: 'https://wikipedia.com', magazine: $magazine);
+        $third = $this->getEntryByTitle('a pinned entry', url: 'https://kbin.invalid', magazine: $magazine);
         $third->createdAt = new \DateTimeImmutable('now - 1min');
         $this->entryManager->pin($third, null);
         $fourth = $this->createPost('a pinned post', $magazine);
@@ -151,10 +151,10 @@ class CombinedRetrieveApiMagazineTest extends WebTestCase
     {
         $first = $this->getEntryByTitle('first', body: 'test');
         $magazine = $first->magazine;
-        $second = $this->getEntryByTitle('second', url: 'https://wikipedia.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
         $third = $this->createPost('third', $magazine);
         $forth = $this->createPost('forth', $magazine);
-        $fifth = $this->getEntryByTitle('fifth', url: 'https://wikipedia.com');
+        $fifth = $this->getEntryByTitle('fifth', url: 'https://kbin.invalid');
 
         $first->createdAt = new \DateTimeImmutable('-1min');
         $second->createdAt = new \DateTimeImmutable('-2min');
@@ -193,10 +193,10 @@ class CombinedRetrieveApiMagazineTest extends WebTestCase
     {
         $first = $this->getEntryByTitle('first', body: 'test');
         $magazine = $first->magazine;
-        $second = $this->getEntryByTitle('second', url: 'https://wikipedia.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
         $third = $this->createPost('third', $magazine);
         $forth = $this->createPost('forth', $magazine);
-        $fifth = $this->getEntryByTitle('fifth', url: 'https://wikipedia.com');
+        $fifth = $this->getEntryByTitle('fifth', url: 'https://kbin.invalid');
 
         $first->createdAt = new \DateTimeImmutable('-1hour');
         $second->createdAt = new \DateTimeImmutable('-4min');
@@ -239,7 +239,7 @@ class CombinedRetrieveApiMagazineTest extends WebTestCase
         $magazine = $first->magazine;
         $second = $this->createPost('second', $magazine);
         $this->createPostComment('comment 1', $second);
-        $third = $this->getEntryByTitle('third', url: 'https://wikipedia.com');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($this->getUserByUsername('user'));
@@ -269,7 +269,7 @@ class CombinedRetrieveApiMagazineTest extends WebTestCase
     {
         $first = $this->getEntryByTitle('first', body: 'test');
         $magazine = $first->magazine;
-        $second = $this->getEntryByTitle('second', url: 'https://wikipedia.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
         $third = $this->createPost('third', $magazine);
 
         $first->lastActive = new \DateTime('now');
@@ -306,7 +306,7 @@ class CombinedRetrieveApiMagazineTest extends WebTestCase
         $first = $this->getEntryByTitle('first', body: 'test');
         $magazine = $first->magazine;
         $second = $this->createPost('second', $magazine);
-        $third = $this->getEntryByTitle('third', url: 'https://wikipedia.com');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
 
         $voteManager = $this->voteManager;
         $voteManager->vote(1, $first, $this->getUserByUsername('voter1'), rateLimit: false);

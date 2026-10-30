@@ -13,7 +13,7 @@ class MagazineEntryRetrieveApiTest extends WebTestCase
         $entry = $this->getEntryByTitle('an entry', body: 'test');
         $this->createEntryComment('up the ranking', $entry);
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine);
+        $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
 
         $this->client->request('GET', "/api/magazine/{$magazine->getId()}/entries");
         self::assertResponseIsSuccessful();
@@ -44,7 +44,7 @@ class MagazineEntryRetrieveApiTest extends WebTestCase
         $entry = $this->getEntryByTitle('an entry', body: 'test');
         $this->createEntryComment('up the ranking', $entry);
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine);
+        $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($this->getUserByUsername('user'));
@@ -84,11 +84,11 @@ class MagazineEntryRetrieveApiTest extends WebTestCase
         $first = $this->getEntryByTitle('an entry', body: 'test');
         $this->createEntryComment('up the ranking', $first);
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $second = $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine);
+        $second = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         // Upvote and comment on $second so it should come first, but then pin $third so it actually comes first
         $voteManager->vote(1, $second, $voter, rateLimit: false);
         $this->createEntryComment('test', $second, $voter);
-        $third = $this->getEntryByTitle('a pinned entry', url: 'https://google.com', magazine: $magazine);
+        $third = $this->getEntryByTitle('a pinned entry', url: 'https://kbin.invalid', magazine: $magazine);
         $entryManager->pin($third, null);
 
         self::createOAuth2AuthCodeClient();
@@ -138,8 +138,8 @@ class MagazineEntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetMagazineEntriesNewest(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $magazine = $first->magazine;
 
         $first->createdAt = new \DateTimeImmutable('-1 hour');
@@ -187,8 +187,8 @@ class MagazineEntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetMagazineEntriesOldest(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $magazine = $first->magazine;
 
         $first->createdAt = new \DateTimeImmutable('-1 hour');
@@ -238,9 +238,9 @@ class MagazineEntryRetrieveApiTest extends WebTestCase
         $first = $this->getEntryByTitle('first', body: 'test');
         $this->createEntryComment('comment 1', $first);
         $this->createEntryComment('comment 2', $first);
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
         $this->createEntryComment('comment 1', $second);
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $magazine = $first->magazine;
 
         self::createOAuth2AuthCodeClient();
@@ -281,8 +281,8 @@ class MagazineEntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetMagazineEntriesActive(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $magazine = $first->magazine;
 
         $first->lastActive = new \DateTime('-1 hour');
@@ -330,8 +330,8 @@ class MagazineEntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetMagazineEntriesTop(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $magazine = $first->magazine;
 
         $voteManager = $this->voteManager;

@@ -68,7 +68,7 @@ class CrosspostDetectionTest extends WebTestCase
         $entry3 = $this->createEntry('article with url', $magazine3, $user, url: 'https://duckduckgo.com');
         sleep(1);
         $magazine4 = $this->getMagazineByName('acme4');
-        $entry4 = $this->createEntry('article 001', $magazine4, $user, url: 'https://google.com');
+        $entry4 = $this->createEntry('article 001', $magazine4, $user, url: 'https://kbin.invalid');
         $this->entityManager->persist($entry1);
         $this->entityManager->persist($entry2);
         $this->entityManager->persist($entry3);

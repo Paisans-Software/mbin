@@ -14,7 +14,7 @@ class UserEntryRetrieveApiTest extends WebTestCase
         $this->createEntryComment('up the ranking', $entry);
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
         $otherUser = $this->getUserByUsername('somebody');
-        $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine, user: $otherUser);
+        $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine, user: $otherUser);
 
         $this->client->request('GET', "/api/users/{$otherUser->getId()}/entries");
         self::assertResponseIsSuccessful();
@@ -49,7 +49,7 @@ class UserEntryRetrieveApiTest extends WebTestCase
         $this->createEntryComment('up the ranking', $entry);
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
         $otherUser = $this->getUserByUsername('somebody');
-        $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine, user: $otherUser);
+        $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine, user: $otherUser);
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($this->getUserByUsername('user'));
@@ -87,8 +87,8 @@ class UserEntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetUserEntriesNewest(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $otherUser = $first->user;
 
         $first->createdAt = new \DateTimeImmutable('-1 hour');
@@ -136,8 +136,8 @@ class UserEntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetUserEntriesOldest(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $otherUser = $first->user;
 
         $first->createdAt = new \DateTimeImmutable('-1 hour');
@@ -187,9 +187,9 @@ class UserEntryRetrieveApiTest extends WebTestCase
         $first = $this->getEntryByTitle('first', body: 'test');
         $this->createEntryComment('comment 1', $first);
         $this->createEntryComment('comment 2', $first);
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
         $this->createEntryComment('comment 1', $second);
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $otherUser = $first->user;
 
         self::createOAuth2AuthCodeClient();
@@ -230,8 +230,8 @@ class UserEntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetUserEntriesActive(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $otherUser = $first->user;
 
         $first->lastActive = new \DateTime('-1 hour');
@@ -279,8 +279,8 @@ class UserEntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetUserEntriesTop(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $otherUser = $first->user;
 
         $voteManager = $this->voteManager;

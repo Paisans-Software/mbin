@@ -151,7 +151,7 @@ class EntryUpdateApiTest extends WebTestCase
     public function testApiCannotUpdateLinkEntryAnonymous(): void
     {
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', magazine: $magazine);
 
         $updateRequest = [
             'title' => 'Updated title',
@@ -172,7 +172,7 @@ class EntryUpdateApiTest extends WebTestCase
     {
         $user = $this->getUserByUsername('user');
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', user: $user, magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', user: $user, magazine: $magazine);
 
         $updateRequest = [
             'title' => 'Updated title',
@@ -200,7 +200,7 @@ class EntryUpdateApiTest extends WebTestCase
         $otherUser = $this->getUserByUsername('somebody');
         $user = $this->getUserByUsername('user');
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', user: $otherUser, magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', user: $otherUser, magazine: $magazine);
 
         $updateRequest = [
             'title' => 'Updated title',

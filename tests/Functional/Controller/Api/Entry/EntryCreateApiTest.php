@@ -112,7 +112,7 @@ class EntryCreateApiTest extends WebTestCase
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
         $entryRequest = [
             'title' => 'Anonymous Thread',
-            'url' => 'https://google.com',
+            'url' => 'https://kbin.invalid',
             'body' => 'google',
             'tags' => ['test'],
             'isOc' => false,
@@ -129,7 +129,7 @@ class EntryCreateApiTest extends WebTestCase
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
         $entryRequest = [
             'title' => 'No Scope Thread',
-            'url' => 'https://google.com',
+            'url' => 'https://kbin.invalid',
             'body' => 'google',
             'tags' => ['test'],
             'isOc' => false,
