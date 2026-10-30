@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
-use App\Factory\WwwHttpClientFactory;
 use App\Service\SettingsManager;
 use App\Utils\Embed;
 use Psr\Log\LoggerInterface;
@@ -29,9 +28,8 @@ class TestingEmbed extends Embed
         private readonly SettingsManager $settingsManager,
         LoggerInterface $logger,
         EventDispatcherInterface $dispatcher,
-        WwwHttpClientFactory $httpClientFactory,
     ) {
-        parent::__construct($cache, $settingsManager, $logger, $dispatcher, $httpClientFactory);
+        parent::__construct($cache, $settingsManager, $logger, $dispatcher);
     }
 
     public function respond(string $url, ?string $image = null, ?string $html = null, ?string $title = null, ?string $description = null): void
@@ -49,7 +47,10 @@ class TestingEmbed extends Embed
         self::$responses = [];
     }
 
-    public function fetch(string $url): Embed
+    /**
+     * @param string $url
+     */
+    public function fetch($url): Embed
     {
         if ($this->settingsManager->isLocalUrl($url)) {
             return parent::fetch($url);
