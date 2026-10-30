@@ -53,7 +53,7 @@ class EntryCreateApiNewTest extends WebTestCase
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
         $entryRequest = [
             'body' => 'This has no title',
-            'url' => 'https://google.com',
+            'url' => 'https://kbin.invalid',
             'tags' => ['test'],
             'isOc' => false,
             'lang' => 'en',
@@ -135,7 +135,7 @@ class EntryCreateApiNewTest extends WebTestCase
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
         $entryRequest = [
             'title' => 'Anonymous Thread',
-            'url' => 'https://google.com',
+            'url' => 'https://kbin.invalid',
             'body' => 'google',
             'tags' => ['test'],
             'isOc' => false,
@@ -152,7 +152,7 @@ class EntryCreateApiNewTest extends WebTestCase
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
         $entryRequest = [
             'title' => 'No Scope Thread',
-            'url' => 'https://google.com',
+            'url' => 'https://kbin.invalid',
             'body' => 'google',
             'tags' => ['test'],
             'isOc' => false,
@@ -240,7 +240,7 @@ class EntryCreateApiNewTest extends WebTestCase
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
         $entryRequest = [
             'title' => 'Test Thread',
-            'url' => 'https://google.com',
+            'url' => 'https://kbin.invalid',
             'body' => 'This is a link',
             'tags' => ['test'],
             'isOc' => false,
@@ -283,7 +283,7 @@ class EntryCreateApiNewTest extends WebTestCase
         self::assertSame($user->getId(), $jsonData['user']['userId']);
         self::assertIsArray($jsonData['domain']);
         self::assertArrayKeysMatch(self::DOMAIN_RESPONSE_KEYS, $jsonData['domain']);
-        self::assertEquals('https://google.com', $jsonData['url']);
+        self::assertEquals('https://kbin.invalid', $jsonData['url']);
         self::assertEquals('This is a link', $jsonData['body']);
         self::assertIsArray($jsonData['image']);
         self::assertArrayKeysMatch(self::IMAGE_KEYS, $jsonData['image']);

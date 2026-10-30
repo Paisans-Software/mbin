@@ -70,7 +70,7 @@ class EntryPurgeApiTest extends WebTestCase
     public function testApiCannotPurgeLinkEntryAnonymous(): void
     {
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', magazine: $magazine);
 
         $this->client->request('DELETE', "/api/admin/entry/{$entry->getId()}/purge");
         self::assertResponseStatusCodeSame(401);
@@ -80,7 +80,7 @@ class EntryPurgeApiTest extends WebTestCase
     {
         $user = $this->getUserByUsername('user', isAdmin: true);
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', user: $user, magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', user: $user, magazine: $magazine);
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($user);
@@ -97,7 +97,7 @@ class EntryPurgeApiTest extends WebTestCase
         $otherUser = $this->getUserByUsername('somebody');
         $user = $this->getUserByUsername('user');
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', user: $otherUser, magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', user: $otherUser, magazine: $magazine);
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($user);
@@ -114,7 +114,7 @@ class EntryPurgeApiTest extends WebTestCase
         $admin = $this->getUserByUsername('admin', isAdmin: true);
         $user = $this->getUserByUsername('user');
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', user: $user, magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', user: $user, magazine: $magazine);
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($admin);
