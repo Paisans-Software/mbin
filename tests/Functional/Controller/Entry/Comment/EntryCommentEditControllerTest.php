@@ -13,7 +13,7 @@ class EntryCommentEditControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
         $this->createEntryComment('test comment 1', $entry);
 
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");
@@ -43,7 +43,7 @@ class EntryCommentEditControllerTest extends WebTestCase
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
         $imageDto = $this->getKibbyImageDto();
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
         $this->createEntryComment('test comment 1', $entry, imageDto: $imageDto);
 
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");

@@ -15,7 +15,7 @@ class MagazineTrashControllerTest extends WebTestCase
 
         $entry = $this->getEntryByTitle(
             'Test entry 1',
-            'https://kbin.pub',
+            'https://kbin.invalid',
             null,
             null,
             $this->getUserByUsername('JaneDoe')

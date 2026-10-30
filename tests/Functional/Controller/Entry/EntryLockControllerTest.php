@@ -12,7 +12,7 @@ class EntryLockControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}/-/moderate");
 
@@ -30,7 +30,7 @@ class EntryLockControllerTest extends WebTestCase
         $user = $this->getUserByUsername('user');
         $this->client->loginUser($user);
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub', user: $user);
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid', user: $user);
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}");
         $this->assertSelectorExists('#main .entry footer .dropdown .fa-lock');
 
@@ -44,7 +44,7 @@ class EntryLockControllerTest extends WebTestCase
         $user = $this->getUserByUsername('JohnDoe');
         $this->client->loginUser($user);
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
         $this->entryManager->toggleLock($entry, $user);
 
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}/-/moderate");
@@ -60,7 +60,7 @@ class EntryLockControllerTest extends WebTestCase
         $user = $this->getUserByUsername('user');
         $this->client->loginUser($user);
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub', user: $user);
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid', user: $user);
         $this->entryManager->toggleLock($entry, $user);
 
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}");

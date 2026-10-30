@@ -18,7 +18,7 @@ class EntryChangeMagazineControllerTest extends WebTestCase
 
         $entry = $this->getEntryByTitle(
             'test entry 1',
-            'https://kbin.pub',
+            'https://kbin.invalid',
         );
 
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}/-/moderate");
@@ -69,7 +69,7 @@ class EntryChangeMagazineControllerTest extends WebTestCase
 
         $entry = $this->getEntryByTitle(
             'test entry 1',
-            'https://kbin.pub',
+            'https://kbin.invalid',
         );
 
         $this->client->request('GET', "/m/acme/t/{$entry->getId()}/-/moderate");

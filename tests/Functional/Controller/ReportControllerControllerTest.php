@@ -14,7 +14,7 @@ class ReportControllerControllerTest extends WebTestCase
 
         $entry = $this->getEntryByTitle(
             'test entry 1',
-            'https://kbin.pub',
+            'https://kbin.invalid',
             null,
             null,
             $this->getUserByUsername('JaneDoe')
@@ -44,7 +44,7 @@ class ReportControllerControllerTest extends WebTestCase
 
         $entry = $this->getEntryByTitle(
             'test entry 1',
-            'https://kbin.pub',
+            'https://kbin.invalid',
             null,
             null,
             $this->getUserByUsername('JaneDoe')

@@ -174,8 +174,8 @@ class UserEditControllerTest extends WebTestCase
 
         $this->client->submit(
             $crawler->filter('#main form[name=user_email]')->selectButton('Save')->form([
-                'user_email[newEmail][first]' => 'acme@kbin.pub',
-                'user_email[newEmail][second]' => 'acme@kbin.pub',
+                'user_email[newEmail][first]' => 'acme@kbin.invalid',
+                'user_email[newEmail][second]' => 'acme@kbin.invalid',
                 'user_email[currentPassword]' => 'secret',
             ])
         );
@@ -185,7 +185,7 @@ class UserEditControllerTest extends WebTestCase
         /** @var TemplatedEmail $email */
         $email = $this->getMailerMessage();
 
-        $this->assertEmailHeaderSame($email, 'To', 'acme@kbin.pub');
+        $this->assertEmailHeaderSame($email, 'To', 'acme@kbin.invalid');
 
         $verificationLink = (new Crawler($email->getHtmlBody()))
             ->filter('a.btn.btn__primary')

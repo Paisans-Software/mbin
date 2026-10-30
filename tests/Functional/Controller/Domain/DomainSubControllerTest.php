@@ -14,12 +14,12 @@ class DomainSubControllerTest extends WebTestCase
             'test entry 1',
             $this->getMagazineByName('acme'),
             $this->getUserByUsername('JohnDoe'),
-            'http://kbin.pub/instances'
+            'http://kbin.invalid/instances'
         );
 
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $crawler = $this->client->request('GET', '/d/kbin.pub');
+        $crawler = $this->client->request('GET', '/d/kbin.invalid');
 
         // Subscribe
         $this->client->submit($crawler->filter('#sidebar .domain')->selectButton('Subscribe')->form());
@@ -44,12 +44,12 @@ class DomainSubControllerTest extends WebTestCase
             'test entry 1',
             $this->getMagazineByName('acme'),
             $this->getUserByUsername('JohnDoe'),
-            'http://kbin.pub/instances'
+            'http://kbin.invalid/instances'
         );
 
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $crawler = $this->client->request('GET', '/d/kbin.pub');
+        $crawler = $this->client->request('GET', '/d/kbin.invalid');
 
         // Subscribe
         $this->client->setServerParameter('HTTP_X-Requested-With', 'XMLHttpRequest');
@@ -65,12 +65,12 @@ class DomainSubControllerTest extends WebTestCase
             'test entry 1',
             $this->getMagazineByName('acme'),
             $this->getUserByUsername('JohnDoe'),
-            'http://kbin.pub/instances'
+            'http://kbin.invalid/instances'
         );
 
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $crawler = $this->client->request('GET', '/d/kbin.pub');
+        $crawler = $this->client->request('GET', '/d/kbin.invalid');
 
         // Subscribe
         $this->client->submit($crawler->filter('#sidebar .domain')->selectButton('Subscribe')->form());

@@ -13,7 +13,7 @@ class EntryEditControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");
 
         $crawler = $this->client->click($crawler->filter('#main .entry')->selectLink('Edit')->link());
@@ -21,7 +21,7 @@ class EntryEditControllerTest extends WebTestCase
         $this->assertSelectorExists('#main .entry_edit');
         $this->assertSelectorNotExists('.composer-hint');
 
-        $this->assertInputValueSame('entry_edit[url]', 'https://kbin.pub');
+        $this->assertInputValueSame('entry_edit[url]', 'https://kbin.invalid');
         $this->assertEquals('disabled', $crawler->filter('#entry_edit_magazine')->attr('disabled'));
 
         $this->client->submit(

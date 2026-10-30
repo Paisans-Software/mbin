@@ -14,20 +14,20 @@ class DomainFrontControllerTest extends WebTestCase
             'test entry 1',
             $this->getMagazineByName('acme'),
             $this->getUserByUsername('JohnDoe'),
-            'http://kbin.pub/instances'
+            'http://kbin.invalid/instances'
         );
 
         $crawler = $this->client->request('GET', '/');
         $crawler = $this->client->click($crawler->filter('#content article')->selectLink('More from domain')->link());
 
-        $this->assertSelectorTextContains('#header', '/d/kbin.pub');
+        $this->assertSelectorTextContains('#header', '/d/kbin.invalid');
         $this->assertSelectorTextContains('.entry__meta', 'JohnDoe');
         $this->assertSelectorTextContains('.entry__meta', 'to acme');
 
         foreach ($this->getSortOptions() as $sortOption) {
             $crawler = $this->client->click($crawler->filter('.options__filter')->selectLink($sortOption)->link());
             $this->assertSelectorTextContains('.options__filter', $sortOption);
-            $this->assertSelectorTextContains('h1', 'kbin.pub');
+            $this->assertSelectorTextContains('h1', 'kbin.invalid');
             $this->assertSelectorTextContains('h2', ucfirst($sortOption));
         }
     }
