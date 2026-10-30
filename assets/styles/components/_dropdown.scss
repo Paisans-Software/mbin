@@ -78,8 +78,9 @@ $transition: 180ms all 120ms ease-out;
     }
   }
 
-  &:hover,
-  &:focus-within {
+  &:not(.dropdown--click):hover,
+  &:not(.dropdown--click):focus-within,
+  &.dropdown--open {
     .dropdown__menu {
       transform: rotateX(0) translateX(-50%);
       visibility: visible;
@@ -88,11 +89,13 @@ $transition: 180ms all 120ms ease-out;
     }
   }
 
-  &:hover {
+  &:hover,
+  &.dropdown--open {
     z-index: 101;
   }
 
-  &:focus-within > .btn__secondary {
+  &:not(.dropdown--click):focus-within > .btn__secondary,
+  &.dropdown--open > .btn__secondary {
     color: var(--kbin-button-secondary-text-hover-color) !important;
     background: var(--kbin-button-secondary-hover-bg);
   }

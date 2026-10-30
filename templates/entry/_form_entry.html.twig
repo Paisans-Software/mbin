@@ -80,9 +80,15 @@
                     <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                 </button>
             {% endif %}
-            <li class="{{ html_classes('dropdown', {'hidden': hasImage}) }}">
+            <li class="{{ html_classes('dropdown dropdown--click', {'hidden': hasImage}) }}"
+                data-controller="image-upload"
+                data-action="click@window->image-upload#closeOutside keydown.esc@window->image-upload#close submit@window->image-upload#submitted image-upload:progress->image-upload#progress image-upload:end->image-upload#endUpload">
                 <button type="button"
                         class="btn btn__secondary"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        data-image-upload-target="button"
+                        data-action="image-upload#toggle"
                         aria-label="{{ 'add_media'|trans }}"
                         title="{{ 'add_media'|trans }}">
                     <i class="fa-solid fa-photo-film" aria-hidden="true"></i>
