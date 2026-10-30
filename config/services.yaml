@@ -288,3 +288,11 @@ services:
     Symfony\Component\HttpFoundation\Session\Storage\Handler\RedisSessionHandler:
         arguments:
             - '@cache.default_redis_provider'
+
+when@test:
+    services:
+        # Never fetch remote pages from tests. Defined here rather than set on the container,
+        # because KernelBrowser rebuilds the container between requests.
+        App\Utils\Embed:
+            class: App\Tests\Service\TestingEmbed
+            autowire: true

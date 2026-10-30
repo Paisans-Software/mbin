@@ -59,8 +59,10 @@ use App\Service\SettingsManager;
 use App\Service\UserManager;
 use App\Service\VoteManager;
 use App\Tests\Service\TestingApHttpClient;
+use App\Tests\Service\TestingEmbed;
 use App\Tests\Service\TestingImageManager;
 use App\Twig\Runtime\FormattingExtensionRuntime;
+use App\Utils\Embed;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
@@ -162,6 +164,7 @@ abstract class WebTestCase extends BaseWebTestCase
     protected EntryPageFactory $pageFactory;
     protected TestingApHttpClient $testingApHttpClient;
     protected TestingImageManager $imageManager;
+    protected TestingEmbed $testingEmbed;
 
     protected CreateWrapper $createWrapper;
     protected LikeWrapper $likeWrapper;
@@ -210,6 +213,11 @@ abstract class WebTestCase extends BaseWebTestCase
         );
         $this->imageManager->setKibbyPath($this->kibbyPath);
         self::getContainer()->set(ImageManagerInterface::class, $this->imageManager);
+
+        $testingEmbed = $this->getService(Embed::class);
+        \assert($testingEmbed instanceof TestingEmbed);
+        $this->testingEmbed = $testingEmbed;
+        $this->testingEmbed->clearResponses();
 
         $this->entityManager = $this->getService(EntityManagerInterface::class);
         $this->magazineManager = $this->getService(MagazineManager::class);
