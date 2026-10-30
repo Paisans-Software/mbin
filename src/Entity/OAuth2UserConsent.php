@@ -178,6 +178,9 @@ class OAuth2UserConsent
         'admin:oauth_clients' => 'oauth2.grant.admin.oauth_clients.all',
         'admin:oauth_clients:read' => 'oauth2.grant.admin.oauth_clients.read',
         'admin:oauth_clients:revoke' => 'oauth2.grant.admin.oauth_clients.revoke',
+        // Act for other users as an agent
+        'agent:magazine:subscribe' => 'oauth2.grant.agent.magazine.subscribe',
+        'agent:magazine:create' => 'oauth2.grant.agent.magazine.create',
     ];
     #[Id]
     #[GeneratedValue]

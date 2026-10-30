@@ -149,6 +149,8 @@ class OAuth2ClientDto extends ImageUploadDto implements \JsonSerializable
         'admin:oauth_clients',
         'admin:oauth_clients:read',
         'admin:oauth_clients:revoke',
+        'agent:magazine:subscribe',
+        'agent:magazine:create',
     ];
 
     #[Assert\NotBlank(groups: ['deleting'])]

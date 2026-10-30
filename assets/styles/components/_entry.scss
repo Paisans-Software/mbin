@@ -549,6 +549,21 @@
       margin-bottom: 2.5rem !important;
     }
   }
+
+  .link-image-preview {
+    margin: 0.5rem 0 0;
+
+    img {
+      display: block;
+      max-height: 10rem;
+      max-width: 100%;
+    }
+
+    figcaption {
+      font-size: 0.8rem;
+      opacity: 0.75;
+    }
+  }
 }
 
 .page-entry-single {

@@ -11,6 +11,9 @@ use App\Service\ImageManager;
 use App\Service\SettingsManager;
 use Embed\Embed as BaseEmbed;
 use Embed\Extractor;
+use Embed\Http\Crawler;
+use Embed\Http\CurlClient;
+use Embed\Http\FactoryDiscovery;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -107,8 +110,7 @@ class Embed
 
     private function fetchEmbed(string $url): Extractor
     {
-        $fetcher = new BaseEmbed();
-        $embed = $fetcher->get($url);
+        $embed = $this->createFetcher()->get($url);
 
         if ($this->detectFaultyRedirectEmbed($embed)) {
             $this->logger->debug('[Embed::fetch] Suspecting faulty redirect, refetching', [
@@ -116,10 +118,15 @@ class Embed
                 'responseUrl' => $embed->getUri(),
             ]);
 
-            $embed = $fetcher->get((string) $embed->getUri());
+            $embed = $this->createFetcher()->get((string) $embed->getUri());
         }
 
         return $embed;
+    }
+
+    private function createFetcher(): BaseEmbed
+    {
+        return new BaseEmbed(new Crawler(new EmbedPageClient(new CurlClient(), FactoryDiscovery::getResponseFactory(), $this->logger)));
     }
 
     private function detectFaultyRedirectEmbed(Extractor $embed): bool

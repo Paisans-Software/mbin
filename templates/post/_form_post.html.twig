@@ -21,6 +21,15 @@
 
 <h3 hidden>{{ title }}</h3>
 {{ form_start(form, {action: action, attr: {class: edit ? 'post-edit replace' : 'post-add'}|merge(attributes)}) }}
+{% if not edit %}
+    <div class="alert alert__info composer-hint">
+        <p>{{ 'composer_hint_post'|trans }}</p>
+        <p>
+            {{ 'composer_nudge_post'|trans }}
+            <a href="{{ magazine is defined and magazine ? path('magazine_entry_create', {name: magazine.name}) : path('entry_create') }}">{{ 'composer_nudge_post_link'|trans }}</a>
+        </p>
+    </div>
+{% endif %}
 <div class="row">
     {{ component('editor_toolbar', {id: 'post_body'}) }}
     {{ form_row(form.body, {label: false, attr: {
@@ -49,9 +58,15 @@
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
         {% endif %}
-        <li class="{{ html_classes('dropdown', {'hidden': hasImage}) }}">
+        <li class="{{ html_classes('dropdown dropdown--click', {'hidden': hasImage}) }}"
+            data-controller="image-upload"
+            data-action="click@window->image-upload#closeOutside keydown.esc@window->image-upload#close submit@window->image-upload#submitted image-upload:progress->image-upload#progress image-upload:end->image-upload#endUpload">
             <button type="button"
                     class="btn btn__secondary"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    data-image-upload-target="button"
+                    data-action="image-upload#toggle"
                     aria-label="{{ 'add_media'|trans }}"
                     title="{{ 'add_media'|trans }}">
                 <i class="fa-solid fa-photo-film" aria-hidden="true"></i>

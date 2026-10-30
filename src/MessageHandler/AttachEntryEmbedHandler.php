@@ -8,6 +8,7 @@ use App\Entity\Entry;
 use App\Entity\Image;
 use App\Message\Contracts\MessageInterface;
 use App\Message\EntryEmbedMessage;
+use App\Message\Notification\EntryEditedNotificationMessage;
 use App\Repository\EntryRepository;
 use App\Repository\ImageRepository;
 use App\Service\ImageManagerInterface;
@@ -17,6 +18,8 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 #[AsMessageHandler]
 class AttachEntryEmbedHandler extends MbinMessageHandler
@@ -29,6 +32,7 @@ class AttachEntryEmbedHandler extends MbinMessageHandler
         private readonly ImageRepository $imageRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly LoggerInterface $logger,
+        private readonly MessageBusInterface $bus,
     ) {
         parent::__construct($this->entityManager, $this->kernel);
     }
@@ -81,6 +85,11 @@ class AttachEntryEmbedHandler extends MbinMessageHandler
         }
 
         $this->entityManager->flush();
+
+        // Pages already showing the entry were rendered without its embed or cover. Dispatched
+        // after this handler, so the update is only sent once the transaction holding the
+        // change is committed and a page that reloads the entry sees it.
+        $this->bus->dispatch(new EntryEditedNotificationMessage($entry->getId()), [new DispatchAfterCurrentBusStamp()]);
     }
 
     private function fetchCover(Entry $entry, Embed $embed): ?Image

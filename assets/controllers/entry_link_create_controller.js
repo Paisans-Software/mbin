@@ -5,7 +5,7 @@ import router from '../utils/routing';
 /* stimulusFetch: 'lazy' */
 export default class extends ApplicationController {
     static throttles = ['fetchLink'];
-    static targets = ['title', 'description', 'url', 'loader'];
+    static targets = ['title', 'description', 'url', 'loader', 'imagePreview', 'imagePreviewImage'];
     static values = {
         loading: Boolean,
     };
@@ -27,6 +27,7 @@ export default class extends ApplicationController {
 
     fetchLink(event) {
         if (!event.target.value) {
+            this.hideImagePreview();
             return;
         }
 
@@ -45,6 +46,7 @@ export default class extends ApplicationController {
                 .catch(() => {
                     this.loadingValue = false;
                     this.timeoutId = null;
+                    this.hideImagePreview();
                 });
         }, 1000);
     }
@@ -82,5 +84,34 @@ export default class extends ApplicationController {
         // required for input length indicator
         this.titleTarget.dispatchEvent(new Event('input'));
         this.descriptionTarget.dispatchEvent(new Event('input'));
+
+        this.showImagePreview(response.image);
+    }
+
+    // The cover is downloaded and stored only once the entry is saved. Until then, show the
+    // image the link points to, so the author sees which picture the entry will get.
+    showImagePreview(image) {
+        if (!this.hasImagePreviewTarget) {
+            return;
+        }
+
+        const url = URL.canParse(image) ? new URL(image) : null;
+
+        if (!url || !['http:', 'https:'].includes(url.protocol)) {
+            this.hideImagePreview();
+            return;
+        }
+
+        this.imagePreviewImageTarget.src = url.href;
+        this.imagePreviewTarget.classList.remove('hidden');
+    }
+
+    hideImagePreview() {
+        if (!this.hasImagePreviewTarget) {
+            return;
+        }
+
+        this.imagePreviewTarget.classList.add('hidden');
+        this.imagePreviewImageTarget.removeAttribute('src');
     }
 }

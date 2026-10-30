@@ -9,6 +9,16 @@
 
 {{ form_start(form, {attr: {class: edit ? 'entry_edit' : 'entry-create'}}) }}
 
+    {% if not edit %}
+        <div class="alert alert__info composer-hint">
+            <p>{{ 'composer_hint_thread'|trans }}</p>
+            <p>
+                {{ 'composer_nudge_thread'|trans }}
+                <a href="{{ magazine is defined and magazine ? path('magazine_posts', {name: magazine.name}) : path('posts_front') }}">{{ 'composer_nudge_thread_link'|trans }}</a>
+            </p>
+        </div>
+    {% endif %}
+
     <div>
         {% set label %}
             URL
@@ -19,6 +29,12 @@
         {{ form_label(form.url, label, {'label_html': true}) }}
         {{ form_errors(form.url) }}
         {{ form_widget(form.url, {attr: {'data-action': 'entry-link-create#fetchLink','data-entry-link-create-target': 'url'}}) }}
+        <figure class="link-image-preview hidden" data-entry-link-create-target="imagePreview">
+            <img alt=""
+                 data-entry-link-create-target="imagePreviewImage"
+                 data-action="error->entry-link-create#hideImagePreview">
+            <figcaption>{{ 'link_image_preview'|trans }}</figcaption>
+        </figure>
     </div>
 
     {{ form_row(form.title, {
@@ -64,9 +80,15 @@
                     <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                 </button>
             {% endif %}
-            <li class="{{ html_classes('dropdown', {'hidden': hasImage}) }}">
+            <li class="{{ html_classes('dropdown dropdown--click', {'hidden': hasImage}) }}"
+                data-controller="image-upload"
+                data-action="click@window->image-upload#closeOutside keydown.esc@window->image-upload#close submit@window->image-upload#submitted image-upload:progress->image-upload#progress image-upload:end->image-upload#endUpload">
                 <button type="button"
                         class="btn btn__secondary"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        data-image-upload-target="button"
+                        data-action="image-upload#toggle"
                         aria-label="{{ 'add_media'|trans }}"
                         title="{{ 'add_media'|trans }}">
                     <i class="fa-solid fa-photo-film" aria-hidden="true"></i>

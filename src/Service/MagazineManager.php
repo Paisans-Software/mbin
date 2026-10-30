@@ -58,9 +58,12 @@ class MagazineManager
     ) {
     }
 
-    public function create(MagazineDto $dto, ?User $user, bool $rateLimit = true): Magazine
+    /**
+     * @param bool $ignoreCreationRestriction create the magazine even when MBIN_RESTRICT_MAGAZINE_CREATION limits creation to admins and moderators, as an agent may
+     */
+    public function create(MagazineDto $dto, ?User $user, bool $rateLimit = true, bool $ignoreCreationRestriction = false): Magazine
     {
-        if (!$dto->apId && true === $this->settingsManager->get('MBIN_RESTRICT_MAGAZINE_CREATION') && !$user->isAdmin() && !$user->isModerator()) {
+        if (!$dto->apId && !$ignoreCreationRestriction && true === $this->settingsManager->get('MBIN_RESTRICT_MAGAZINE_CREATION') && !$user->isAdmin() && !$user->isModerator()) {
             throw new AccessDeniedException();
         }
 
