@@ -35,6 +35,7 @@ use App\Repository\UserFollowRepository;
 use App\Repository\UserRepository;
 use App\Service\ActivityPub\ActivityJsonBuilder;
 use App\Service\ActivityPub\ApHttpClientInterface;
+use App\Service\ActivityPub\KeysGenerator;
 use App\Service\ActivityPub\Wrapper\CreateWrapper;
 use App\Service\ActivityPub\Wrapper\LikeWrapper;
 use App\Service\ActivityPubManager;
@@ -186,6 +187,7 @@ abstract class WebTestCase extends BaseWebTestCase
 
     public function setUp(): void
     {
+        KeysGenerator::useKeyPool(self::testOnlyActorKeys());
         $this->users = new ArrayCollection();
         $this->magazines = new ArrayCollection();
         $this->entries = new ArrayCollection();
@@ -334,11 +336,29 @@ abstract class WebTestCase extends BaseWebTestCase
 
     protected function tearDown(): void
     {
+        KeysGenerator::resetKeyPool();
         parent::tearDown();
 
         $entityManager = $this->entityManager;
         if ($entityManager->isOpen()) {
             $entityManager->close();
         }
+    }
+
+    /**
+     * The committed test-only keys from tests/assets/test_only_actor_keys, read once per process.
+     *
+     * @return string[]
+     */
+    private static function testOnlyActorKeys(): array
+    {
+        static $keys = null;
+        if (null === $keys) {
+            $paths = glob(__DIR__.'/assets/test_only_actor_keys/actor_key_*.pem');
+            sort($paths);
+            $keys = array_map(file_get_contents(...), $paths);
+        }
+
+        return $keys;
     }
 }
