@@ -174,8 +174,8 @@ class UserEditControllerTest extends WebTestCase
 
         $this->client->submit(
             $crawler->filter('#main form[name=user_email]')->selectButton('Save')->form([
-                'user_email[newEmail][first]' => 'acme@kbin.pub',
-                'user_email[newEmail][second]' => 'acme@kbin.pub',
+                'user_email[newEmail][first]' => 'acme@kbin.invalid',
+                'user_email[newEmail][second]' => 'acme@kbin.invalid',
                 'user_email[currentPassword]' => 'secret',
             ])
         );
@@ -185,7 +185,7 @@ class UserEditControllerTest extends WebTestCase
         /** @var TemplatedEmail $email */
         $email = $this->getMailerMessage();
 
-        $this->assertEmailHeaderSame($email, 'To', 'acme@kbin.pub');
+        $this->assertEmailHeaderSame($email, 'To', 'acme@kbin.invalid');
 
         $verificationLink = (new Crawler($email->getHtmlBody()))
             ->filter('a.btn.btn__primary')
@@ -217,8 +217,8 @@ class UserEditControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/settings/email');
         $form = $crawler->filter('#main form[name=user_email]')->selectButton('Save')->form([
-            'user_email[newEmail][first]' => 'acme@kbin.pub',
-            'user_email[newEmail][second]' => 'acme@kbin.pub',
+            'user_email[newEmail][first]' => 'acme@kbin.invalid',
+            'user_email[newEmail][second]' => 'acme@kbin.invalid',
             'user_email[currentPassword]' => 'secret',
         ]);
 
@@ -232,13 +232,13 @@ class UserEditControllerTest extends WebTestCase
         $this->assertEmailCount(0);
 
         $this->entityManager->refresh($user);
-        $this->assertSame('johndoe@kbin.pub', $user->email);
+        $this->assertSame('johndoe@kbin.invalid', $user->email);
         $this->assertTrue($user->isVerified);
 
         $this->client->request('GET', '/settings/email');
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorNotExists('#main form[name=user_email]');
-        $this->assertSelectorTextContains('#content', 'johndoe@kbin.pub');
+        $this->assertSelectorTextContains('#content', 'johndoe@kbin.invalid');
     }
 }

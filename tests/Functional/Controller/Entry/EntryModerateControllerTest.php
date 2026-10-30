@@ -12,7 +12,7 @@ class EntryModerateControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('get', '/');
         $this->client->click($crawler->filter('#entry-'.$entry->getId())->selectLink('Moderate')->link());
@@ -24,7 +24,7 @@ class EntryModerateControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('get', '/');
         $this->client->setServerParameter('HTTP_X-Requested-With', 'XMLHttpRequest');
@@ -37,7 +37,7 @@ class EntryModerateControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $this->client->request('get', "/m/{$entry->magazine->name}/t/{$entry->getId()}");
         $this->assertSelectorTextNotContains('#entry-'.$entry->getId(), 'Moderate');

@@ -14,7 +14,7 @@ class EntryVotersControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $manager = $this->client->getContainer()->get(VoteManager::class);
         $manager->vote(VotableInterface::VOTE_UP, $entry, $this->getUserByUsername('JaneDoe'));
@@ -30,7 +30,7 @@ class EntryVotersControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $manager = $this->client->getContainer()->get(VoteManager::class);
         $manager->vote(VotableInterface::VOTE_DOWN, $entry, $this->getUserByUsername('JaneDoe'));

@@ -12,7 +12,7 @@ class VoteControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('Actor'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $u1 = $this->getUserByUsername('JohnDoe');
         $u2 = $this->getUserByUsername('JaneDoe');
@@ -30,7 +30,7 @@ class VoteControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('Actor'));
 
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('GET', '/');
         $this->client->setServerParameter('HTTP_X-Requested-With', 'XMLHttpRequest');

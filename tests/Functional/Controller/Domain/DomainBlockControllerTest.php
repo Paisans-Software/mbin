@@ -16,12 +16,12 @@ class DomainBlockControllerTest extends WebTestCase
             'test entry 1',
             $this->getMagazineByName('acme'),
             $this->getUserByUsername('JohnDoe'),
-            'http://kbin.pub/instances'
+            'http://kbin.invalid/instances'
         );
 
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $crawler = $this->client->request('GET', '/d/kbin.pub');
+        $crawler = $this->client->request('GET', '/d/kbin.invalid');
 
         // Block
         $this->client->submit($crawler->filter('#sidebar form[name=domain_block] button')->form());
@@ -43,12 +43,12 @@ class DomainBlockControllerTest extends WebTestCase
             'test entry 1',
             $this->getMagazineByName('acme'),
             $this->getUserByUsername('JohnDoe'),
-            'http://kbin.pub/instances'
+            'http://kbin.invalid/instances'
         );
 
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $crawler = $this->client->request('GET', '/d/kbin.pub');
+        $crawler = $this->client->request('GET', '/d/kbin.invalid');
 
         $this->client->setServerParameter('HTTP_X-Requested-With', 'XMLHttpRequest');
         $this->client->submit($crawler->filter('#sidebar form[name=domain_block] button')->form());
@@ -64,12 +64,12 @@ class DomainBlockControllerTest extends WebTestCase
             'test entry 1',
             $this->getMagazineByName('acme'),
             $this->getUserByUsername('JohnDoe'),
-            'http://kbin.pub/instances'
+            'http://kbin.invalid/instances'
         );
 
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $crawler = $this->client->request('GET', '/d/kbin.pub');
+        $crawler = $this->client->request('GET', '/d/kbin.invalid');
 
         // Block
         $this->client->submit($crawler->filter('#sidebar form[name=domain_block] button')->form());
