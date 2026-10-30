@@ -16,7 +16,7 @@ class EntrySingleControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('GET', '/');
 
@@ -48,17 +48,17 @@ class EntrySingleControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");
-        $this->assertSelectorExists('article h1 a[href="https://kbin.pub"]', 'test entry 1');
+        $this->assertSelectorExists('article h1 a[href="https://kbin.invalid"]', 'test entry 1');
     }
 
     public function testPostActivityCounter(): void
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $manager = $this->client->getContainer()->get(VoteManager::class);
         $manager->vote(VotableInterface::VOTE_DOWN, $entry, $this->getUserByUsername('JaneDoe'));
@@ -76,7 +76,7 @@ class EntrySingleControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
         $this->createEntryComment('test comment 1', $entry);
         $this->createEntryComment('test comment 2', $entry);
 

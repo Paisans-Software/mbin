@@ -14,7 +14,7 @@ class UserFollowControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('GET', '/m/acme/t/'.$entry->getId());
 
@@ -39,7 +39,7 @@ class UserFollowControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('GET', '/m/acme/t/'.$entry->getId());
 
@@ -55,7 +55,7 @@ class UserFollowControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JaneDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('GET', '/m/acme/t/'.$entry->getId());
 

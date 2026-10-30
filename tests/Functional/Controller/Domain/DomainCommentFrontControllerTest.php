@@ -14,14 +14,14 @@ class DomainCommentFrontControllerTest extends WebTestCase
             'test entry 1',
             $this->getMagazineByName('acme'),
             $this->getUserByUsername('JohnDoe'),
-            'http://kbin.pub/instances'
+            'http://kbin.invalid/instances'
         );
         $this->createEntryComment('test comment 1', $entry);
 
-        $crawler = $this->client->request('GET', '/d/kbin.pub');
+        $crawler = $this->client->request('GET', '/d/kbin.invalid');
         $crawler = $this->client->click($crawler->filter('#header')->selectLink('Comments')->link());
 
-        $this->assertSelectorTextContains('#header', '/d/kbin.pub');
+        $this->assertSelectorTextContains('#header', '/d/kbin.invalid');
         $this->assertSelectorTextContains('blockquote header', 'JohnDoe');
         $this->assertSelectorTextContains('blockquote header', 'to acme in test entry 1');
         $this->assertSelectorTextContains('blockquote .content', 'test comment 1');
@@ -29,7 +29,7 @@ class DomainCommentFrontControllerTest extends WebTestCase
         foreach ($this->getSortOptions() as $sortOption) {
             $crawler = $this->client->click($crawler->filter('.options__filter')->selectLink($sortOption)->link());
             $this->assertSelectorTextContains('.options__filter', $sortOption);
-            $this->assertSelectorTextContains('h1', 'kbin.pub');
+            $this->assertSelectorTextContains('h1', 'kbin.invalid');
             $this->assertSelectorTextContains('h2', ucfirst($sortOption));
         }
     }

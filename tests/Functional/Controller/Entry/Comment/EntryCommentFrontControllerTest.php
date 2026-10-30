@@ -156,17 +156,17 @@ class EntryCommentFrontControllerTest extends WebTestCase
     {
         $this->createEntryComment(
             'test comment 1',
-            $this->getEntryByTitle('test entry 1', 'https://kbin.pub'),
+            $this->getEntryByTitle('test entry 1', 'https://kbin.invalid'),
             $this->getUserByUsername('JohnDoe')
         );
         $this->createEntryComment(
             'test comment 2',
-            $this->getEntryByTitle('test entry 1', 'https://kbin.pub'),
+            $this->getEntryByTitle('test entry 1', 'https://kbin.invalid'),
             $this->getUserByUsername('JohnDoe')
         );
         $this->createEntryComment(
             'test comment 3',
-            $this->getEntryByTitle('test entry 2', 'https://kbin.pub', null, $this->getMagazineByName('kbin')),
+            $this->getEntryByTitle('test entry 2', 'https://kbin.invalid', null, $this->getMagazineByName('kbin')),
             $this->getUserByUsername('JohnDoe')
         );
 

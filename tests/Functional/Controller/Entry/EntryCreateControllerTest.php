@@ -29,7 +29,7 @@ class EntryCreateControllerTest extends WebTestCase
         $this->client->submit(
             $crawler->filter('form[name=entry]')->selectButton('Add new thread')->form(
                 [
-                    'entry[url]' => 'https://kbin.pub',
+                    'entry[url]' => 'https://kbin.invalid',
                     'entry[title]' => 'Test entry 1',
                     'entry[body]' => 'Test body',
                 ]

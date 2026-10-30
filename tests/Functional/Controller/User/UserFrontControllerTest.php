@@ -158,19 +158,19 @@ class UserFrontControllerTest extends WebTestCase
     {
         $entry1 = $this->getEntryByTitle(
             'test entry 1',
-            'https://kbin.pub',
+            'https://kbin.invalid',
             null,
             $this->getMagazineByName('mag', $this->getUserByUsername('JaneDoe')),
             $this->getUserByUsername('JaneDoe')
         );
         $entry2 = $this->getEntryByTitle(
             'test entry 2',
-            'https://kbin.pub',
+            'https://kbin.invalid',
             null,
             $this->getMagazineByName('mag', $this->getUserByUsername('JaneDoe')),
             $this->getUserByUsername('JaneDoe')
         );
-        $entry3 = $this->getEntryByTitle('test entry 3', 'https://kbin.pub');
+        $entry3 = $this->getEntryByTitle('test entry 3', 'https://kbin.invalid');
 
         $this->createEntryComment('test entry comment 1', $entry1);
         $this->createEntryComment('test entry comment 2', $entry2, $this->getUserByUsername('JaneDoe'));

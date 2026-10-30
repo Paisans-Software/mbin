@@ -427,14 +427,14 @@ trait FactoryTrait
 
         if ($parent) {
             $dto = (new EntryCommentDto())->createWithParent(
-                $entry ?? $this->getEntryByTitle('test entry content', 'https://kbin.pub'),
+                $entry ?? $this->getEntryByTitle('test entry content', 'https://kbin.invalid'),
                 $parent,
                 $imageDto ? $repository->find($imageDto->id) : null,
                 $body
             );
         } else {
             $dto = new EntryCommentDto();
-            $dto->entry = $entry ?? $this->getEntryByTitle('test entry content', 'https://kbin.pub');
+            $dto->entry = $entry ?? $this->getEntryByTitle('test entry content', 'https://kbin.invalid');
             $dto->body = $body;
             $dto->image = $imageDto;
         }
@@ -576,7 +576,7 @@ trait FactoryTrait
             $crawler->filter('form[name=user_register]')->selectButton('Register')->form(
                 [
                     'user_register[username]' => 'JohnDoe',
-                    'user_register[email]' => 'johndoe@kbin.pub',
+                    'user_register[email]' => 'johndoe@kbin.invalid',
                     'user_register[plainPassword][first]' => 'secret',
                     'user_register[plainPassword][second]' => 'secret',
                     'user_register[agreeTerms]' => true,

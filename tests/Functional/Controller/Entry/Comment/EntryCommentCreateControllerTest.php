@@ -13,7 +13,7 @@ class EntryCommentCreateControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");
 
@@ -36,7 +36,7 @@ class EntryCommentCreateControllerTest extends WebTestCase
         $user = $this->getUserByUsername('JohnDoe');
         $this->client->loginUser($user);
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
         $this->entryManager->toggleLock($entry, $user);
 
         $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");
@@ -49,7 +49,7 @@ class EntryCommentCreateControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");
 
@@ -75,7 +75,7 @@ class EntryCommentCreateControllerTest extends WebTestCase
     {
         $comment = $this->createEntryComment(
             'test comment 1',
-            $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub'),
+            $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid'),
             $this->getUserByUsername('JaneDoe')
         );
 
@@ -105,7 +105,7 @@ class EntryCommentCreateControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $crawler = $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");
 

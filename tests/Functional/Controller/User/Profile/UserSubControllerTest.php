@@ -39,7 +39,7 @@ class UserSubControllerTest extends WebTestCase
     {
         $this->client->loginUser($user = $this->getUserByUsername('JaneDoe'));
 
-        $entry = $this->getEntryByTitle('test1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test1', 'https://kbin.invalid');
 
         $this->domainManager->subscribe($entry->domain, $user);
 
@@ -47,6 +47,6 @@ class UserSubControllerTest extends WebTestCase
         $this->client->click($crawler->filter('#main .pills')->selectLink('Domains')->link());
 
         $this->assertSelectorTextContains('#main .pills .active', 'Domains');
-        $this->assertSelectorTextContains('#main', 'kbin.pub');
+        $this->assertSelectorTextContains('#main', 'kbin.invalid');
     }
 }

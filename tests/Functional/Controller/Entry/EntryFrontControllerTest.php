@@ -35,7 +35,7 @@ class EntryFrontControllerTest extends WebTestCase
 
     public function testXmlRootPage(): void
     {
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $this->client->setServerParameter('HTTP_X-Requested-With', 'XMLHttpRequest');
         $this->client->request('GET', '/');
@@ -45,7 +45,7 @@ class EntryFrontControllerTest extends WebTestCase
 
     public function testXmlRootPageIsFrontPage(): void
     {
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $this->client->setServerParameter('HTTP_X-Requested-With', 'XMLHttpRequest');
         $this->client->request('GET', '/');
@@ -81,7 +81,7 @@ class EntryFrontControllerTest extends WebTestCase
 
     public function testXmlFrontPage(): void
     {
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $this->client->setServerParameter('HTTP_X-Requested-With', 'XMLHttpRequest');
         $this->client->request('GET', '/all');
@@ -121,7 +121,7 @@ class EntryFrontControllerTest extends WebTestCase
 
     public function testXmlMagazinePage(): void
     {
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $this->client->setServerParameter('HTTP_X-Requested-With', 'XMLHttpRequest');
         $this->client->request('GET', '/m/acme/newest');
@@ -163,7 +163,7 @@ class EntryFrontControllerTest extends WebTestCase
 
     public function testXmlSubPage(): void
     {
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $magazineManager = $this->client->getContainer()->get(MagazineManager::class);
         $magazineManager->subscribe($this->getMagazineByName('acme'), $this->getUserByUsername('Actor'));
@@ -214,7 +214,7 @@ class EntryFrontControllerTest extends WebTestCase
     {
         $admin = $this->getUserByUsername('admin', isAdmin: true);
 
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $magazineManager = $this->client->getContainer()->get(MagazineManager::class);
         $moderator = new ModeratorDto($this->getMagazineByName('acme'));
@@ -237,7 +237,7 @@ class EntryFrontControllerTest extends WebTestCase
         $favouriteManager = $this->favouriteManager;
         $favouriteManager->toggle(
             $this->getUserByUsername('Actor'),
-            $this->getEntryByTitle('test entry 1', 'https://kbin.pub')
+            $this->getEntryByTitle('test entry 1', 'https://kbin.invalid')
         );
 
         $this->client->loginUser($this->getUserByUsername('Actor'));
@@ -265,12 +265,12 @@ class EntryFrontControllerTest extends WebTestCase
 
     public function testXmlFavPage(): void
     {
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $favouriteManager = $this->favouriteManager;
         $favouriteManager->toggle(
             $this->getUserByUsername('Actor'),
-            $this->getEntryByTitle('test entry 1', 'https://kbin.pub')
+            $this->getEntryByTitle('test entry 1', 'https://kbin.invalid')
         );
 
         $this->client->loginUser($this->getUserByUsername('Actor'));
@@ -334,14 +334,14 @@ class EntryFrontControllerTest extends WebTestCase
     {
         $older = $this->getEntryByTitle(
             'test entry 1',
-            'https://kbin.pub',
+            'https://kbin.invalid',
             null,
             $this->getMagazineByName('kbin', $this->getUserByUsername('JaneDoe')),
             $this->getUserByUsername('JaneDoe')
         );
         $older->createdAt = new \DateTimeImmutable('now - 1 minute');
 
-        $this->getEntryByTitle('test entry 2', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 2', 'https://kbin.invalid');
 
         return $this->client;
     }
