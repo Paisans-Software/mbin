@@ -12,7 +12,7 @@ class UserEntryCommentRetrieveApiTest extends WebTestCase
     {
         $this->getEntryByTitle('an entry', body: 'test');
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $entry = $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine);
+        $entry = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         $comment = $this->createEntryComment('test comment', $entry);
         $user = $entry->user;
 
@@ -46,7 +46,7 @@ class UserEntryCommentRetrieveApiTest extends WebTestCase
     {
         $this->getEntryByTitle('an entry', body: 'test');
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $entry = $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine);
+        $entry = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         $comment = $this->createEntryComment('test comment', $entry);
         $user = $entry->user;
 
@@ -86,7 +86,7 @@ class UserEntryCommentRetrieveApiTest extends WebTestCase
     {
         $this->getEntryByTitle('an entry', body: 'test');
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $entry = $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine);
+        $entry = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         $comment = $this->createEntryComment('test comment', $entry);
         $nested1 = $this->createEntryComment('test comment nested 1', $entry, parent: $comment);
         $nested2 = $this->createEntryComment('test comment nested 2', $entry, parent: $nested1);
@@ -130,7 +130,7 @@ class UserEntryCommentRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetUserEntryCommentsNewest(): void
     {
-        $entry = $this->getEntryByTitle('entry', url: 'https://google.com');
+        $entry = $this->getEntryByTitle('entry', url: 'https://kbin.invalid');
         $first = $this->createEntryComment('first', $entry);
         $second = $this->createEntryComment('second', $entry);
         $third = $this->createEntryComment('third', $entry);
@@ -180,7 +180,7 @@ class UserEntryCommentRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetUserEntryCommentsOldest(): void
     {
-        $entry = $this->getEntryByTitle('entry', url: 'https://google.com');
+        $entry = $this->getEntryByTitle('entry', url: 'https://kbin.invalid');
         $first = $this->createEntryComment('first', $entry);
         $second = $this->createEntryComment('second', $entry);
         $third = $this->createEntryComment('third', $entry);
@@ -230,7 +230,7 @@ class UserEntryCommentRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetUserEntryCommentsActive(): void
     {
-        $entry = $this->getEntryByTitle('entry', url: 'https://google.com');
+        $entry = $this->getEntryByTitle('entry', url: 'https://kbin.invalid');
         $first = $this->createEntryComment('first', $entry);
         $second = $this->createEntryComment('second', $entry);
         $third = $this->createEntryComment('third', $entry);
@@ -280,7 +280,7 @@ class UserEntryCommentRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetUserEntryCommentsTop(): void
     {
-        $entry = $this->getEntryByTitle('entry', url: 'https://google.com');
+        $entry = $this->getEntryByTitle('entry', url: 'https://kbin.invalid');
         $first = $this->createEntryComment('first', $entry);
         $second = $this->createEntryComment('second', $entry);
         $third = $this->createEntryComment('third', $entry);
@@ -328,7 +328,7 @@ class UserEntryCommentRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetUserEntryCommentsHot(): void
     {
-        $entry = $this->getEntryByTitle('entry', url: 'https://google.com');
+        $entry = $this->getEntryByTitle('entry', url: 'https://kbin.invalid');
         $first = $this->createEntryComment('first', $entry);
         $second = $this->createEntryComment('second', $entry);
         $third = $this->createEntryComment('third', $entry);

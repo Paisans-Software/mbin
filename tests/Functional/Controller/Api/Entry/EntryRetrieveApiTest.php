@@ -553,7 +553,7 @@ class EntryRetrieveApiTest extends WebTestCase
         $entry = $this->getEntryByTitle('an entry', body: 'test');
         $this->createEntryComment('up the ranking', $entry);
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $second = $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine);
+        $second = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         // Check that pinned entries don't get pinned to the top of the instance, just the magazine
         $entryManager = $this->entryManager;
         $entryManager->pin($second, null);
@@ -646,8 +646,8 @@ class EntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetEntriesNewest(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
 
         $first->createdAt = new \DateTimeImmutable('-1 hour');
         $second->createdAt = new \DateTimeImmutable('-1 second');
@@ -694,8 +694,8 @@ class EntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetEntriesOldest(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
 
         $first->createdAt = new \DateTimeImmutable('-1 hour');
         $second->createdAt = new \DateTimeImmutable('-1 second');
@@ -744,9 +744,9 @@ class EntryRetrieveApiTest extends WebTestCase
         $first = $this->getEntryByTitle('first', body: 'test');
         $this->createEntryComment('comment 1', $first);
         $this->createEntryComment('comment 2', $first);
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
         $this->createEntryComment('comment 1', $second);
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($this->getUserByUsername('user'));
@@ -786,8 +786,8 @@ class EntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetEntriesActive(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
 
         $first->lastActive = new \DateTime('-1 hour');
         $second->lastActive = new \DateTime('-1 second');
@@ -834,8 +834,8 @@ class EntryRetrieveApiTest extends WebTestCase
     public function testApiCanGetEntriesTop(): void
     {
         $first = $this->getEntryByTitle('first', body: 'test');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
 
         $voteManager = $this->voteManager;
         $voteManager->vote(1, $first, $this->getUserByUsername('voter1'), rateLimit: false);

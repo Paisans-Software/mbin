@@ -69,7 +69,7 @@ class EntryDeleteApiTest extends WebTestCase
     public function testApiCannotDeleteLinkEntryAnonymous(): void
     {
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com');
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid');
 
         $this->client->request('DELETE', "/api/entry/{$entry->getId()}");
         self::assertResponseStatusCodeSame(401);
@@ -79,7 +79,7 @@ class EntryDeleteApiTest extends WebTestCase
     {
         $user = $this->getUserByUsername('user');
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', user: $user, magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', user: $user, magazine: $magazine);
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($user);
@@ -96,7 +96,7 @@ class EntryDeleteApiTest extends WebTestCase
         $otherUser = $this->getUserByUsername('somebody');
         $user = $this->getUserByUsername('user');
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', user: $otherUser, magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', user: $otherUser, magazine: $magazine);
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($user);
@@ -112,7 +112,7 @@ class EntryDeleteApiTest extends WebTestCase
     {
         $user = $this->getUserByUsername('user');
         $magazine = $this->getMagazineByNameNoRSAKey('acme');
-        $entry = $this->getEntryByTitle('test link', url: 'https://google.com', user: $user, magazine: $magazine);
+        $entry = $this->getEntryByTitle('test link', url: 'https://kbin.invalid', user: $user, magazine: $magazine);
 
         self::createOAuth2AuthCodeClient();
         $this->client->loginUser($user);

@@ -12,7 +12,7 @@ class DomainEntryRetrieveApiTest extends WebTestCase
     {
         $this->getEntryByTitle('an entry', body: 'test');
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $entry = $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine);
+        $entry = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         $domain = $entry->domain;
 
         $this->client->request('GET', "/api/domain/{$domain->getId()}/entries");
@@ -43,7 +43,7 @@ class DomainEntryRetrieveApiTest extends WebTestCase
     {
         $this->getEntryByTitle('an entry', body: 'test');
         $magazine = $this->getMagazineByNameNoRSAKey('somemag');
-        $entry = $this->getEntryByTitle('another entry', url: 'https://google.com', magazine: $magazine);
+        $entry = $this->getEntryByTitle('another entry', url: 'https://kbin.invalid', magazine: $magazine);
         $domain = $entry->domain;
 
         self::createOAuth2AuthCodeClient();
@@ -78,9 +78,9 @@ class DomainEntryRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetDomainEntriesNewest(): void
     {
-        $first = $this->getEntryByTitle('first', url: 'https://google.com');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $first = $this->getEntryByTitle('first', url: 'https://kbin.invalid');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $domain = $first->domain;
 
         $first->createdAt = new \DateTimeImmutable('-1 hour');
@@ -127,9 +127,9 @@ class DomainEntryRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetDomainEntriesOldest(): void
     {
-        $first = $this->getEntryByTitle('first', url: 'https://google.com');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $first = $this->getEntryByTitle('first', url: 'https://kbin.invalid');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $domain = $first->domain;
 
         $first->createdAt = new \DateTimeImmutable('-1 hour');
@@ -176,12 +176,12 @@ class DomainEntryRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetDomainEntriesCommented(): void
     {
-        $first = $this->getEntryByTitle('first', url: 'https://google.com');
+        $first = $this->getEntryByTitle('first', url: 'https://kbin.invalid');
         $this->createEntryComment('comment 1', $first);
         $this->createEntryComment('comment 2', $first);
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
         $this->createEntryComment('comment 1', $second);
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $domain = $first->domain;
 
         self::createOAuth2AuthCodeClient();
@@ -221,9 +221,9 @@ class DomainEntryRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetDomainEntriesActive(): void
     {
-        $first = $this->getEntryByTitle('first', url: 'https://google.com');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $first = $this->getEntryByTitle('first', url: 'https://kbin.invalid');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $domain = $first->domain;
 
         $first->lastActive = new \DateTime('-1 hour');
@@ -270,9 +270,9 @@ class DomainEntryRetrieveApiTest extends WebTestCase
 
     public function testApiCanGetDomainEntriesTop(): void
     {
-        $first = $this->getEntryByTitle('first', url: 'https://google.com');
-        $second = $this->getEntryByTitle('second', url: 'https://google.com');
-        $third = $this->getEntryByTitle('third', url: 'https://google.com');
+        $first = $this->getEntryByTitle('first', url: 'https://kbin.invalid');
+        $second = $this->getEntryByTitle('second', url: 'https://kbin.invalid');
+        $third = $this->getEntryByTitle('third', url: 'https://kbin.invalid');
         $domain = $first->domain;
 
         $voteManager = $this->voteManager;
