@@ -408,3 +408,11 @@ services:
     App\Service\Oidc\OidcMemberGroupPolicy:
         arguments:
             $memberGroup: '%oauth_oidc_member_group%'
+
+when@test:
+    services:
+        # Never fetch remote pages from tests. Defined here rather than set on the container,
+        # because KernelBrowser rebuilds the container between requests.
+        App\Utils\Embed:
+            class: App\Tests\Service\TestingEmbed
+            autowire: true
