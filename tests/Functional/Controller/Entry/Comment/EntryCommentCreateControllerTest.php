@@ -41,7 +41,7 @@ class EntryCommentCreateControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->getUserByUsername('JohnDoe'));
 
-        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $entry = $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
 
         $this->client->request('GET', "/m/acme/t/{$entry->getId()}/test-entry-1");
 

@@ -35,7 +35,7 @@ class EntryFrontControllerTest extends WebTestCase
 
     public function testRootPageDefaultsToCombined(): void
     {
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
         $this->createPost('test post 1');
 
         $this->client->request('GET', '/');
@@ -52,7 +52,7 @@ class EntryFrontControllerTest extends WebTestCase
         $this->entityManager->flush();
         $this->client->loginUser($user);
 
-        $this->getEntryByTitle('test entry 1', 'https://kbin.pub');
+        $this->getEntryByTitle('test entry 1', 'https://kbin.invalid');
         $this->createPost('test post 1');
 
         $this->client->request('GET', '/');
